@@ -1,0 +1,265 @@
+body {
+    background: linear-gradient(25deg, #0f2249, #182e5a 20%, #0f2249 40%, #182e5a 60%, #0f2249 80%, #182e5a 100%);
+    padding: 0px;
+    margin: 0px;
+}
+
+ul {
+    padding: 0px;
+    margin: 0px;
+}
+
+.head {
+    /* height: 40px; */
+    background: url(../../images/head_bg.png) no-repeat center center;
+    background-size: 100% 100%;
+    position: relative;
+    margin-bottom: 20px;
+    border: 1px solid rgb(255, 255, 255, 0);
+}
+
+.head h1 {
+    color: #bde4ff;
+    text-align: center;
+    font-size: 25px;
+    /* line-height: 40px; */
+    letter-spacing: .06rem;
+}
+
+.head h1 img {
+    width: 1.5rem;
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: .2rem
+}
+
+.all_title {
+    background: linear-gradient(to top, #56c3ec, #b2f3f5);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-align: center;
+    letter-spacing: 2px;
+    font-family: '微软雅黑';
+    font-weight: bold;
+    /* font-size: 32px; */
+}
+
+
+.kanban_all {
+    /* border: 1px solid black; */
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.kanban_all_position {
+    /* border: 1px solid red; */
+    width: 98%;
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.kanban_item {
+    /* border: 1px solid red; */
+    width: calc(50% - 2%);
+    margin: 0 1% 1% 1%;
+}
+
+.kanban_line {
+    height: 280px;
+    border: 1px solid #3486da;
+    background: rgba(0, 70, 190, .1);
+    padding: .15rem;
+    position: relative;
+    margin-bottom: .25rem;
+    z-index: 10;
+    /* width: calc(50% - 3%); */
+    margin: 0 1% 1% 1%;
+}
+
+
+.kanban_line:before,
+.kanban_line:after {
+    position: absolute;
+    /* width: .15rem;
+    height: .15rem; */
+    content: "";
+    border-top: 3px solid #3486da;
+    top: -2px;
+}
+
+.kanban_line:before,
+.kanban_line:after,
+
+
+.kanban_title {
+    height: 20px;
+    padding: 1%;
+    font-family: '华文细黑';
+    font-weight: bold;
+    background: linear-gradient(to right, rgba(48, 82, 174, 1), rgba(48, 82, 174, 0));
+    color: #fff;
+    font-size: 14px;
+}
+
+.kanban_content {
+    height: 220px;
+    padding: 1%;
+    display: flex;
+    justify-content: center;
+    /* border: 1px solid red; */
+}
+
+.kanban_content table {
+    width: 100%;
+    /* border: 1px solid red; */
+}
+
+.kanban_content_left {
+    /* border: 1px solid red; */
+    width: 65%;
+}
+
+.kanban_content_right {
+    width: 35%;
+    /* border: 1px solid green; */
+}
+
+.kanban_content_right li {
+    margin-top: 5%;
+    font-family: '微软雅黑';
+}
+
+.kanban_content table td {
+    width: 100%;
+    /* 或者您可以根据需求设置其他百分比值，例如33.33% */
+}
+
+.kanban_line_double {
+    /* border: 1px solid blue; */
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+}
+
+.kanban_line_double .left {
+    /* border: 1px solid red; */
+    width: 48%;
+    height: 100%;
+}
+
+.kanban_line_double .left .kanban_title {
+    padding: 2%;
+}
+
+.kanban_line_double .middle {
+    background: none;
+    width: 3%;
+}
+
+.kanban_line_double .right {
+    /* border: 1px solid black; */
+    width: 48%;
+    height: 100%;
+}
+
+.kanban_line_double .right .kanban_title {
+    padding: 2%;
+}
+
+/* 表格 */
+.table {
+    text-align: center;
+    /* border: 1px solid black; */
+    border-collapse: collapse;
+}
+
+.table tr th {
+    width: 20%;
+    /* border: 1px solid black; */
+    color: #c0dcf0;
+    font-weight: bold;
+}
+
+.table tr td {
+    width: 20%;
+    text-align: center;
+    padding-top: 1%;
+    color: #8faade;
+}
+
+.quantity_show {
+    width: 100%;
+    font-size: 20px;
+    letter-spacing: 2px;
+    font-family: '微软雅黑';
+    text-align: center;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.quantity_show_position {
+    width: 100%;
+}
+
+.quantity_show div {
+    padding: 1%;
+    color: white;
+
+}
+
+.quantity_show .quantity_line2 {
+    color: white;
+    font-size: 30px;
+}
+
+.quantity_show .quantity_line3 ul {
+    display: flex;
+    /* border: 1px solid red; */
+    justify-content: center;
+    /* 水平居中 */
+    align-items: center;
+    /* 垂直居中 */
+}
+
+.quantity_show .quantity_line3 ul li {
+    margin: 0 5%;
+    /* border: 1px solid black; */
+    list-style: none;
+}
+
+.quantity_show .quantity_line3 ul li:nth-child(1):before {
+    content: "";
+    display: inline-block;
+    width: 12px;
+    /* 设置图标宽度 */
+    height: 12px;
+    /* 设置图标高度 */
+    background-color: red;
+    border-radius: 50%;
+    /* 设置图标背景颜色 */
+    margin-right: 5px;
+    /* 调整图标与文本之间的间距 */
+}
+
+.quantity_show .quantity_line3 ul li:nth-child(2):before {
+    content: "";
+    display: inline-block;
+    width: 12px;
+    /* 设置图标宽度 */
+    height: 12px;
+    /* 设置图标高度 */
+    background-color: green;
+    border-radius: 50%;
+    /* 设置图标背景颜色 */
+    margin-right: 5px;
+    /* 调整图标与文本之间的间距 */
+}
+
+.quantity_show .quantity_line3 span {
+    color: #fff;
+}

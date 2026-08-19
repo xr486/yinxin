@@ -1,0 +1,427 @@
+<?php
+
+ob_start();
+/* $Id: Vendors.php 6338 2013-09-28 05:10:46Z daintree $ */
+
+include('includes/session.inc');
+
+if (isset($_POST['Edit']) or isset($_GET['Edit']) or isset($_GET['DebtorNo'])) {
+    $ViewTopic = 'AccountsReceivable';
+    $BookMark = 'AmendVendor';
+} else {
+    $ViewTopic = 'AccountsReceivable';
+    $BookMark = 'NewVendor';
+}
+
+
+
+$Title = _('供应商建立');
+/* webERP manual links before header.inc */
+$ViewTopic = '供应商建立';
+$BookMark = '供应商建立';
+include('includes/header.inc');
+include('includes/SQL_CommonFunctions.inc');
+include('includes/CountriesArray.php');
+include('includes/CurrenciesArray.php');
+echo '<p class="page_title_text">
+		<img src="' . $RootPath . '/css/' . $Theme . '/images/customer.png" title="' . _('Customer') .
+ '" alt="" />' . ' ' . _('供应商维护') . '
+	</p>';
+
+
+if (isset($Errors)) {
+    unset($Errors);
+}
+$Errors = array();
+
+
+if (isset($_POST['AddVendor'])) {
+
+    //initialise no input errors assumed initially before we test
+    $InputError = 0;
+    $i = 1;
+    $_POST['vendor_code'] = mb_strtoupper($_POST['vendor_code']);
+ 
+
+    $sql_num = "select lpad((max( substr(vendor_code, -4,4 ) ) +1 ) , 4, 0) vendor_code  from vendors where 1=1 ";
+      // echo $sql_num;
+        $result_num = DB_query($sql_num, $db);
+        while ($v = DB_fetch_array($result_num)) {
+            if ($v['vendor_code'] == null) {
+                $OrderNum = '0001';
+            } else {
+                $OrderNum =  $v['vendor_code'];
+
+
+            }
+        }
+    //echo 'AAA';
+    $sql2 = "SELECT COUNT(vendor_code) FROM vendors WHERE vendor_code='" . $OrderNum . "'";
+    $result2 = DB_query($sql2, $db);
+    $myrow2 = DB_fetch_row($result2);
+    if ($myrow2[0] > 0 AND isset($_POST['AddVendor']) and $InputError <> 1) {
+       // echo 'BBB';
+        $InputError = 1;
+        prnMsg(_('供应商代码系统已存在'), 'error');
+        $Errors[$i] = 'vendor_code';
+        $i++;
+    }
+
+
+    $sql = "SELECT COUNT(vendor_name) FROM vendors WHERE vendor_name='" . $_POST['vendor_name'] . "'";
+    $result = DB_query($sql, $db);
+    $myrow = DB_fetch_row($result);
+    if ($myrow[0] > 0 AND isset($_POST['AddVendor']) and $InputError <> 1) {
+        $InputError = 1;
+        prnMsg(_('供应商名称系统已存在'), 'error');
+        $Errors[$i] = 'vendor_name';
+        $i++;
+    } elseif (mb_strlen($_POST['vendor_name']) > 30 OR mb_strlen($_POST['vendor_name']) == 0) {
+        $InputError = 1;
+        prnMsg(_('供应商名称不超过30个字且不能为空！'), 'error');
+        $Errors[$i] = 'vendor_name';
+        $i++;
+    }
+    //  elseif ($_SESSION['vendor_code'] == 0 AND mb_strlen($_POST['vendor_code']) == 0) {
+    //     $InputError = 1;
+    //     prnMsg(_('供应商代码不能为空！'), 'error');
+    //     $Errors[$i] = 'vendor_code';
+    //     $i++;
+    // }
+     elseif ($_SESSION['AutoDebtorNo'] == 0 AND ( ContainsIllegalCharacters($_POST['vendor_code']) OR mb_strpos($_POST['vendor_code'], ' '))) {
+        $InputError = 1;
+        prnMsg(_('The vendor code cannot contain any of the following characters') . " . - ' &amp; + \" " . _('or a space'), 'error');
+        $Errors[$i] = 'vendor_code';
+        $i++;
+    }    elseif (mb_strlen($_POST['effective_date']) == 0) {
+        $InputError = 1;
+        prnMsg(_('生效日期不能为空！'), 'error');
+        $Errors[$i] = 'effective_date';
+        $i++;
+    }/* elseif (!is_numeric(filter_number_format($_POST['CreditLimit']))) {
+        $InputError = 1;
+        prnMsg(_('The credit limit must be numeric'), 'error');
+        $Errors[$i] = 'CreditLimit';
+        $i++;
+    }*/
+
+    //没有错误，则执行如下
+    //当是 update 则执行update 若是add 的时候，执行insert
+    if ($InputError != 1) {
+
+        $SQL_ClientSince = FormatDateForSQL($_POST['ClientSince']);
+
+        if (isset($_POST['AddVendor'])) { //it is a new vendor
+            if ($_POST['disable_date'] == '') {
+                //CreditLimit,  '" . $_POST['CreditLimit'] . "',
+                 $v_date = strtotime(Date('Y-m-d H:i:s'));
+                $sql = "INSERT INTO vendors(
+							vendor_code,
+							vendor_name,
+							vendor_address,tax_code,
+							vendor_contacts,
+							contacts_phone,
+							contacts_mail,
+                            payments,
+							effective_date,
+							created_by,
+							creation_date,
+							last_updated_by,
+							last_update_date,
+								contacts_fax,
+								taxpayerid,
+								bank_name,
+                                bank_address,
+								bank_account,
+							currencycode,
+							Currcode)
+						
+				VALUES ('" . $OrderNum . "',
+						'" . $_POST['vendor_name'] . "',
+						'" . $_POST['vendor_address'] . "','" . $_POST['tax_code'] . "',
+						'" . $_POST['vendor_contacts'] . "',
+						
+						'" . $_POST['contacts_phone'] . "',
+						'" . $_POST['contacts_mail'] . "',
+					    '" . $_POST['term_name'] . "',
+						'" . strtotime($_POST['effective_date']) . "',
+						
+						'" . $_SESSION['UserID'] . "',
+						'" . $v_date . "',
+						'" . $_SESSION['UserID'] . "',
+						'" . $v_date . "',
+							'" . $_POST['contacts_fax'] . "',
+                       '" . $_POST['taxpayerid'] . "',
+
+							'" . $_POST['bank_name'] . "',
+      	                    '" . $_POST['bank_address'] . "',
+                        
+							'" . $_POST['bank_account'] . "',
+
+						'" . $_POST['currencycode'] . "',
+						'" . $_POST['Currcode'] . "'
+						)";
+						
+            } else {
+                   $sql= "INSERT INTO vendors (
+							vendor_code,
+							vendor_name,
+							vendor_address,tax_code,
+							vendor_contacts,                                                 
+							contacts_phone,
+							contacts_mail,
+                            payments,
+							effective_date,
+							disable_date,
+                            
+							created_by,
+							creation_date,
+								
+							last_updated_by,
+							last_update_date,
+								 contacts_fax,
+								taxpayerid,
+								bank_name,
+                                bank_address,
+								bank_account,
+							currencycode,
+							Currcode)
+				VALUES ('" . $OrderNum. "',
+						'" . $_POST['vendor_name'] . "',
+						'" . $_POST['vendor_address'] . "','" . $_POST['tax_code'] . "',
+						'" . $_POST['vendor_contacts'] . "',
+						'" . $_POST['contacts_phone'] . "',
+						'" . $_POST['contacts_mail'] . "',
+                        '" . $_POST['term_name'] . "',
+						'" . strtotime($_POST['effective_date']) . "',
+						'" . strtotime($_POST['disable_date']) . "',
+                        
+						'" . $_SESSION['UserID'] . "',
+						'" . $v_date . "',
+						'" . $_SESSION['UserID'] . "',
+						'" . $v_date . "',
+							 '" . $_POST['contacts_fax'] . "',
+                         '" . $_POST['taxpayerid'] . "',
+						
+							'" . $_POST['bank_name'] . "',
+                            '" . $_POST['bank_address'] . "',
+                            
+							'" . $_POST['bank_account'] . "',
+
+						 '" . $_POST['currencycode'] . "',
+						'" . $_POST['Currcode'] . "'
+						)";
+
+            }
+
+          
+            
+             
+
+
+            $ErrMsg = _('This vendor could not be added because');
+            $result = DB_query($sql,$db, $ErrMsg);
+            prnMsg(_('供应商新建成功'), 'success');
+            header("Location: SussVendor.php?OrderNum=".$OrderNum);
+            unset($_POST['vendor_code']);
+            unset($_POST['vendor_name']);
+            unset($_POST['vendor_address']);
+            unset($_POST['vendor_contacts']);
+            unset($_POST['contacts_phone']);
+            unset($_POST['contacts_mail']);
+			unset($_POST['contacts_fax']);
+            unset($_POST['taxpayerid']);
+			  
+            unset($_POST['bank_name']);
+            unset($_POST['bank_address']);
+            
+            unset($_POST['bank_account']);
+            
+            unset($_POST['effective_date']);
+            unset($_POST['disable_date']);
+            
+            //unset($_POST['CreditLimit']);
+            echo '<br />';
+        }
+    } else {
+        prnMsg(_('新增供应商失败！'), 'error');
+    }
+}
+
+
+/* DebtorNo could be set from a post or a get when passed as a parameter to this page */
+
+if (isset($_POST['vendor_code'])) {
+    $vendor_code = $_POST['vendor_code'];
+} elseif (isset($_GET['vendor_code'])) {
+    $vendor_code = $_GET['vendor_code'];
+}
+
+if (isset($_POST['Edit'])) {
+    $Edit = $_POST['Edit'];
+} elseif (isset($_GET['Edit'])) {
+    $Edit = $_GET['Edit'];
+} else {
+    $Edit = '';
+}
+
+if (isset($_POST['Add'])) {
+    $Add = $_POST['Add'];
+} elseif (isset($_GET['Add'])) {
+    $Add = $_GET['Add'];
+}
+
+if (!isset($_GET['delete'])) {
+//DebtorNo exists - either passed when calling the form or from the form itself
+
+    if (!isset($_POST['effective_date'])) {
+        $_POST['effective_date'] = Date("Y-m-d");
+    }
+   /* if (!isset($_POST['CreditLimit'])) {
+        $_POST['CreditLimit'] = 10000;
+    }*/
+    if (!isset($_POST['Currcode'])) {
+        $_POST['Currcode'] = '中国';
+    }
+
+    
+	if (!isset($_POST['currencycode'])) {
+        $_POST['currencycode'] = 'Chinese yuan';
+    }
+    // <td>' . _('供应商代码') . ':</td>
+    // <td><input ' . (in_array('vendor_code', $Errors) ? 'class="inputerror"' : '' ) . ' type="text"  name="vendor_code"  autofocus="autofocus" value="' . $_POST['vendor_code'] . '" size="25" maxlength="40" /></td>
+    echo '<form method="post" action="' . htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES, 'UTF-8') . '">';
+    echo '<div>';
+    echo '<input type="hidden" name="FormID" value="' . $_SESSION['FormID'] . '" />';
+    echo '<table class="selection">
+			<tr><td valign="top">';
+
+    echo '</select></td>
+			</tr>';
+
+            echo '<tr>
+            
+                           <td>' . _('供应商名称') . ':</td>
+                            <td colspan="3"><input ' . (in_array('vendor_name', $Errors) ? 'class="inputerror"' : '' ) . ' type="text"  name="vendor_name"  autofocus="autofocus" value="' . $_POST['vendor_name'] . '" size="25" maxlength="40" /><span style="color:red">*</span></td>
+    <td>' . _('银行帐号 ') . ':</td>
+    <td colspan="3"><input ' . (in_array('bank_account', $Errors) ? 'class="inputerror"' : '' ) . ' type="text" name="bank_account"  size="25" maxlength="40" value="' . $_POST['bank_account'] . '" /><span style="color:red">*</span></td>
+	
+
+				
+			
+				
+					</tr>
+
+		 <tr>
+				<td>' . _('联系人') . ':</td>
+				<td colspan="3"><input ' . (in_array('vendor_contacts', $Errors) ? 'class="inputerror"' : '' ) . ' type="text"    name="vendor_contacts" size="25" maxlength="40" value="' . $_POST['vendor_contacts'] . '" /><span style="color:red">*</span></td>
+			
+           
+			<td>' . _('联系电话') . ':</td>
+				<td><input ' . (in_array('contacts_phone', $Errors) ? 'class="inputerror"' : '' ) . ' type="text" name="contacts_phone" size="25" maxlength="40" value="' . $_POST['contacts_phone'] . '" /><span style="color:red">*</span></td>
+
+				
+			</tr>
+
+			<tr>
+
+				<td>' . _('电子邮箱') . ':</td>
+				<td colspan="3"><input ' . (in_array('contacts_mail', $Errors) ? 'class="inputerror"' : '' ) . ' type="text" name="contacts_mail" size="25" maxlength="40" value="' . $_POST['contacts_mail'] . '" placeholder="' . _('e.g. user@domain.com') . '" /></td>
+
+					<td>' . _('传真') . ':</td>
+				<td><input ' . (in_array('contacts_fax', $Errors) ? 'class="inputerror"' : '' ) . ' type="text" name="contacts_fax" value="' . $_POST['contacts_fax'] . '" size="25" maxlength="40" /></td>
+					</tr>
+             <tr>
+				<td>' . _('供应商地址') . ':</td>
+				<td colspan="3"><input ' . (in_array('vendor_address', $Errors) ? 'class="inputerror"' : '' ) . ' type="text"    name="vendor_address"  size="55" maxlength="40" value="' . $_POST['vendor_address'] . '" /><span style="color:red">*</span></td>';
+
+			 
+
+			 
+     echo '<td>税别</td> ';
+     $sql = "SELECT tax_name FROM tax_set  ORDER by tax_name ";  
+    $result1 = DB_query($sql, $db);
+    echo '<td><select name="tax_code">';
+    while ($Salesmanrow = DB_fetch_array($result1)) {
+        echo '<option value="' . $Salesmanrow['tax_name'] . '">' . $Salesmanrow['tax_name'] .
+            '</option>';
+    }
+    echo '</select> <span style="color:red">*</span>  </td></tr>';
+ 
+            
+		
+						
+				echo'<tr>
+			       <td>' . _('开户行 ') . ':</td>
+				<td colspan="3"><input ' . (in_array('bank_name', $Errors) ? 'class="inputerror"' : '' ) . ' type="text" name="bank_name"  size="55" maxlength="40" value="' . $_POST['bank_name'] . '" /><span style="color:red">*</span></td>';
+
+ 
+    echo ' <td>币别</td>';
+    $sql = "SELECT currabrev FROM currencies  ORDER by currabrev ";
+    $result1 = DB_query($sql, $db);
+    echo '<td><select name="currencycode">';
+    while ($Salesmanrow = DB_fetch_array($result1)) {
+        echo '<option value="' . $Salesmanrow['currabrev'] . '">' . $Salesmanrow['currabrev'] .
+            '</option>';
+    }
+    echo '</select> <span style="color:red">*</span>  </td>';
+ 	
+
+	 echo'<tr>
+
+                <td>' . _('开票地址 ') . ':</td>
+				<td colspan="3"><input ' . (in_array('bank_address', $Errors) ? 'class="inputerror"' : '' ) . ' type="text" name="bank_address"  size="55" maxlength="40" value="' . $_POST['bank_address'] . '" /><span style="color:red">*</span></td></tr>';
+                
+	echo'<tr>
+
+               </tr>';			  
+       
+
+					echo '<tr>
+				<td>' . _('纳税人识别号') . ':</td>
+				<td colspan="3"><input ' . (in_array('taxpayerid', $Errors) ? 'class="inputerror"' : '' ) . ' type="text" name="taxpayerid" value="' . $_POST['taxpayerid'] . '" size="55" maxlength="40" /><span style="color:red">*</span></td>
+						
+				</tr>';
+    echo ' <td>付款条件</td>';
+    $sql = "select term_name from term_set order by termid";
+    $result1 = DB_query($sql, $db);
+    echo '<td><select name="term_name">';
+    while ($Salesmanrow = DB_fetch_array($result1)) {
+        echo '<option value="' . $Salesmanrow['term_name'] . '">' . $Salesmanrow['term_name'] .
+            '</option>';
+    }
+    echo '</td>';
+			 echo '
+                  <tr> 		
+				<td>' . _('生效日期') . ':</td>
+				<td colspan="3"><input type="text" onfocus="WdatePicker()"  alt="' . $_SESSION['DefaultDateFormat'] . '" name="effective_date"    required="required" size="16" maxlength="10" title="' . _('effective_date .') . '" value="' . $_POST['effective_date'] . '" /></td>
+			
+				
+
+			</tr>';
+
+          
+
+    echo '</table>';
+
+    echo'</td></tr></table>';
+
+
+    echo '<div class="centre">
+				<input type="submit" name="AddVendor" value="' . _('新增') . '" />&nbsp;
+				<input type="Reset" name="Reset" value="' . _('Reset') . '" />&nbsp;
+                                    <input type="submit" name="return" value="' . _('返回') . '" />
+			</div>';
+
+
+    echo '</div>
+          </form>';
+} // end of main ifs
+
+
+if (isset($_POST['return'])) {
+    header('Location: SearchSupplier.php');
+}
+
+include('includes/footer.inc');
+?>

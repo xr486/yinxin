@@ -1,0 +1,584 @@
+<?php
+
+include('includes/session.inc');
+
+$Title = _('料号建立');
+$ViewTopic= '料号建立';
+$BookMark = '料号建立';
+include('includes/header.inc');
+include('includes/SQL_CommonFunctions.inc');
+
+$uploadflag = 1;
+unset($result);
+
+
+
+	 
+
+	if (isset($_POST['Save'])) {
+
+		$errorflag = 0;
+
+ if (!empty($_FILES["Pic"]["tmp_name"])) {
+        if ((($_FILES["Pic"]["type"] == "image/gif") || ($_FILES["Pic"]["type"] == "image/jpeg") || ($_FILES["Pic"]["type"] == "image/pjpeg")) && ($_FILES["Pic"]["size"] < 20 * 1024 * 1024)) {
+            if ($_FILES["Pic"]["error"] > 0) {
+                $msg = "错误: " . $_FILES["Pic"]["error"];
+                prnMsg($msg, 'error');
+                $errorflag = 1;
+            }
+        } else {
+            $msg = "系统只支持gif,jpeg,pjpeg图片";
+            prnMsg($msg, 'error');
+            $errorflag = 1;
+        }
+    }
+     $sql = "SELECT count(*) FROM sf_item_no
+				WHERE item_no = '" . $_POST['ItemNo'] . "'
+				";
+        $result = DB_query($sql, $db);
+        $myrow = DB_fetch_row($result);
+        if ($myrow[0] > 0) {
+            $uploadflag = 1;
+            prnMsg('料号名称不能重复,因为另一个具有相同名称已经存在', 'error');
+        } 
+
+	
+
+
+
+
+		if ($errorflag == 0) {
+
+		  DB_Txn_Begin($db);
+
+			$time = time(); 
+
+			if (empty($_POST['MinOty'])) {
+          $_POST['MinOty'] =0;
+       }	
+      if (empty($_POST['SafeQty'])) {
+          $_POST['SafeQty'] =0;
+       }
+      if (empty($_POST['UnitPrice'])) {
+          $_POST['UnitPrice'] =0;
+       }
+      if (empty($_POST['franchise_price'])) {
+          $_POST['franchise_price'] =0;
+       }
+       if (empty($_POST['po_price'])) {
+          $_POST['po_price'] =0;
+       }
+      if (empty($_POST['SafeQty'])) {
+          $_POST['SafeQty'] =0;
+       }	
+       if (empty($_POST['SafeQty'])) {
+          $_POST['SafeQty'] =0;
+       }
+      if (empty($_POST['SafeQty'])) {
+          $_POST['SafeQty'] =0;
+       }	   
+	   if (empty($_POST['lead_time'])) {
+          $_POST['lead_time'] =0;
+       }
+	   if (empty($_POST['manufacture_time'])) {
+          $_POST['manufacture_time'] =0;
+       }
+
+			$sql = "INSERT INTO sf_item_no (
+	so_flag, 		
+	item_no,
+	item_name,
+    item_desc,
+	units,
+    item_category1,  
+	item_type,
+	min_order,
+	safe_qty,sub_code,sub_locator,
+	disable_flag,
+	pic_path,
+	creation_date,
+	created_by,
+	last_update_date,
+	last_updated_by, 
+        lead_time,manufacture_time,
+        yanse 
+)
+VALUES
+	(
+		'" . $_POST['Flag1'] . "',
+		'" . $_POST['ItemNo'] . "',
+		'" . $_POST['item_name'] . "',
+        '" . $_POST['item_desc'] . "',
+		'" . $_POST['Units'] . "',	
+        '" . $_POST['item_category1'] . "', 
+		'" . $_POST['item_type'] . "', 
+		'" . $_POST['MinOty'] . "',
+		'" . $_POST['SafeQty'] . "','" . $_POST['sub_code'] . "','" . $_POST['sub_locator'] . "',
+		'" . $_POST['Flag'] . "',
+		'" . $_POST['PicPath'] . "',
+		'" . $time . "',
+		'" . $_SESSION['UserID'] . "',
+		'" . $time . "',
+		'" . $_SESSION['UserID'] . "', 
+		'" . $_POST['lead_time'] . "',
+		'" . $_POST['manufacture_time'] . "',
+		'" . $_POST['yanse'] . "' 
+	)";
+        $result = DB_query($sql, $db);
+
+
+        
+				///相似料号，复制BOM和产品工艺
+			
+
+			DB_Txn_Commit($db);
+
+			prnMsg('料号'.$_POST['ItemNo'].'建立成功！',success);
+			header("Location: SussCreateItem.php?OrderNum=".$_POST['ItemNo']."&type=AddNewItem");
+			unset($_POST);
+
+
+
+
+		}
+
+	}
+
+
+
+ ?>
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>新建订单</title>
+<link rel="shortcut icon" href="/favicon.ico"/>
+<link rel="icon" href="/favicon.ico"/>
+<meta http-equiv="Content-Type" content="application/html; charset=utf-8"/>
+<link href="/css/xenos/default.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src ="./JXC/javascripts/miscfunctions.js"></script>
+<script type="text/javascript" src ="./JXC/javascripts/wdatepicker.js"></script>
+<script type="text/javascript">var basepath='./JXC/statics/base/images';</script>
+<script type="text/javascript" src="./JXC/statics/base/js/metvar.js"></script>
+<script type="text/javascript" src="./JXC/statics/base/js/jQuery1.7.2.js"></script>
+<script type="text/javascript" src="./JXC/statics/base/js/uploadify/jquery.uploadify.v2.1.4.min.js"></script>
+<script type="text/javascript" src="./JXC/statics/base/js/iframes.js"></script>
+<script type="text/javascript" src="./JXC/statics/base/js/cookie.js"></script>
+<script type="text/javascript" src="./JXC/statics/base/js/jquery.livequery.js"></script>
+
+<link rel="stylesheet" href="jquery.ui.autocomplete.css">
+<script type="text/javascript" src="ui/jquery.ui.core.js"></script>
+<script type="text/javascript" src="ui/jquery.ui.widget.js"></script>
+<script type="text/javascript" src="ui/jquery.ui.position.js"></script>
+<script type="text/javascript" src="ui/jquery.ui.autocomplete.js"></script>
+
+<script src="./JXC/javascript/jquery-1.7.2.min.js"></script>
+<script src="./JXC/javascript/lhgdialog.min.js?self=true&skin=chrome"></script>
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="/javascript/bootstrap.min.js"></script>
+
+<script type="text/javascript">
+/*ajax执行*/
+var lang = 'cn';
+var metimgurl='./JXC/statics/base/images/';
+var depth='';
+$(document).ready(function(){
+	ifreme_methei();
+});
+</script>
+
+<script type="text/javascript">
+
+function metreturn(url){
+
+	if(url){
+
+		location.href=url;
+
+	}else if($.browser.msie){
+
+		history.go(-1);
+
+	}else{
+
+		history.go(-1);
+
+	}
+
+} 
+
+
+
+function addsave() 
+
+{
+
+ 
+
+	var v = $('#idcount').val();
+
+    $("#purchase_table_"+v).css("display","");
+
+	var c = parseInt(v) + 1;
+
+	$('#idcount').val(c);     
+
+}
+
+
+
+ </script>
+
+</head>
+
+<body>
+
+ 
+
+<div id="CanvasDiv">
+
+	<div id="BodyDiv">
+
+		<div id="BodyWrapDiv">
+
+			<p class="page_title_text"><img src="<?php echo $RootPath; ?>/css/<?php echo $Theme; ?>//images/transactions.png" title="料号建立" alt="料号建立">料号建立</p>
+
+			<form action="<?php echo htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES, 'UTF-8'); ?>" method ="POST"><input type="hidden" name="time" 
+
+
+
+value="<?=$time?>">
+
+				<div>
+
+				<input type="hidden" name="FormID" value = "<?php echo $_SESSION['FormID']; ?>">
+
+				<table class="selection">
+
+ 		 <tr>
+                <td bgcolor="#87CEFA"  >料号编码：</td>
+                <td colspan="2"><input type="text" name="ItemNo" size="30" id="text_slect_buliao" value="<?= $_POST['ItemNo'] ?>" required="required"><span style="color:red">*</span></td>
+            </tr>
+            <tr>
+                <td bgcolor="#87CEFA"  >料号名称：</td>
+                <td colspan="3"><input type="text"  size="70"  name="item_name" value="<?= $_POST['item_name'] ?>" required="required"><span style="color:red">*</span></td>
+            </tr>
+            <tr>
+
+			<td bgcolor="#87CEFA">规格型号</td>
+                <td colspan="3"><input type="text" name="item_desc"  size="70"  value="<?= $_POST['item_desc'] ?>" ></td>
+			 </tr>
+            <tr>
+			<td bgcolor="#87CEFA">颜色</td>
+                <td><input type="text" name="yanse" value="<?= $_POST['yanse'] ?>" ></td>
+                <td bgcolor="#87CEFA">单位：</td>
+                <td>
+                    <select name="Units" id="">
+<?php
+$sql = "select unitname from unitsofmeasure order by unitid";
+$result = DB_query($sql, $db);
+while ($v = DB_fetch_array($result)) {
+    if ($v['unitname'] == $_POST['Units']) {
+        ?>
+                                <option value="<?= $v['unitname'] ?>" selected="selected"><?= $v['unitname'] ?></option>
+                            <?php } else { ?>
+                                <option value="<?= $v['unitname'] ?>"><?= $v['unitname'] ?></option>
+                            <?php
+                            }
+                        }
+                        ?>
+                    </select>
+                <span style="color:red">*</span></td>               
+					<td bgcolor="#87CEFA">安全库存：</td>
+                <td><input type="text" name="SafeQty" value="<?= $_POST['SafeQty'] ?>" ></td>
+                </td>                
+            </tr>
+            
+			<tr>
+			 <td bgcolor="#87CEFA">可出售：</td>
+			  <td>
+			    <?php
+			if ($_POST['Flag1'] == 'N') {
+			    ?>
+			                        <input type="radio" name="Flag1" value='Y' >是
+			                        <input type="radio" name="Flag1" value='N' checked=checked>否
+			                        <?php
+			                    } else {
+			                        ?>
+			                        <input type="radio" name="Flag1" value='Y' checked=checked>是
+			                        <input type="radio" name="Flag1" value='N'>否
+			                        <?php
+			                    }
+			                    ?>
+			                </td>
+
+		 <td bgcolor="#87CEFA">默认仓库：</td>
+		<td>
+			<select name="sub_code" id="">
+				<?php
+					$sql = "select loccode,locationname from locations  ";
+					$result = DB_query($sql,$db);
+					while ($v = DB_fetch_array($result)) {
+						if ($v['loccode']==$_POST['sub_code']) {
+				?>
+					<option value="<?=$v['loccode']?>" selected="selected"><?=$v['locationname']?></option>
+				<?php }else{?>
+				<option value="<?=$v['loccode']?>"><?=$v['locationname']?></option>
+				<?php		}
+					}
+				?>
+			</select><span style="color:red">*</span>
+		</td> 
+		<td bgcolor="#87CEFA">库位</td>
+                <td><input type="text" name="sub_locator" value="<?= $_POST['sub_locator'] ?>" ></td>
+		     </tr>
+			  <tr>
+              <td bgcolor="#87CEFA">料号类型：</td>
+		<td>
+			<select name="item_type" id="">
+				<?php
+					$sql = "select item_type,type_name from sf_item_type order by item_type_id";
+					$result = DB_query($sql,$db);
+					while ($v = DB_fetch_array($result)) {
+						if ($v['item_type']==$_POST['item_type']) {
+				?>
+					<option value="<?=$v['item_type']?>" selected="selected"><?=$v['type_name']?></option>
+				<?php }else{?>
+				<option value="<?=$v['item_type']?>"><?=$v['type_name']?></option>
+				<?php		}
+					} 	
+				?>
+			</select><span style="color:red">*</span>
+		</td> 
+		 <td bgcolor="#87CEFA">料号分类：</td>
+		<td>
+			<select name="item_category1" id="">
+				<?php
+					$sql = "select unitname from sf_item_set order by unitid";
+					$result = DB_query($sql,$db);
+					while ($v = DB_fetch_array($result)) {
+						if ($v['unitname']==$_POST['item_category1']) {
+				?>
+					<option value="<?=$v['unitname']?>" selected="selected"><?=$v['unitname']?></option>
+				<?php }else{?>
+				<option value="<?=$v['unitname']?>"><?=$v['unitname']?></option>
+				<?php		}
+					}
+				?>
+			</select><span style="color:red">*</span>
+		</td> 
+        
+        
+            </tr>
+          
+		
+		    
+				<td bgcolor="#87CEFA">生产周期(天)</td>
+                <td><input type="text" class="number" name="manufacture_time" value="<?= $_POST['manufacture_time'] ?>" ></td>
+ 
+                 
+                 <td bgcolor="#87CEFA">最小订单量：</td>
+                <td><input type="text" class="number" name="MinOty" value="<?= $_POST['MinOty'] ?>" ></td>
+            </tr>
+            <tr>
+                <td bgcolor="#87CEFA">上传图片：</td>
+                <td><input type="file" name="Pic"></td>
+            </tr>
+            <tr>
+                <td colspan="4" align="center" ><div style="width:100px; height:100px;"><img src="<?= $_POST['PicPath'] ?>" alt="料号图片" width="100%" height="100%"></div></td>
+            </tr>
+            <tr>
+                <td bgcolor="#87CEFA">是否生效：</td>
+                <td>
+<?php
+if ($_POST['Flag'] == 'N') {
+    ?>
+                        <input type="radio" name="Flag" value='Y' >是
+                        <input type="radio" name="Flag" value='N' checked=checked>否
+                        <?php
+                    } else {
+                        ?>
+                        <input type="radio" name="Flag" value='Y' checked=checked>是
+                        <input type="radio" name="Flag" value='N'>否
+                        <?php
+                    }
+                    ?>
+                </td>
+            </tr>
+
+	</table>
+
+	<div class="centre">
+
+		<input type="submit" name="Save" value="保存">
+
+	</div>
+
+					<input type="hidden" name="idcount" id='idcount' value="11"/>
+
+					<input type="hidden" name="JustSelectedACustomer" value="Yes"/>
+
+				</div>
+
+			</form>
+
+		</div>
+
+	</div>
+
+	
+
+	<div id="FooterDiv">
+
+		<div id="FooterWrapDiv">
+
+		 	 
+
+		</div>
+
+	</div>
+
+</div>
+
+<script type="text/javascript">
+
+    $(document).ready(function(){
+
+
+
+         $('.divToilet table tr td a').click(function(){
+
+            $(this).parent('td').toggleClass('highlight');
+
+            if(!($(this).parent('td').hasClass('highlight'))) {
+
+                $(this).next().val('0');
+
+            }else {
+
+                $(this).next().val('1');
+
+            }
+
+        });
+
+      
+$(function(){
+		$( "#text_slect_buliao" ).autocomplete({
+			source: "autosearchstockso.php",
+			minLength: 2,
+			autoFocus: true
+		});
+	});
+
+
+		 <?php for($i=1;$i<=50;$i++){?> 
+
+        $('#btn_slect_subcode<?=$i?>').dialog({
+
+            title:'选择仓库',
+
+            width: '600px',
+
+            height: 370,
+
+            content:'url:Searchsubcode.php?fwValue=<?=$i?>&cat=buliao',
+
+            init:function(){
+
+			    this.content.document.getElementById('cat').value = 'buliao';
+
+                this.content.document.getElementById('fwValue').value = '<?=$i?>';
+
+            }
+
+        });
+
+		<?php }?>
+
+           $('#btn_slect_item_no2').dialog({
+
+            title:'选择目标成半品料号',
+
+            width: '950px',
+
+            height: 470,
+
+            content:'url:BtnSearchNoBomItem2.php?fwValue=&cat=buliao',
+
+            init:function(){
+
+			    this.content.document.getElementById('cat').value = 'buliao';
+
+                this.content.document.getElementById('fwValue').value = '';
+
+            }
+
+        });
+
+         $('#btn_slect_item_no1').dialog({
+
+            title:'选择源成半品料号',
+
+            width: '950px',
+
+            height: 470,
+
+            content:'url:BtnSearchNoBomItem1.php?fwValue=&cat=buliao',
+
+            init:function(){
+
+			    this.content.document.getElementById('cat').value = 'buliao';
+
+                this.content.document.getElementById('fwValue').value = '';
+
+            }
+
+        });
+
+
+
+        //Function to get URL arguments
+
+        function getRequest() {
+
+            var url = location.search; //获取url中"?"符后的字串
+
+            var theRequest = new Object();
+
+            if (url.indexOf("?") != -1) {
+
+                var str = url.substr(1);
+
+                strs = str.split("&");
+
+                for(var i = 0; i < strs.length; i ++) {
+
+                    theRequest[strs[i].split("=")[0]]=(strs[i].split("=")[1]);
+
+                }
+
+            }
+
+            return theRequest;
+
+        }
+
+          
+
+ 
+
+    });
+
+</script>
+
+</body>
+
+
+
+</html>
+
+<?
+include('includes/footer.inc');
+?>

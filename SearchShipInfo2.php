@@ -1,0 +1,187 @@
+<?php
+/* $Id: SupplierTransInquiry.php 5785 2012-12-29 04:47:42Z daintree $ */
+
+include('includes/session.inc');
+$Title = '出货单明细查询';
+include('includes/header.inc');
+if (isset($_GET['delivery_id'])) {
+    $delivery_id = $_GET['delivery_id'];
+}else {
+    $delivery_id=$_POST['delivery_id'];
+}
+if (isset($_GET['identifier'])) {
+    $_POST['identifier'] = $_GET['identifier'];
+}
+if (!isset($_POST['identifier'])) {
+    $identifier = date('U');
+} else {
+    $identifier = $_POST['identifier'];
+}
+
+echo '<p class="page_title_text">
+		<img src="' . $RootPath . '/css/' . $Theme . '/images/supplier.png" title="' . '出货挑' .
+ '" alt="" />' . ' ' . $Title . '
+	</p>';
+if (isset($delivery_id) and $delivery_id != '') {
+   
+  $Headersql = "SELECT   
+	c.customer_code,
+	c.customer_name,
+	a.delivery_num, 
+	a.tracking_number,
+	a.trackingcompany,
+	a.creation_date,
+	a.narrative,
+	a.created_by ,a.delivery_date 
+	FROM so_delivery_headers_all a, 
+	customers c 
+	WHERE   c.customer_code = a.customer_code 
+	and a.delivery_num= '" . $delivery_id . "' ";
+    $HeaderResult = DB_query($Headersql, $db);
+	 $Headermyrow = DB_fetch_array($HeaderResult);
+
+    $sql = "SELECT b.delivery_id,  
+	a.delivery_num,
+	b.delivery_line,
+	b.shiped_quantity,b.delivery_quantity,	 
+	a.tracking_number,
+	a.trackingcompany,
+	a.creation_date,
+	a.narrative,
+	a.created_by,
+	b.so_order_number,
+	b.so_line_no,
+	b.stockid,b.remark,
+	d.item_name,d.item_desc,d.gongyi,b.lot_num,b.shengchan_date,d.youxiaoqi,b.expiring_date,b.zhucezhenghao,b.transportation_conditions
+FROM so_delivery_headers_all a,
+	so_delivery_all b, 
+	sf_item_no d,so_headers_all e,so_lines_all f
+WHERE a.delivery_num = b.delivery_num
+ and e.order_number=f.order_number
+and b.so_order_number=e.order_number
+and b.so_line_no=f.line
+AND b.stockid = d.item_no
+and    a.delivery_num= '" . $delivery_id . "'
+order by b.delivery_line ";
+//echo $sql;
+    $TransResult = DB_query($sql, $db);
+ 
+    $ErrMsg = _('库存查询错误') . ' - ' . DB_error_msg($db);
+    $DbgMsg = _('The SQL that failed was');
+    if (DB_num_rows($TransResult) == 0 ) {
+        unset($TransResult);
+        prnMsg(_('没有找到可出货的库存，请重新输入条件查询！'), 'info');
+    } else{
+        echo '<form method="post" action="' . htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES, 'UTF-8') . '"><input type="hidden" name = "identifier" value ="' . $identifier . '">';
+        echo '<div>';
+//echo '<div style="width:1300px;height:400px;overflow-x: hidden; overflow-y: scroll;">';
+        echo '<input type="hidden" name="FormID" value="' . $_SESSION['FormID'] . '" />'; 
+
+		 echo '<table class="selection" id="SignFrame">
+                       <tr class="EvenTableRows">
+				<td>' . _('出货单号') . ':</td> 
+				<td width = 120>' . $Headermyrow['delivery_num'] . '</td>
+                     <input  type="hidden" name="delivery_num"  value="' . $Headermyrow['delivery_num'] . '" /> 
+			
+				<td>' . _('客户') . ':</td>
+				<td  > ' . $Headermyrow['customer_code'] . ' </td>
+				<td>' . _('客户名称') . ':</td>
+				<td > ' . $Headermyrow['customer_name'] . ' </td>
+				</tr>';
+       
+        echo'
+			<tr >
+				<td>' . _('出货日期') . ':</td>
+				<td> ' . date('Y-m-d',$Headermyrow['delivery_date']) . ' </td>
+				 
+				 <td>' . _('建立人') . ':</td>
+				<td> ' . $Headermyrow['created_by'] . ' </td>
+				<td >' . _('建单日期') . ':</td>
+				<td > ' . date('Y-m-d',$Headermyrow['creation_date']) . ' </td>
+                          	
+			</tr>
+			 
+				 
+				';
+ 
+        echo '</table>';
+
+
+        echo '<table class="selection" align="center" >';
+        $tableheader = '<tr>
+		<th width =70>'    . '出货单行' . '</th> 
+		<th  width =100>'   . '订单号码' . '</th>
+		<th width =60>'    . '订单行' . '</th>  
+		<th  width =190 >'  . '产品料号' . '</th>
+		<th  width =190 >'  . '产品名称' . '</th>  
+		<th  width =190 >'  . '规格型号' . '</th> 
+		<th   >'  . '计划出货量' . '</th> 
+		<th width =90>'   . '实际出货量' . '</th>  
+		<th   >'  . '批号' . '</th>  
+		<th   >'  . '生产日期' . '</th>  
+		<th   >'  . '保质期' . '</th>  
+		<th   >'  . '失效日期' . '</th>  
+		<th   >'  . '注册证号或备案凭证编号' . '</th>  
+		<th   >'  . '储运条件' . '</th>    
+		<th   >'  . '行备注' . '</th>  
+		</tr>';
+        echo $tableheader;
+
+        $RowCounter = 1;
+        $k = 0; //row colour counter
+
+        while ($myrow = DB_fetch_array($TransResult)) {
+
+            if ($k == 1) {
+                echo '<tr class="EvenTableRows">';
+                $k = 0;
+            } else {
+                echo '<tr class="EvenTableRows">';
+                ;
+                $k++;
+            } 
+
+			 echo '<td><font color="red">' . $myrow['delivery_line'] . '</font></td>';
+            echo '<td>' . $myrow['so_order_number'] . '</font></td>';
+            echo '<td>' . $myrow['so_line_no'] . ' </td>';  
+				echo '<td>' . $myrow['stockid'] . ' </td>';
+			echo '<td>' . $myrow['item_name'] . ' </td>';
+			echo '<td>' . $myrow['item_desc'] . ' </td>';
+			echo '<td>' . $myrow['delivery_quantity'] . ' </td>';
+            echo '<td><font color="red">' . $myrow['shiped_quantity'] . ' </td>';
+            echo '<td> ' . $myrow['lot_num'] . ' </td>'; 
+            echo '<td> ' . date('Y-m-d',$myrow['shengchan_date']) . ' </td>'; 
+            echo '<td> ' . $myrow['youxiaoqi'] . ' </td>'; 
+            echo '<td> ' . date('Y-m-d',$myrow['expiring_date']) . ' </td>'; 
+            echo '<td> ' . $myrow['zhucezhenghao'] . ' </td>'; 
+            echo '<td> ' . $myrow['transportation_conditions'] . ' </td>'; 
+            echo '<td> ' . $myrow['remark'] . ' </td>'; 
+            
+          
+echo '</tr>';
+            
+            $RowCounter++;
+            If ($RowCounter == 500) {
+                $RowCounter = 1;
+                echo $tableheader;
+            }
+        }
+         
+        echo '</table> ';
+
+
+        echo '</div>';
+        echo '<div class="centre">
+                            <input type="submit" name="return" value="' . "关闭当前页面" . '" />
+		</div>
+          </form>';
+    }
+}
+
+ 
+if (isset($_POST['return'])) {
+//    echo 'AAAAAAAAAA';
+  echo '<script>window.close();</script>'; 
+}
+include('includes/footer.inc');
+?>

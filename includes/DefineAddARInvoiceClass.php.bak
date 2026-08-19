@@ -1,0 +1,92 @@
+<?php
+
+Class ArReceiveRequest {
+    var $Customer_id;	
+    var $Customer_code;	
+    var $Customer_name;
+	var $ARDelivery_num;
+	var $InvoiceAmount;
+	var $TaxAmount;	
+	var $Invoicedate;
+	var $Narrative;
+	var $LineCounter=1;
+	var $LineItems;
+
+	function ArReceiveRequest(){
+	/*Constructor function initialises a new shopping cart */
+		$this->ARDeliverydate = date($_SESSION['DefaultDateFormat']);
+		$this->LineItems=array();
+	}
+ 	
+	function AddLine($Delivery_num,
+					 $Deliveryline,
+		             $Deliverydate,
+		             $Delivery_Amount,
+                     $AlreadyInvoiceAmount,
+		             $Waitamount,
+		             $InvoiceAmount,
+		             $So_order_number,
+					 $So_line_no, 
+		             $LineNarrative,
+					 $LineNumber=-1) {
+
+		if ($LineNumber==-1){
+			$LineNumber = $this->LineCounter;
+		}
+		$this->LineItems[$LineNumber]=new LineDetails(
+			         $Delivery_num,
+					 $Deliveryline,
+		             $Deliverydate,
+		             $Delivery_Amount,
+                     $AlreadyInvoiceAmount,
+		             $Waitamount,
+			         $InvoiceAmount,
+		             $So_order_number,
+					 $So_line_no, 
+		             $LineNarrative,
+					 $LineNumber);
+		$this->LineCounter = $LineNumber + 1;
+	}
+}
+
+Class LineDetails { 
+	var $Delivery_num;
+	var $Deliveryline;
+	var $Deliverydate;
+	var $Delivery_Amount;
+    var $AlreadyInvoiceAmount;
+	var $Waitamount;
+	var $InvoiceAmount;
+	var $So_order_number;
+	var $So_line_no; 
+	var $LineNarrative;
+	var $LineNumber;
+	function LineDetails($Delivery_num,
+					 $Deliveryline,
+		             $Deliverydate,
+		             $Delivery_Amount,
+		             $AlreadyInvoiceAmount,
+		             $Waitamount,	
+		             $InvoiceAmount,
+		             $So_order_number,
+					 $So_line_no, 
+		             $LineNarrative,
+					 $LineNumber) {
+
+		
+		$this->Delivery_num=$Delivery_num;
+		$this->Deliveryline=$Deliveryline;
+		$this->Deliverydate=$Deliverydate;
+		$this->Delivery_Amount=$Delivery_Amount;
+		$this->AlreadyInvoiceAmount=$AlreadyInvoiceAmount; 
+		$this->Waitamount=$Waitamount; 
+		$this->InvoiceAmount=$InvoiceAmount; 
+		$this->So_order_number=$So_order_number;
+		$this->So_line_no=$So_line_no;  
+		$this->LineNarrative=$LineNarrative; 
+		$this->LineNumber=$LineNumber;
+	}
+
+}
+
+?>

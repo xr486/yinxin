@@ -1,0 +1,102 @@
+<?php
+
+ob_start();
+/*
+* To change this license header, choose License Headers in Project Properties.
+* To change this template file, choose Tools | Templates
+* and open the template in the editor.
+*/
+
+include ('includes/session.inc');
+$Title = _('库存月结处理');
+$ViewTopic = '库存月结处理';
+$BookMark = '库存月结处理';
+
+include ('includes/header.inc');
+include ('includes/SQL_CommonFunctions.inc');
+
+unset($result);
+
+if (isset($_POST['Go1']) or isset($_POST['Go2'])) {
+    $_POST['PageOffset'] = (isset($_POST['Go1']) ? $_POST['PageOffset1'] : $_POST['PageOffset2']);
+    $_POST['Go'] = '';
+}
+if (!isset($_POST['PageOffset'])) {
+    $_POST['PageOffset'] = 1;
+} else {
+    if ($_POST['PageOffset'] == 0) {
+        $_POST['PageOffset'] = 1;
+    }
+}
+
+if (isset($_POST['Search']) ) {
+    $time=time();
+	$error_flag=0;
+	$ym=date('Ym',strtotime($_POST['FromDate']));
+       $sql2 = "SELECT * FROM  cst_wip_yuejie_all WHERE	ym ='"   . $ym  . "'";
+            $CustResult = DB_query($sql2, $db);
+		 if (DB_num_rows($CustResult) > 0) {
+           $error_flag=1;
+           prnMsg(_('已做过月结,不能重复！'), 'error');
+        }
+           
+    if ($error_flag==0) {
+    $sql = "insert into cst_wip_yuejie_all (
+	wip_entity_name,plan_start_date,start_quantity,end_quantity,ym,creation_date,created_by,last_update_date,last_updated_by
+	) 
+	SELECT   
+	a.wip_entity_name,a.plan_start_date,
+	a.start_quantity,a.start_quantity-a.quantity_completed,'".$ym ."','".$time."','".$_SESSION['UserID']."','".$time."','".$_SESSION['UserID']."'
+	 from wip_jobs_all a,sf_item_no e
+	where  a.primary_item=e.item_no 
+	and a.start_quantity >  a.quantity_completed 
+	and a.status_type='开始' ";
+ 
+	  
+    $result = DB_query($sql, $db);
+    prnMsg(_('月结完成！'), 'success');
+	} 
+     
+}
+
+if (isset($_POST['Delete']) ) {
+    $time=time();
+	$error_flag=0;
+	$ym=date('Ym',strtotime($_POST['FromDate']));
+       $sql2 = "delete FROM  cst_wip_yuejie_all WHERE	ym ='"   . $ym  . "'";
+        $CustResult = DB_query($sql2, $db);
+		
+   prnMsg(_('月结资料已删除！'), 'success');
+     
+}
+
+
+
+echo '<form action="' . htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES,
+    'UTF-8') . '" method="post">';
+echo '<div>';
+echo '<input type="hidden" name="FormID" value="' . $_SESSION['FormID'] . '" />';
+echo '<p class="page_title_text"><img src="' . $RootPath . '/css/' . $Theme .
+    '/images/magnifier.png" title="' . _('Search') . '" alt="" />' . ' ' . _('库存月结处理') .
+    '</p>';
+echo '<table cellpadding="3" class="selection">';
+echo '<div class="text-nav">';
+
+if (!isset($_POST['FromDate'])) {
+    $_POST['FromDate'] = Date('Y-m-d');
+}
+echo '<div class="text-nav-1"><div>' . '结账日期 :</div>
+		<input type="text" onfocus="WdatePicker()" alt="' . $_SESSION['DefaultDateFormat'] .
+    '" name="FromDate" maxlength="10" size="11" value="' . $_POST['FromDate'] . '" /></div>
+
+ <div class="centre"><input type="submit" name="Search" value="在制品月结"> &nbsp;&nbsp;&nbsp;&nbsp;
+ <input type="submit" name="Delete" value="月结资料删除"> </div>
+	</div>';
+
+echo '</table>' .
+    '</br>';
+
+
+echo '</div></form>';
+
+include ('includes/footer.inc');

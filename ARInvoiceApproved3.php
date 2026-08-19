@@ -1,0 +1,394 @@
+<?php
+
+include('includes/session.inc');
+$Title = _('客户发票审核');
+$ViewTopic= '客户发票审核';
+$BookMark = '客户发票审核';
+include('includes/header.inc');
+include('includes/SQL_CommonFunctions.inc');
+
+unset($result);
+
+if (isset($_GET['Updatepo_num']) ) {
+$_POST['invoice_num']=$_GET['Updatepo_num'];
+}
+if (isset($_GET['customer_code']) ) {
+$_POST['customer_code']=$_GET['customer_code'];
+}
+
+
+if (isset($_POST['UpdateStatus']) ) {
+$time = time();
+if (  $_POST['hangover'] =='Y'  )  {
+	   prnMsg('红字发票金额超过已开票金额', 'error');
+	} else {
+	    $sql2="UPDATE ar_invoice_headers_all 
+                    SET   	status= '核准'						 
+					,last_update_date='" . $time. "'
+                    ,last_updated_by='" . $_SESSION['UserID'] . "'
+                    WHERE  invoice_name='".$_POST['invoice_num']."' and customer_code='".$_POST['customer_code']."' and  invoice_type='红字发票'
+                    "; 	
+		$result = DB_query($sql2,$db);
+
+		$sql3="select * from ar_invoice_lines_all  
+                     WHERE  invoice_name='".$_POST['invoice_num']."' and customer_code='".$_POST['customer_code']."' and  ar_invoice_type='红字发票'
+                    "; 	
+		$result3 = DB_query($sql3,$db); 
+		while ($myrow = DB_fetch_array($result3))  {
+			 
+			$sql = "update  so_lines_all
+                    set invoice_amount     = invoice_amount  - '". $myrow['amount'] ."'
+                  where  order_number  ='".$myrow['so_num']."' 
+				   and   line ='".$myrow['so_line'] ."' ";
+              $result = DB_query($sql,$db);
+
+			  $sql = "update  so_headers_all
+                    set invoice_amount     = invoice_amount  - '". $myrow['amount'] ."'
+                  where  order_number  ='".$myrow['so_num']."'  ";
+              $result = DB_query($sql,$db);
+			 
+		}
+		
+
+		prnMsg('红字发票'.$_POST['invoice_num'].'审核完成！',success);
+    echo "<script>location.href='ARInvoiceApproved.php';</script>";
+	}
+}
+
+
+
+if (isset($_POST['RejectBack']) ) {
+	$time = time();
+      $sql2="UPDATE ar_invoice_headers_all 
+                    SET   	status= '拒绝' 						 
+					,last_update_date='" . $time. "'
+                    ,last_updated_by='" . $_SESSION['UserID'] . "'
+                    WHERE  invoice_name='".$_POST['invoice_num']."' and customer_code='".$_POST['customer_code']."' and  invoice_type='红字发票'
+                    "; 	
+		$result = DB_query($sql2,$db);
+
+
+		
+		prnMsg('发票'.$_POST['invoice_num'].'已拒绝！',success);
+    echo "<script>location.href='index.php';</script>";
+
+}
+ 	 	
+
+
+?>
+ 
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>预付款</title>
+<link rel="shortcut icon" href="/JXC/favicon.ico"/>
+<link rel="icon" href="/JXC/favicon.ico"/>
+<meta http-equiv="Content-Type" content="application/html; charset=utf-8"/>
+<link href="/css/xenos/default.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src ="/JXC/javascripts/miscfunctions.js"></script>
+<script type="text/javascript" src ="/JXC/javascripts/wdatepicker.js"></script>
+<script type="text/javascript">var basepath='/JXC/statics/base/images';</script>
+<script type="text/javascript" src="/JXC/statics/base/js/metvar.js"></script>
+<script type="text/javascript" src="/JXC/statics/base/js/jQuery1.7.2.js"></script>
+<script type="text/javascript" src="/JXC/statics/base/js/uploadify/jquery.uploadify.v2.1.4.min.js"></script>
+<script type="text/javascript" src="/JXC/statics/base/js/iframes.js"></script>
+<script type="text/javascript" src="/JXC/statics/base/js/cookie.js"></script>
+<script type="text/javascript" src="/JXC/statics/base/js/jquery.livequery.js"></script>
+
+
+
+<script src="/JXC/javascript/jquery-1.7.2.min.js"></script>
+<script src="/JXC/javascript/lhgdialog.min.js?self=true&skin=chrome"></script>
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="/javascript/bootstrap.min.js"></script>
+
+<script type="text/javascript">
+/*ajax执行*/
+var lang = 'cn';
+var metimgurl='/JXC/statics/base/images/';
+var depth='';
+$(document).ready(function(){
+	ifreme_methei();
+});
+</script>
+<script type="text/javascript">
+function metreturn(url){
+	if(url){
+		location.href=url;
+	}else if($.browser.msie){
+		history.go(-1);
+	}else{
+		history.go(-1);
+	}
+} 
+
+function addsave() 
+{
+
+	var v = $('#idcount').val();
+    $("#purchase_table_"+v).css("display","");
+	var c = parseInt(v) + 1;
+	$('#idcount').val(c);     
+}
+
+ </script>
+</head>
+<body>
+ 
+<div id="CanvasDiv">
+<div id="BodyDiv">
+<div id="BodyWrapDiv">
+<p class="page_title_text"><img src="<?php echo $RootPath; ?>/css/<?php echo $Theme; ?>//images/transactions.png" title="客户发票审核" alt="客户发票审核">客户发票审核</p>
+<form action="<?php echo htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES, 'UTF-8'); ?>" method ="POST"><input type="hidden" name="time"
+value="<?=$time?>">
+<div>
+<?php
+	 
+
+$sql ="SELECT a.invoice_name,a.currency_code,a.invoice_type,a.invoice_num, a.status, a.narrative, a.invoice_date,a.creation_date, a.invoice_amount, b.customer_name,b.customer_code,a.tax_amount,a.dis_amount,a.ar_invoice_type,a.tax_code
+FROM ar_invoice_headers_all a, customers b
+WHERE a.customer_code = b.customer_code and a.invoice_type='红字发票'
+and a.customer_code = '" .$_POST['customer_code'] . "'
+AND a.invoice_name= '" .$_POST['invoice_num'] . "'";
+	// echo $sql;
+	$result = DB_query($sql,$db);
+    if (DB_num_rows($result)==0) {
+        unset($result);
+        prnMsg(_('没有预测，请重新输入条件查询！') ,'error');
+	 }
+ while ($myrow = DB_fetch_array($result))  {
+       $_POST['customer_code']=$myrow['customer_code'] ;
+       $_POST['customer_name']=$myrow['customer_name'] ;  
+	   $_POST['currency_code']=$myrow['currency_code'] ; 
+	   $_POST['invoice_date']=$myrow['invoice_date'] ; 
+	   $_POST['invoice_amount']=$myrow['invoice_amount'] ; 
+	   $_POST['dis_amount']=$myrow['dis_amount'] ; 
+	   $_POST['tax_amount']=$myrow['tax_amount'] ; 
+	   $_POST['ar_invoice_type']=$myrow['ar_invoice_type'] ; 
+	   $_POST['tax_code']=$myrow['tax_code'] ; 
+
+
+ }
+ 
+     
+?>
+
+<input type="hidden" name="FormID" value = "<?php echo $_SESSION['FormID']; ?>">
+<table class="selection">
+
+<tr>
+  <td>发票号码:</td>
+  <td><input type="text" readonly="readonly"   name="invoice_num"  value="<?=$_POST['invoice_num']?>" size="16" maxlength="25"/> </td>
+ <td>客户代码:</td>
+  <td><input type="text" readonly="readonly"  name="customer_code" id="text_slect_vendor" value="<?=$_POST['customer_code']?>" size="10" maxlength="25"/> </td>
+  <td>客户名称:</td>
+  <td colspan="3"><input readonly="readonly" type="text" name="customer_name" id="text_slect_name" value="<?=$_POST['customer_name']?>" size="50" maxlength="250"/></td>
+
+</tr>
+
+<tr>
+ <td><font color="#1E90FF">发票金额:</font></td>
+  <td  ><input type="text" class="number" readonly="readonly"   name="invoice_amount"  value="<?=$_POST['invoice_amount']?>" size="10" maxlength="30"/> </td>
+   
+   <td>税金:</td>
+  <td  ><input type="text" class="number" readonly="readonly"  name="tax_amount"  value="<?=$_POST['tax_amount']?>" size="7" maxlength="30"/> </td>
+	<td>币别：</td>
+  <td><input type="text" readonly="readonly"  name="currency_code" id="text_slect_currency_code" value="<?=$_POST['currency_code']?>" size="10" maxlength="25"/> </td>
+  <td>发票日期:</td>
+  <td><input type="text" readonly="readonly"  name="invoice_date" maxlength="20" size="12"  value="<?=date('Y-m-d',$_POST['invoice_date'])?>"onfocus="WdatePicker() "></td>
+  
+</tr>
+<td>税别:</td>
+  <td  ><input type="text" class="number" readonly="readonly"  name="tax_code"  value="<?=$_POST['tax_code']?>" size="9" maxlength="30"/> </td>
+ 
+   
+  <td><font color="RED">发票类型:</font> </td>
+  <td  ><input type="text" class="number" readonly="readonly"  name="ar_invoice_type"  value="<?=$_POST['ar_invoice_type']?>" size="7" maxlength="30"/> </td>
+ 
+<td>开票备注：</td>
+<td colspan="3"><input type="text"  maxlength="200" size="50" name="Header_Remark"  value="<?=$_POST['Header_Remark']?>"/> </td>
+
+</tr>
+
+</table>
+<?php
+ 
+$sql ="select  c.invoice_name,a.creation_date,invoice_line,c.so_num,c.amount,c.dis_amount,a.invoice_amount
+				from ar_invoice_lines_all c,ar_invoice_headers_all a 
+				where c.invoice_name=a.invoice_name  and c.ar_invoice_type='红字发票'
+				and  c.invoice_name= '" .$_POST['invoice_num'] . "'";
+    	 	 	  	 	 	
+	 //echo $sql;
+	$result = DB_query($sql,$db);
+    if (DB_num_rows($result)==0) {
+        unset($result);
+        prnMsg(_('没有需要付款的行，请重新输入条件查询！') ,'error');
+    }
+ echo '<br />
+                    <table cellpadding="2" class="selection">';  
+
+    echo '<tr> 	  <th   >' . _('行') . '</th>                 
+				 
+					<th width="100"  >' . _('业务订单') . '</th> 			
+					<th   >' . _('订单日期') . '</th>	 
+						
+					<th   >' . _('已开票金额') . '</th>	
+					
+					  <th  ><font color="#1E90FF">' . _('本次开票金额') . '</font></th>  
+				  
+            </tr>'; 
+$i=0;
+ while ($myrow = DB_fetch_array($result))  {
+	 $i=$i+1;
+	 if ( $myrow['invoice_amount'] < $myrow['amount'] ) {
+		  echo ' <input type="hidden"  maxlength="100" size="10"  name="hangover"  value="Y" size="10" maxlength="30"/>';
+ echo '  <tr bgcolor="red">	<td>' . $myrow['invoice_line'] . '</td>
+			     
+				<td>' . $myrow['so_num']  . '</td> 
+			    <td>' . date('Y-m-d',$myrow['creation_date']) . '</td>
+			   
+				<td>' . $myrow['invoice_amount'] . '</td>
+						 
+			    <td>' . $myrow['amount'] . '</td> 			 
+			    <td>红字发票比已开票金额大</td> 			 
+                '; }
+				else {
+				 echo ' 		<td>' . $myrow['invoice_line'] . '</td>
+			   
+				<td>' . $myrow['so_num']  . '</td>  
+				<td>' . date('Y-m-d',$myrow['creation_date']) . '</td>
+			 
+				<td>' . $myrow['invoice_amount'] . '</td>
+							 
+			    <td>' . $myrow['amount'] . '</td> 			 
+                ';
+				}
+				
+				?>
+  <?php 
+		 
+           
+          echo  '
+            </tr>';
+            $i++;
+			   } //end loop through customers
+        echo '</table>';
+        echo '<input type="hidden" name="JustSelectedACustomer" value="Yes" />';
+   
+
+echo '<a name="end"></a><div class="centre"><input type="submit" name="UpdateStatus"   value="核准" />
+<input type="submit" name="RejectBack"   value="拒绝" />
+
+</div>  
+  ';
+ 
+
+  ?>
+
+
+<input type="hidden" name="PageOffset" value="1"/><br/>
+
+<input type="hidden" name="idcount" id='idcount' value="11"/>
+<input type="hidden" name="JustSelectedAvendor" value="Yes"/>
+</div>
+</form>
+</div>
+</div>
+
+<div id="FooterDiv">
+<div id="FooterWrapDiv">
+
+</div>
+</div>
+</div>
+ 
+<script type="text/javascript">
+    $(document).ready(function(){
+
+        $('.divToilet table tr td a').click(function(){
+            $(this).parent('td').toggleClass('highlight');
+            if(!($(this).parent('td').hasClass('highlight'))) {
+                $(this).next().val('0');
+            }else {
+                $(this).next().val('1');
+            }
+        });
+        <?php for($i=1;$i<=50;$i++){?> 
+        $('#btn_slect_invoice<?=$i?>').dialog({
+            title:'选择发票号码',
+            width: '950px',
+            height: 520,
+            content:'url:SearchNoPaymentInvoice.php?fwValue=<?=$i?>&cat=<?=$_POST['customer_code']?>',
+            init:function(){
+			    this.content.document.getElementById('cat').value = 'buliao';
+                this.content.document.getElementById('fwValue').value = '<?=$i?>';
+            }
+        });
+		<?php }?>
+
+
+		 <?php for($i=1;$i<=50;$i++){?> 
+        $('#btn_slect_subcode<?=$i?>').dialog({
+            title:'选择仓库',
+            width: '600px',
+            height: 370,
+            content:'url:Searchsubcode.php?fwValue=<?=$i?>&cat=buliao',
+            init:function(){
+			    this.content.document.getElementById('cat').value = $_POST['customer_code'];
+                this.content.document.getElementById('fwValue').value = '<?=$i?>';
+            }
+        });
+		<?php }?>
+
+
+			$('#btn_slect_bank').dialog({
+            title:'选择银行',
+            width: '950px',
+            height: 470,
+            content:'url:BtnSearchBank.php?fwValue=&cat=buliao',
+            init:function(){
+			    this.content.document.getElementById('cat').value = 'buliao';
+                this.content.document.getElementById('fwValue').value = '';
+            }
+        });
+
+
+
+
+		$('#btn_slect_vendor').dialog({
+            title:'选择供应商',
+            width: '950px',
+            height: 470,
+            content:'url:BtnSearchAPVendor2.php?fwValue=&cat=buliao',
+            init:function(){
+			    this.content.document.getElementById('cat').value ='buliao';
+                this.content.document.getElementById('fwValue').value = '';
+            }
+        });
+	
+        //Function to get URL arguments
+
+        function getRequest() {
+            var url = location.search; //获取url中"?"符后的字串
+            var theRequest = new Object();
+            if (url.indexOf("?") != -1) {
+                var str = url.substr(1);
+                strs = str.split("&");
+                for(var i = 0; i < strs.length; i ++) {
+                    theRequest[strs[i].split("=")[0]]=(strs[i].split("=")[1]);
+                }
+            }
+            return theRequest;
+        }
+          
+ 
+    });
+</script>
+</body>
+
+</html>
+<?
+include('includes/footer.inc');
+?>
+

@@ -1,0 +1,93 @@
+<?php
+//  首先引入XLSXWriter包
+putenv("NLS_LANG=AMERICAN_AMERICA.AL32UTF8");
+ob_start();
+include('includes/session2.inc');
+include('includes/SQL_CommonFunctions.inc');
+unset($result);
+ 
+
+if (isset($_GET['item_no'])) {
+    $item_no = $_GET['item_no'];
+} else if (isset($_POST['item_no'])) {
+    $item_no = $_POST['item_no'];
+}
+ 
+
+$sql = "SELECT b.component_sequence_id,b.assembly_item_no,b.operation_seq_num,b.weizhi,b.component_quantity,b.sunhao_rate,a.item_no,b.effectivity_date,
+	b.disable_date, component_remarks,units,change_notice,item_num,item_name,item_desc ,(select  operation_code from 
+	bom_routings_all c 
+		where b.assembly_item_no=c.assembly_item_no
+		and b.operation_seq_num=c.operation_seq_num ) operation_code,(select count(*) 
+		from bom_substitutes_all bsa where b.component_sequence_id=bsa.component_sequence_id ) sub_count
+FROM bom_lines_all b,sf_item_no a
+        where a.item_no = b.component_item
+		and b.assembly_item_no ='" .$item_no."'";
+    
+    $sql .=" order by b.item_num  ";
+  
+	$result_num = DB_query($sql,$db);
+//oci_execute($par);
+include_once("xlsxwriter.class.php");
+$date=date('YmdHis');
+//ini_set('display_errors', 0);
+//ini_set('log_errors', 1);
+error_reporting(E_ALL & ~E_NOTICE);
+
+$filename = "BOM及替代料明细".$date.".xlsx";
+header('Content-disposition: attachment; filename="'.XLSXWriter::sanitize_filename($filename).'"');
+header("Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+header('Content-Transfer-Encoding: binary');
+header('Cache-Control: must-revalidate');
+header('Pragma: public');
+$rows2 = array( 
+  array('BOM及替代料明细'),
+);
+ 
+	$rows = array( 
+  array('序号','制程', '料号','主替','料号名称','规格型号','用量','损耗率','单位','位置','生效时间','失效时间','备注'),
+);
+ 
+ 
+$writer = new XLSXWriter();
+$writer->setAuthor('Shunfansoft'); 
+
+//$writer->writeSheetHeader('Sheet1', $header);
+ foreach($rows2 as $row2)
+	$writer->writeSheetRow('Sheet1', $row2);
+foreach($rows as $row)
+	$writer->writeSheetRow('Sheet1', $row);
+
+	while ($v = DB_fetch_array($result_num)) {
+
+	 $disable_date='';
+				if   ($v['disable_date']!='' and $v['disable_date']!=0 ) {
+				  $disable_date=date('Y-m-d H:i:s', $v['disable_date']);
+				}  	 
+
+     $writer->writeSheetRow('Sheet1', array($v['item_num'],$v['operation_seq_num'],$v['item_no'],'主',$v['item_name'],$v['item_desc'],
+        $v['component_quantity'],$v['sunhao_rate'],$v['units'],$v['weizhi'],
+		 date('Y-m-d H:i:s', $v['effectivity_date']),$disable_date,$v['component_remarks'],
+        )); 
+
+
+	 $sql5 = "SELECT a.creation_date,item_no,item_desc,item_name,b.units,a.substitute_item_quantity,
+	c.assembly_item_no,c.component_item,a.substitute_remarks,a.component_sequence_id,a.substitute_sequence_id,a.status
+	 FROM bom_substitutes_all a,sf_item_no b,bom_lines_all c              
+                WHERE a.substitute_item=b.item_no and a.component_sequence_id=c.component_sequence_id
+				and   a.component_sequence_id  = '" .$v['component_sequence_id']."'   
+				order by a.creation_date "; 
+				 $result5 = DB_query($sql5, $db);
+			   while ($myrow5 = DB_fetch_array($result5)) {
+				   $writer->writeSheetRow('Sheet1', array('', $myrow5['operation_seq_num'],$myrow5['item_no'],'替',$myrow5['item_name'],$myrow5['item_desc'],
+        $myrow5['component_quantity'],'',$myrow5['units'],'','','',$myrow5['substitute_remarks'],
+        );
+			   }
+
+	 }
+      
+$writer->writeToStdOut();
+//$writer->writeToFile('example.xlsx');
+//echo $writer->writeToString();
+exit(0);
+?>

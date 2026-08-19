@@ -1,0 +1,662 @@
+/*
+2013-01-24 CQZ*/
+
+html,body{
+    font-family:Arial, Verdana, Helvetica, sans-serif;
+    font-size:16px;
+    min-width:960px;/*页面的最小宽度*/
+    margin: 0;
+    padding: 0;
+    height: 99.8%;
+    background:#FFF;
+}
+ 
+a{
+color:blue;
+text-decoration:none;
+}
+a:hover{
+color:red;
+text-decoration:underline;
+}
+
+img{
+
+border:none;
+vertical-align:middle;
+}
+
+p{
+
+}
+p.page_title_text {
+background: url(images/subback.png) #f5f5f5;
+background-repeat: repeat-x;
+border-radius:13px 13px 0 0;
+padding:5px 10px 5px 10px;
+white-space:nowrap;
+text-align:center; 
+width:auto;
+margin:0 auto;
+font-size: 17px;
+color:#000000;
+font-weight:bold;
+
+}
+p.good {
+font-weight: bold;
+color: green;
+}
+p.bad {
+font-weight: bold;
+color:red;
+}
+
+table{ 
+background:#f0f0f0;
+border-radius:8px 8px 8px 8px;
+border:1px solid #000;
+box-shadow:1px 1px 1px  #232323;
+text-align:center;
+width:auto;
+max-width:90%;
+margin:0 auto;
+padding:0;
+}
+
+
+
+table.selection{ 
+	width:auto;
+	max-width:90%;
+	margin-top:44px;
+}
+
+th { 
+background: url(images/subback.png) #73A0C9;
+background-repeat: repeat-x;
+height:36px;
+padding:0;
+font-weight:bold;
+font-size: 16px;
+color: #000000;
+text-align: center;
+}
+th.number {
+text-align: right;
+font-weight: normal;
+color: #2f2f2f;
+}
+td {
+text-align: left;
+
+}
+td.select {
+
+}
+td.number {
+text-align: right;
+}
+.centre{
+text-align:center;
+margin:10px;
+}
+
+input[type="text"],input[type="password"],input[type="radio"],input[type="file"],input[type="checkbox"]
+{
+font-family: Arial, Verdana, Helvetica, sans-serif;;
+font-size: 16px;
+
+box-shadow: 0px 0px 3px #848484 inset; /* 阴影 */
+padding:0;
+}
+
+input[type="text"]:Focus,
+input[type="password"]:Focus,
+input[type="radio"]:Focus,
+input[type="file"]:Focus,
+input[type="checkbox"]:Focus
+{ font-family: Arial, Verdana, Helvetica, sans-serif;;
+font-size: 16px;
+
+box-shadow: 0px 0px 3px #ff8000 inset; /* 阴影 */
+padding:0;
+ }
+
+
+input[type="submit"]
+{
+font-size: 16px;
+background:url(images/footer.png) ;
+border:1px outset #d2d2d2;/*立体边*/
+border-radius:13px;
+padding:5px 10px 5px 10px;
+box-shadow:1px 1px 3px #3B0B2E; /* 阴影 */
+}
+input[type="submit"]:hover{
+font-size: 16px;
+background:url(images/footer.png) ;
+border:1px outset #d2d2d2;/*立体边*/
+border-radius:13px;
+padding:5px 10px 5px 10px;
+box-shadow:1px 1px 3px #3B0B2E;
+color:red;
+}
+
+
+input.number{
+text-align: right;
+box-shadow: 0px 0px 3px #848484 inset; /* 阴影 */
+}
+input.image {
+border-width:0px;
+background-color: transparent;
+box-shadow: 0px 0px 3px #848484 inset; /* 阴影 */
+}
+
+input:active{
+box-shadow: 0px 0px 3px #848484 inset; /* 阴影 */
+background:#DFFF91;
+font-family: Arial, Verdana, Helvetica, sans-serif;;
+
+}
+
+select {  
+width: 268px;
+padding: 0; 
+font-size: 16px; 
+box-shadow: 0px 0px 3px #848484 inset; /* 阴影 */
+} 
+
+
+select:hover { /* drop down */
+background:#7dbeff;/*下拉焦点*/
+}
+
+textarea{
+font-family: Arial, Verdana, Helvetica, sans-serif;
+font-size: 16px;
+}
+textarea:hover{
+background:#B0F4F9;/*文本输入*/
+}
+
+.EvenTableRows {
+background-color: #a5ff4a;/*表格A色*/
+}
+.OddTableRows {
+background-color: #ff9e3e;/*表格B色*/
+}
+
+div{
+}
+div.error {
+background-color:#FBADAF;
+color: red;
+margin:0 auto;
+box-shadow:3px 3px 4px;
+padding:0;
+width:80%;
+}
+div.warn {
+background-color:#f5dbfd;
+color: maroon;
+
+box-shadow:3px 3px 4px;
+margin:0 auto;
+padding:0;
+width:80%;
+}
+div.success {
+background-color:#b9ecb4;
+color: darkgreen;
+
+box-shadow:3px 3px 4px;
+margin:0 auto;
+padding:0;
+width:80%;
+}
+div.info {
+background-color:#C7CCF6;
+
+color:navy;
+box-shadow:3px 3px 4px;
+margin:0 auto;
+padding:0;
+width:80%;
+}
+DIV.page_help_text {
+background: lightgrey url(images/help.png) top left no-repeat;
+padding-top:2px;
+padding-bottom: 2px;
+PADDING-LEFT: 10px;
+Z-INDEX: 1;
+FLOAT: none;
+VISIBILITY: visible;
+POSITION: static;
+font-family: Arial, Verdana, Helvetica, sans-serif;
+font-weight: normal;
+font-size: 16px;
+color: black;
+TEXT-ALIGN:center;
+box-shadow:3px 3px 4px;
+margin:0 auto;
+padding:0;
+width:80%;
+}
+DIV.system_check { 
+
+Z-INDEX: 1;
+FLOAT: none;
+VISIBILITY: visible;
+POSITION: static;
+background: lightgray;
+font-family: Arial, Verdana, Helvetica, sans-serif;
+font-weight: normal;
+font-size: 16px;
+color: black;
+TEXT-ALIGN:left;
+
+box-shadow:3px 3px 4px;
+margin:0 auto;
+padding:0;
+width:80%;
+}
+
+/* date picker */
+
+.dpTbl { /* date picker background */
+
+background:#a2a2a2;
+box-shadow: 3px 3px 4px #000; /* shadow on modern browsers */
+}
+.dpTD {
+
+width:35px;
+background: url(images/footer.png) #d2d2d2;
+background-repeat: repeat-x;
+text-align:right;
+cursor:pointer;
+}
+.dpDayHighlight {
+
+width:35px;
+background:#ff8000;
+text-align:right;
+cursor:pointer;
+}
+.dpTDHover {
+
+width:35px;
+background-color: #80ff00;
+text-align:right;
+cursor:pointer;
+}
+
+/* MISC */
+
+/* Table type is used for UI tables type 1 */
+.table1 {
+  width:90%;
+  background: #eee;
+
+  margin: 0 auto;
+}
+.tableheader {
+font-weight: normal;
+background-color: #777C59;
+color: white;
+}
+.notavailable {
+font-weight:lighter;
+font-style:italic;
+color:#555555;
+}
+.label {
+background: url(images/footer.png) #d2d2d2;
+background-repeat: repeat-x;
+height:36px;
+font-weight:bold;
+font-style:normal;
+font-size:18px;
+color:black;
+}
+.table_index {
+background-color: #ff1515;
+}
+li {
+list-style-image: url(bullet.gif);
+}
+
+.header{
+background-image:url("");
+background-repeat:no-repeat;
+background-attachment:fixed;
+
+margin:0px;
+padding:0px;
+}
+input.inputerror{
+background-color:#7FA2B3;/*#fddbdb*/
+
+}
+textarea.texterror{
+background-color:#7FA2B3;
+}
+select.selecterror{
+background-color:#7FA2B3;
+}
+.OsRow{
+background-color:#234567;
+color:white;
+}
+
+/* CANVAS */
+
+#CanvasDiv{
+    min-height: 99.6%;
+    _height:99.6%;
+    margin:0;
+    background: url(images/Headerback.png) #e4e4e4;
+    background-repeat: repeat-x;
+    border-radius:8px 8px 8px 8px;
+	box-shadow: 0px 0px 1px 1px #0f0f0f; /* 阴影 */
+    padding:0;
+	width:99.6%;
+	margin:0 auto;
+}
+
+/* HEADER */
+#CanvasDiv-cncerp{ 
+    height: 100%;
+    _height:auto;
+	border-radius:8px 8px 8px 8px;
+    padding-bottom:36px;
+	}
+#HeaderDiv{
+margin-top:2px;
+height:60px;
+color:black;
+overflow:hidden;
+}
+/*按钮*/
+#HeaderDiv a{
+color: black;
+font-weight: normal;
+text-decoration: none;
+border-radius:13px;
+border:1px outset #d2d2d2;/*立体边*/
+padding:5px 10px 5px 10px;
+box-shadow:1px 1px 3px #3B0B2E;
+margin-left:8px;
+background:none;
+}
+/*鼠标经过按钮*/
+#HeaderDiv a:hover{
+color: #ff8000;
+font-weight: normal;
+text-decoration: none;
+border-radius:13px;
+border:1px outset #d2d2d2;/*立体边*/
+padding:5px 10px 5px 10px;
+box-shadow:1px 1px 3px #3B0B2E;
+margin-left:8px;
+background:none;
+}
+/*鼠标按下*/
+#HeaderDiv a:active{
+color: red;
+font-weight: normal;
+text-decoration: none;
+border-radius:13px;
+border:1px outset #d2d2d2;/*立体边*/
+padding:5px 10px 5px 10px;
+box-shadow:1px 1px 3px #3B0B2E;
+margin-left:8px;
+background:none;
+}
+#HeaderWrapDiv{
+padding:15px;
+color: #000080;
+width:95%;
+margin:0 auto;
+}
+
+/* HEADER - APP INFO */
+
+#AppInfoDiv{
+width:50%;
+float:left; /* REQUIRED: to the left */ 
+}
+#AppInfoCompanyDiv{
+display:table-cell; /* REQUIRED: as a cell*/
+font-weight:bold;
+/*display:table-cell; /* REQUIRED: as a cell */
+
+}
+#AppInfoUserDiv{
+display:table-cell; /* REQUIRED: as a cell
+margin:0 auto;
+/*display:table-cell; /* REQUIRED: as a cell */
+}
+#AppInfoModuleDiv{
+display:table-cell; /* REQUIRED: as a cell*/
+font-weight:bold;
+font-size:18px;
+}
+
+/* HEADER - QUICK MENU */
+
+#QuickMenuDiv{
+float:right; /* to the right side  */
+margin-top:-12px;
+}
+#QuickMenuDiv ul{
+list-style:none; /* hide the bullets */
+}
+#QuickMenuDiv li{
+display:inline; /* items are inline */
+}
+
+/* BODY */
+
+#BodyDiv {
+clear:both;
+overflow:hidden;
+text-align:center; /* need to center some text/button on SelectSupplier.php */
+}
+#BodyWrapDiv{
+display:table; /*无显示效果层 */
+text-align:left;
+width:100%;
+color:black;
+}
+
+/* BODY - MAIN MENU */
+#MainMenuDiv li{display:inline;float:left;margin:5px 0;}
+#MainMenuDiv{
+background: url(images/menuback.png) #f5f5f5;
+background-repeat: repeat-x;
+border-radius:5px;
+float:left;
+white-space:nowrap;
+text-align:center; 
+width:100%;
+height:44px;
+font-size: 17px;
+}
+#MainMenuDiv ul{
+margin:0; 
+padding:0;
+}
+#MainMenuDiv li{
+list-style:none; /* REQUIRED */
+padding:0; /* REQUIRED */
+
+}
+
+/* links as buttons */
+
+#MainMenuDiv li a,
+#MainMenuDiv li a:hover,
+#MainMenuDiv li a:active,
+#MainMenuDiv .main_menu_selected a,
+#MainMenuDiv .main_menu_selected a:hover{ /* common styles */
+
+display:block; /* REQUIRED */
+color:#FFF;
+text-decoration:none;
+background:none;
+width: 80px;
+padding:0;
+margin-left:20px; 
+margin-top:9px;
+margin-bottom:2px;
+}
+/*鼠标经过按钮*/
+#MainMenuDiv li a:hover{
+color:#ff8000;
+
+}
+/*鼠标经过按下的按钮*/
+#MainMenuDiv li a:active,
+#MainMenuDiv .main_menu_selected a:hover{ /* pressed */
+background: url(images/liaback.png) #f5f5f5;
+background-repeat: repeat-x;
+border-radius:13px 13px 0 0;
+border:1px 1px 0px 1px outset #d2d2d2;/*立体边*/
+padding:1px 1px 0px 1px;
+color:red;
+height:30px;
+}
+/*按下的按钮*/
+#MainMenuDiv .main_menu_selected a{ /* the selected button */
+background: url(images/liaback.png) #f5f5f5;
+background-repeat: repeat-x;
+border-radius:13px 13px 0 0;
+border:1px 1px 0px 1px outset #d2d2d2;/*立体边*/
+padding:1px 1px 0px 1px;
+color:#223040;
+height:30px;
+}
+
+/* BODY - SUB MENU */
+
+#SubMenuDiv{
+display:table; /* display as table, sub menu will auto adjust width */
+text-align:left;
+margin:0 auto;
+padding: 10px;
+width:96%;
+}
+#SubMenuDiv ul{
+background: #f5f5f5;
+border-radius:7px;
+box-shadow: 2px 2px 2px #2d2d2d; /* shadow: modern browser only! */
+padding:0; /* REQUIRED: remove extra gaps (ex-bullets) */
+margin:0;
+}
+#SubMenuDiv li{
+  text-decoration: none;
+  list-style-type: none;
+  margin-top: 7px;
+  padding-bottom: 4px;
+
+}
+/* 交易菜单表头 */
+.menu_group_headers {
+background-image: url(images/subback.png) ;
+background-repeat: repeat-x;
+background-position:center;
+border-radius:7px 7px 0 0;
+color:#020202;
+box-shadow: 1px 1px 1px #2d2d2d; 
+font-weight:bold;
+text-align:center;
+height:36px;
+line-height: 40px;  
+padding:0;
+margin:0;
+}
+
+.menu_group_item,.menu_group_item:hover{
+  background-image: url(images/divider.png);
+  background-repeat: repeat-x;
+  background-position: bottom;
+color:black;
+border-radius:1px;
+padding:0;
+}
+/*鼠标经过*/
+.menu_group_item:hover{
+border-radius:5px 5px 5px 5px;/*圆角*/
+padding:0;
+box-shadow:2px 2px 13px #585858 inset;/* 阴影 */
+}
+.menu_group_item a{
+color:black;
+text-decoration:none;
+text-align:left;
+}
+.menu_group_item a:hover{
+color:red;
+text-decoration:none;
+}
+
+.menu_group_item p {
+color: #36648d; /* This is the color for bullets, I like it to be the same as the anchor color, but it's up to you */
+text-indent: 10px; /* this makes the bullet to appear as the li tag previously used */
+margin:0;
+}
+#TransactionsDiv,#InquiriesDiv,#MaintenanceDiv{ 
+padding: 10px;
+display:table-cell; 
+}
+#InquiriesDiv div{ /* header for standard reports/forms, custom reports */
+	background:url("images/desk.jpg") #631;
+	border:3px outset #663311;
+	color:white;
+	font-weight:bold;
+	margin:0 -3px;
+	padding:2px;
+}
+
+
+#FooterDiv{
+background: url(images/footer.png) #f5f5f5;
+background-repeat: repeat-x;
+border-radius:8px 8px 8px 8px;
+width:90%;
+margin:0 auto;
+border:1px outset #c1c1c1;/*立体边*/
+color:#223040;
+height: 36px;
+margin-top: -36px;
+clear:both;
+color:black;
+overflow:hidden;
+
+
+}
+#FooterWrapDiv{
+width:90%;
+margin:0 auto;
+height: 36px;
+}
+#FooterLogoDiv{
+
+float:left;
+padding:0;
+margin:0;
+}
+#FooterVersionDiv{
+float:left;
+margin-left:10px;
+margin-top:17px;
+}
+#FooterTimeDiv{
+float:right;
+margin-top:17px;
+}
+
+/* END */

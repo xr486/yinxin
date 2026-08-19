@@ -1,0 +1,123 @@
+<?php
+//  首先引入XLSXWriter包
+
+putenv("NLS_LANG=AMERICAN_AMERICA.AL32UTF8");
+ob_start();
+include('includes/session2.inc');
+include('includes/SQL_CommonFunctions.inc');
+unset($result);
+ 
+
+$sql = 'SELECT DISTINCT pha.po_num, 
+pha.status, 
+pha.note, 
+pha.creation_date,
+pha.order_date, 
+pha.need_date,
+pha.po_all_amount,pha.youhui_amount,
+pha.tax_amount,pha.all_line_amount,
+v.vendor_name, pha.tax_name,pha.tax_flag,
+pha.need_date, 
+pha.created_by,(select realname from www_users where userid=pha.created_by) realname
+FROM po_headers_all pha, 
+po_lines_all pla, 
+vendors v
+WHERE pla.po_num = pha.po_num
+AND v.vendor_code = pha.vendor_code';
+
+if (isset($_GET['po_num_from']) and $_GET['po_num_from'] != '') { 
+    $sql = $sql . " and pha.po_num ".LIKE." '%".$_GET['po_num_from']."%' ";
+}
+ 
+if (isset($_GET['vendor_name']) and $_GET['vendor_name'] != '') {
+    $sql = $sql . " and v.vendor_name ".LIKE." '%".$_GET['vendor_name']."%' ";
+        
+}
+if (isset($_GET['vendor']) and $_GET['vendor'] != '') { 
+    $sql = $sql . " and v.vendor_code ".LIKE." '%".$_GET['vendor']."%' ";
+       
+}
+if (isset($_GET['stockid']) and $_GET['stockid'] != '') {
+    $sql = $sql . " and pla.stockid ".LIKE." '%".$_GET['stockid']."%' ";
+}
+if (empty($_GET['FromDate']) == 0) {
+    $SQL_FromDate = strtotime($_GET['FromDate']);
+    $sql .= " and pha.order_date >= '" . $SQL_FromDate . "' ";
+}
+if (empty($_GET['ToDate']) == 0) {
+    $SQL_ToDate = strtotime($_GET['ToDate']) + 86400;
+    //echo $SQL_ToDate;
+    $sql .= " and pha.order_date <='" . $SQL_ToDate . "' ";
+}
+if ($_GET['checkresult'] != "") {
+    if ($_GET['checkresult'] == "APPROVED") {
+        $sql .= " and pha.status = 'APPROVED'";
+    }
+    if ($_GET['checkresult'] == "INPROCESS") {
+        $sql .= " and pha.status = 'INPROCESS'";
+    }
+    if ($_GET['checkresult'] == "Cancel") {
+        $sql .= " and pha.status = 'Cancel'";
+    }
+    if ($_GET['checkresult'] == "REJECTED") {
+        $sql .= " and pha.status = 'REJECTED'";
+    }
+}
+$sql .= " order by pha.creation_date desc";
+ $result_num = DB_query($sql, $db); 
+//oci_execute($par);
+include_once("xlsxwriter.class.php");
+$date=date('YmdHis');
+//ini_set('display_errors', 0);
+//ini_set('log_errors', 1);
+error_reporting(E_ALL & ~E_NOTICE);
+
+$filename = "请购单明细报表".$date.".xlsx";
+header('Content-disposition: attachment; filename="'.XLSXWriter::sanitize_filename($filename).'"');
+header("Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+header('Content-Transfer-Encoding: binary');
+header('Cache-Control: must-revalidate');
+header('Pragma: public');
+$rows2 = array( 
+  array('请购单明细报表'),
+
+);
+
+$rows = array( 
+    array( '采购单号' ,'状态','供应商' ,'含税金额', '未税金额' ,'税别' ,'是否含税' ,'税金', '备注' ,'采购日期' , '需求日' ,'下单日期' ,'下单人员' ),
+
+);
+
+
+$writer = new XLSXWriter();
+$writer->setAuthor('Shunfansoft'); 
+
+//$writer->writeSheetHeader('Sheet1', $header);
+ foreach($rows2 as $row2)
+	$writer->writeSheetRow('Sheet1', $row2);
+foreach($rows as $row)
+	$writer->writeSheetRow('Sheet1', $row);
+
+	while ($v = DB_fetch_array($result_num)) {
+
+		 if ($v['status'] == 'INPROCESS') {
+                $v_status = '待签核';
+            } elseif ($v['status'] == 'APPROVED') {
+                $v_status = '已签核';
+            } elseif ($v['status'] == 'REJECTED') {
+                $v_status = '已拒签';
+            } else {
+                $v_status = $v['status'];
+            }
+          
+
+     $writer->writeSheetRow('Sheet1', array($v['po_num'],$v_status,$v['vendor_code'],
+     ' '.sprintf("%.2f",$v['po_all_amount']),' '.sprintf("%.2f",$v['all_line_amount']),$v['tax_name'],$v['tax_flag'],' '.sprintf("%.2f",$v['tax_amount']),$v['note'],date('Y-m-d', $v['order_date']),
+     date('Y-m-d', $v['need_date']),date('Y-m-d', $v['creation_date']),
+     $v['realname']));
+} 
+$writer->writeToStdOut();
+//$writer->writeToFile('example.xlsx');
+//echo $writer->writeToString();
+exit(0);
+?>

@@ -1,0 +1,375 @@
+<?php 
+	include('includes/session.inc');
+	$Title = _('料号维护');
+
+	$ViewTopic= '料号维护';
+	$BookMark = '料号维护';
+
+	include('includes/header.inc');
+	include('includes/SQL_CommonFunctions.inc');
+
+	if (isset($_GET['ItemID'])) {
+		$ItemID = $_GET['ItemID'];
+	}else if(isset($_POST['ItemID'])){
+		$ItemID = $_POST['ItemID'];
+	}
+
+	if (!isset($ItemID)) {
+		header('Location: segment1set.php');
+	}
+
+	if (isset($_POST['Deletecustomer'])) {
+      $CancelDelete = 0;
+	 $sql2 = "select * FROM po_lines_all WHERE stockid='" . $_POST['ItemNo'] . "'";
+     $result2 = DB_query($sql2, $db);
+	 $CancelDelete = DB_num_rows($result2);
+
+	 $sql2 = "select * FROM so_lines_all WHERE stockid='" . $_POST['ItemNo'] . "'";
+     $result2 = DB_query($sql2, $db);
+	 $CancelDelete2 = DB_num_rows($result2);
+	 $item_line= $CancelDelete +$CancelDelete2;
+   
+    if ($item_line == 0 ) { //ie not cancelled the delete as a result of above tests
+        $sql = "DELETE FROM sf_item_no WHERE item_no='" . $_POST['ItemNo'] . "'";
+        $result = DB_query($sql, $db);
+        prnMsg(_('料号') . ' ' . $_POST['ItemNo'] . ' ' . _('资料被成功删除') . ' !', 'success');
+        
+       
+        echo '<br /><div class="centre"><a href="' . $RootPath . '/segment1set.php">' . _('查询料号') . '</a></div>';
+        include('includes/footer.inc');
+        unset($_SESSION['customer_code']);
+        exit;
+    } else {
+	prnMsg(_('料号') . ' ' . $_POST['ItemNo'] . ' ' . _('已建立订单,无法再删除') . ' !', 'error');
+	}
+}
+
+
+		$uploadflag = 1;
+
+	if (isset($_POST['Save'])) {
+		if (!empty($_FILES["Pic"]["tmp_name"])) {
+			if ((($_FILES["Pic"]["type"] == "image/gif")
+				|| ($_FILES["Pic"]["type"] == "image/jpeg")
+				|| ($_FILES["Pic"]["type"] == "image/pjpeg"))
+				&& ($_FILES["Pic"]["size"] < 20*1024*1024)){
+				
+                  if ($_FILES["Pic"]["error"] > 0){
+				    $msg = "错误: " . $_FILES["Pic"]["error"];
+				    prnMsg( $msg, 'error');
+				    $uploadflag = 2;
+				  }
+              echo $_FILES["Pic"]["type"];
+              echo $_FILES["Pic"]["tmp_name"]; 
+            echo $_FILES["Pic"]["type"];move_uploaded_file($_FILES["Pic"]["tmp_name"],"itempic/" . $_POST['ItemNo'] .".jpg");
+            $_POST['PicPath'] = "itempic/" . $_POST['ItemNo'] .".jpg";
+			}
+			else
+			{
+			  $msg = "系统只支持gif,jpeg,pjpeg图片";
+			  prnMsg( $msg, 'error');
+			  $uploadflag = 2;
+			}
+			
+		}else{
+			$sql = "select pic_path from sf_item_no where item_id ='".$ItemID."' ";
+			$result = DB_query($sql,$db);
+			while ($v = DB_fetch_array($result)) {
+				$_POST['PicPath'] = $v['pic_path'];
+			}
+		}
+
+		if ($uploadflag == 1) {
+			
+
+			if (empty($_POST['MinOty'])) {
+          $_POST['MinOty'] =0;
+       }	
+      if (empty($_POST['SafeQty'])) {
+          $_POST['SafeQty'] =0;
+       }
+      if (empty($_POST['UnitPrice'])) {
+          $_POST['UnitPrice'] =0;
+       }
+      if (empty($_POST['franchise_price'])) {
+          $_POST['franchise_price'] =0;
+       }
+       if (empty($_POST['po_price'])) {
+          $_POST['po_price'] =0;
+       }
+      if (empty($_POST['SafeQty'])) {
+          $_POST['SafeQty'] =0;
+       }	
+       if (empty($_POST['SafeQty'])) {
+          $_POST['SafeQty'] =0;
+       }
+      if (empty($_POST['SafeQty'])) {
+          $_POST['SafeQty'] =0;
+       }	   
+	   if (empty($_POST['lead_time'])) {
+          $_POST['lead_time'] =0;
+       }
+      if (empty($_POST['manufacture_time'])) {
+          $_POST['manufacture_time'] =0;
+       }	
+			$time = time();
+			$sql = "update sf_item_no 
+                                set item_name='".$_POST['item_name']."',
+                                    units='".$_POST['Units']."',
+                                    item_desc='".$_POST['item_desc']."',
+                                    min_order='".$_POST['MinOty']."',
+                                    item_category1='".$_POST['item_category1']."', 
+                                    item_type='".$_POST['item_type']."', 
+                                   suoding_flag='".$_POST['suoding_flag']."',  suoding_remark='".$_POST['suoding_remark']."',  
+                                    safe_qty='".$_POST['SafeQty']."', sub_code='".$_POST['sub_code']."',
+                                    pic_path='".$_POST['PicPath']."',  sub_locator='".$_POST['sub_locator']."',
+                                    po_price='".$_POST['po_price']."',
+                                    so_flag='".$_POST['Flag1']."',
+                                    disable_flag='".$_POST['Flag']."',
+                                    last_update_date='".$time."',
+                                    last_updated_by='".$_SESSION['UserID']."' , 
+                                    lead_time = '".$_POST['lead_time']."' ,
+									manufacture_time = '".$_POST['manufacture_time']."' ,
+                                    yanse = '".$_POST['yanse']."' 
+                              where item_id = '".$_POST['ItemID']."' ";
+			$result = DB_query($sql,$db);
+
+			prnMsg( _('料号更新成功！'), 'success');
+			unset($_POST);
+		}
+
+	}
+
+
+	$sql = "select * from sf_item_no a where item_id ='".$ItemID."' ";
+        $sql = $sql."  order by item_no";
+	$result = DB_query($sql,$db);
+	while ($v = DB_fetch_array($result)) {
+		$_POST['ItemID'] = $v['item_id'];
+		$_POST['ItemNo'] = $v['item_no'];
+		$_POST['item_type'] = $v['item_type'];
+		$_POST['item_name'] = $v['item_name'];
+        $_POST['item_desc'] = $v['item_desc'];
+		$_POST['Units'] = $v['units'];
+        $_POST['item_category1'] = $v['item_category1']; 
+		$_POST['MinOty'] = $v['min_order'];
+        $_POST['item_category1'] = $v['item_category1'];
+		$_POST['SafeQty'] = $v['safe_qty'];
+		$_POST['PicPath'] = $v['pic_path']; 
+        $_POST['zhidao_price'] = $v['zhidao_price'];
+		$_POST['Flag1'] = $v['so_flag']; 
+		$_POST['Flag'] = $v['disable_flag'];
+		$_POST['lead_time'] = $v['lead_time'];
+		$_POST['sub_code'] = $v['sub_code'];
+		$_POST['sub_locator'] = $v['sub_locator'];
+		$_POST['manufacture_time'] = $v['manufacture_time'];
+		$_POST['yanse'] = $v['yanse'];
+        $_POST['suoding_flag'] = $v['suoding_flag'];
+	$sql2=" select * from  sf_item_no_file where item_no='".$v['item_no']."'   ";
+	$result2 = DB_query($sql2,$db);
+               
+	}
+?>
+<div class="centre"><a href="<?=$RootPath?>/segment1set.php">返回查找料号</a></div>
+<p class="page_title_text"><img src="<?php echo $RootPath; ?>/css/<?php echo $Theme; ?>//images/maintenance.png" title="料号维护" alt="料号维护">料号维护</p>
+<form action="<?php echo htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES, 'UTF-8'); ?>" method ="POST" enctype="multipart/form-data">
+<div>
+	<input type="hidden" name="FormID" value = "<?php echo $_SESSION['FormID']; 
+	
+	?>">
+<br>
+<table class="selection">
+	<tr>
+		<td bgcolor="#87CEFA">料号：</td>
+		<td><?=$_POST['ItemNo']?>
+			<input type="hidden" name="ItemNo" value="<?=$_POST['ItemNo']?>">
+			<input type="hidden" name="ItemID" value="<?=$_POST['ItemID']?>">
+		</td>
+	</tr>
+	<tr>
+		<td bgcolor="#87CEFA">料号名称：</td>
+		<td colspan="4"> <input type="text" size="70" name="item_name" value="<?=$_POST['item_name']?>" required="required"><span style="color:red">*</span></td>
+	</tr>
+	<tr>
+	 <td bgcolor="#87CEFA">规格型号</td>
+                <td colspan="4"><input size="70" type="text" name="item_desc" value="<?= $_POST['item_desc'] ?>"  ></td>
+
+      </tr>
+	<tr>
+	  <td bgcolor="#87CEFA">颜色</td>
+                <td><input type="text" name="yanse" value="<?= $_POST['yanse'] ?>" ></td>
+		<td bgcolor="#87CEFA">单位：</td>
+		<td>
+			<select name="Units" id="">
+				<?php
+					$sql = "select unitname from unitsofmeasure order by unitid";
+					$result = DB_query($sql,$db);
+					while ($v = DB_fetch_array($result)) {
+						if ($v['unitname']==$_POST['Units']) {
+				?>
+					<option value="<?=$v['unitname']?>" selected="selected"><?=$v['unitname']?></option>
+				<?php }else{?>
+				<option value="<?=$v['unitname']?>"><?=$v['unitname']?></option>
+				<?php		}
+					}
+				?>
+			</select><span style="color:red">*</span>
+		</td> 
+                <td bgcolor="#87CEFA">安全库存：</td>
+                <td><input type="text" name="SafeQty" value="<?= $_POST['SafeQty'] ?>"  ></td>
+            </tr>
+            
+			<tr>
+			 <td bgcolor="#87CEFA">可出售：</td>
+			  <td>
+			<?php
+			if ($_POST['Flag1'] == 'N') {
+			    ?>
+			                        <input type="radio" name="Flag1" value='Y' >是
+			                        <input type="radio" name="Flag1" value='N' checked=checked>否
+			                        <?php
+			                    } else {
+			                        ?>
+			                        <input type="radio" name="Flag1" value='Y' checked=checked>是
+			                        <input type="radio" name="Flag1" value='N'>否
+			                        <?php
+			                    }
+			                    ?>
+			                </td>
+
+							<td bgcolor="#87CEFA">默认仓库：</td>
+		<td>
+			<select name="sub_code" id="">
+				<?php
+					$sql = "select loccode,locationname from locations";
+					$result = DB_query($sql,$db);
+					while ($v = DB_fetch_array($result)) {
+					if ($v['loccode']==$_POST['sub_code']) {
+				?>
+					<option value="<?=$v['loccode']?>" selected="selected"><?=$v['locationname']?></option>
+				<?php }else{?>
+				<option value="<?=$v['loccode']?>"><?=$v['locationname']?></option>
+				<?php		}
+					} 	
+				?>
+			</select><span style="color:red">*</span>
+		</td> 
+		<td bgcolor="#87CEFA">库位</td>
+                <td><input type="text" name="sub_locator" value="<?= $_POST['sub_locator'] ?>"  ></td>
+			  </tr>
+            
+            <tr> 
+			<td bgcolor="#87CEFA">料号类型：</td>
+		<td>
+			<select name="item_type" id="">
+				<?php
+					$sql = "select item_type,type_name from sf_item_type order by item_type_id";
+					$result = DB_query($sql,$db);
+					while ($v = DB_fetch_array($result)) {
+					if ($v['item_type']==$_POST['item_type']) {
+				?>
+					<option value="<?=$v['item_type']?>" selected="selected"><?=$v['type_name']?></option>
+				<?php }else{?>
+				<option value="<?=$v['item_type']?>"><?=$v['type_name']?></option>
+				<?php		}
+					} 	
+				?>
+			</select><span style="color:red">*</span>
+		</td> 
+              <td bgcolor="#87CEFA">料号分类：</td>
+		<td>
+			<select name="item_category1" id="">
+				<?php
+					$sql = "select unitname from sf_item_set order by unitid";
+					$result = DB_query($sql,$db);
+					while ($v = DB_fetch_array($result)) {
+						if ($v['unitname']==$_POST['item_category1']) {
+				?>
+					<option value="<?=$v['unitname']?>" selected="selected"><?=$v['unitname']?></option>
+				<?php }else{?>
+				<option value="<?=$v['unitname']?>"><?=$v['unitname']?></option>
+				<?php		}
+					}
+				?>
+			</select><span style="color:red">*</span>
+		</td> 
+       <td bgcolor="#87CEFA">是否锁定：</td>
+		<td>
+			<?php
+				if ($_POST['suoding_flag']=='N') {
+			?>
+			<input type="radio" name="suoding_flag" value='Y' >是
+			<input type="radio" name="suoding_flag" value='N' checked=checked>否
+			<?php
+				}else{ 
+			?>
+			<input type="radio" name="suoding_flag" value='Y' checked=checked>是
+			<input type="radio" name="suoding_flag" value='N'>否
+			<?php
+				}
+			?>
+		</td>
+            </tr>
+             
+             
+             <tr>
+			
+                
+				 <td bgcolor="#87CEFA">生产周期</td>
+                <td><input type="text" name="manufacture_time" size="5" value="<?= $_POST['manufacture_time'] ?>"  ></td>
+				<td bgcolor="#87CEFA">最小订单量：</td>
+                <td><input type="text" class="number" name="MinOty"  size="5" value="<?= $_POST['MinOty'] ?>"  ></td> 
+				<td bgcolor="#87CEFA">锁定备注：</td>
+                <td><input type="text"  name="suoding_remark"  size="25" value="<?= $_POST['suoding_remark'] ?>"  ></td> 
+            </tr>
+         
+	<tr>
+		<td bgcolor="#87CEFA">是否生效：</td>
+		<td>
+			<?php
+				if ($_POST['Flag']=='N') {
+			?>
+			<input type="radio" name="Flag" value='Y' >是
+			<input type="radio" name="Flag" value='N' checked=checked>否
+			<?php
+				}else{ 
+			?>
+			<input type="radio" name="Flag" value='Y' checked=checked>是
+			<input type="radio" name="Flag" value='N'>否
+			<?php
+				}
+			?>
+		</td>
+		<td bgcolor="#87CEFA">产品图片</td>
+		<?php
+		   echo '<td> <a style="width: 40px;" href="' . $RootPath . '/SussCreateItem.php?OrderNum=' . $_POST['ItemNo'] . '"target="_blank">管理 </a></td>';
+		   ?>
+	</tr>
+</table>
+<table>
+<?php 
+
+   while ($v2 = DB_fetch_array($result2)) { 
+	   ?>
+    <tr> 
+     <td colspan="2" align="center" ><div style="width:200px; height:200px;">
+	 <img src="<?=$v2['file_patch']?>" alt="料号图片" width="100%" height="100%"></div>
+	 </td>
+	  </tr> 
+
+  <?php
+  }
+
+			?>
+</table>
+
+
+</div>
+<div class="centre">
+	<input type="submit" name="Save" value="保存" >
+	<input type="submit" name="Deletecustomer" value="删除料号" onclick="return confirm(\'' . _('Are You Sure?') . '\');" />
+</div>
+</form>
+<?php
+  include('includes/footer.inc');
+?>

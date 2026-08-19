@@ -1,0 +1,90 @@
+<?php
+
+Class ArReceiveRequest {
+
+    var $Customer_code;	
+    var $Customer_name;
+	var $ReceiveNum;
+	var $ReceiveAmount;
+	var $TaxAmount;	
+	var $ReceiveDate;
+	var $Narrative;
+	var $LineCounter=1;
+	var $LineItems;
+
+	function ArReceiveRequest(){
+	/*Constructor function initialises a new shopping cart */
+		$this->ReceiveDate = date($_SESSION['DefaultDateFormat']);
+		$this->LineItems=array();
+	}
+ 	
+	function AddLine($Invoicenum,
+					 $Invoiceamount,
+		             $Invoicedate,
+		             $Taxamount,
+                     $AlreadyReceiveamount,
+		             $Waitamount,
+		             $Receiveamount,
+		             $So_order_number,
+					 $So_line_no, 
+		             $LineNarrative,
+					 $LineNumber=-1) {
+
+		if ($LineNumber==-1){
+			$LineNumber = $this->LineCounter;
+		}
+		$this->LineItems[$LineNumber]=new LineDetails($Invoicenum,
+					 $Invoiceamount,
+		             $Invoicedate,
+		             $Taxamount,
+                     $AlreadyReceiveamount,
+		             $Waitamount,
+			         $Receiveamount,
+		             $So_order_number,
+					 $So_line_no, 
+		             $LineNarrative,
+					 $LineNumber);
+		$this->LineCounter = $LineNumber + 1;
+	}
+}
+
+Class LineDetails { 
+	var $Invoicenum;
+	var $Invoiceamount;
+	var $Invoicedate;
+	var $Taxamount;
+    var $AlreadyReceiveamount;
+	var $Waitamount;
+	var $Receiveamount;
+	var $So_order_number;
+	var $So_line_no; 
+	var $LineNarrative;
+	var $LineNumber;
+	function LineDetails($Invoicenum,
+					 $Invoiceamount,
+		             $Invoicedate,
+		             $Taxamount,
+                     $AlreadyReceiveamount,
+		             $Waitamount,	
+		             $Receiveamount,
+		             $So_order_number,
+					 $So_line_no, 
+		             $LineNarrative,
+					 $LineNumber) {
+
+		$this->LineNumber=$LineNumber;
+		$this->Invoicenum=$Invoicenum;
+		$this->Invoiceamount=$Invoiceamount;
+		$this->Invoicedate=$Invoicedate;
+		$this->Taxamount=$Taxamount;
+		$this->AlreadyReceiveamount=$AlreadyReceiveamount; 
+		$this->Waitamount=$Waitamount; 
+		$this->Receiveamount=$Receiveamount; 
+		$this->So_order_number=$So_order_number;
+		$this->So_line_no=$So_line_no;  
+		$this->LineNarrative=$LineNarrative; 
+	}
+
+}
+
+?>

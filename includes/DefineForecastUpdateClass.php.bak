@@ -1,0 +1,89 @@
+<?php
+
+//DefineTrunsferClassselect.php
+Class ReceiveRequest {
+
+    var $order_number;
+    var $status;
+    var $need_date;
+    var $remark;
+    var $creation_date; 
+	var $customer_name;
+    var $LineCounter = 1;
+
+    function ReceiveRequest() {
+        $this->LineItems = array();
+    }
+
+    function AddLine($order_number,
+                      $line, 
+                      $item_no, 
+                      $item_desc, 
+                      $uom, 
+                      $quantity,
+                      $quantity_cancelled,
+                      $line_need_date,
+                      $remark,
+                      $status,
+		              $sub_code) {
+        $this->LineItems[$this->LineCounter] = new LineDetails($order_number,
+                               $line, 
+                               $item_no, 
+                               $item_desc, 
+                               $uom, 
+                               $quantity,
+                               $quantity_cancelled,
+                               $line_need_date,
+                               $remark,
+                               $status,
+		                       $sub_code,
+                               $this->LineCounter);
+        $this->LineCounter = $this->LineCounter + 1;
+    }
+
+}
+
+Class LineDetails {
+
+    var $order_number;
+    var $line;
+    var $item_no; 
+    var $item_desc;
+    var $uom;
+    var $quantity;
+    var $quantity_cancelled;
+    var $line_need_date;
+    var $remark;
+    var $status;
+	var $sub_code;
+    var $LineNumber;
+
+    function LineDetails(b $order_number,
+     $line,
+      $item_no,
+      $item_desc,
+      $uom,
+      $quantity,
+      $quantity_cancelled,
+      $line_need_date,
+      $remark,
+      $status,
+	  $sub_code,
+        $LineNumber) {
+        $this->order_number = $order_number;
+        $this->line = $line;
+        $this->item_no = $item_no;
+        $this->item_desc = $item_desc;
+        $this->uom = $uom;
+        $this->quantity = $quantity;
+        $this->quantity_cancelled = $quantity_cancelled;
+        $this->line_need_date = $line_need_date;
+        $this->remark = $remark;
+        $this->status = $status;
+        $this->sub_code = $sub_code;
+        $this->LineNumber = $LineNumber;
+    }
+
+}
+
+?>

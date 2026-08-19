@@ -1,0 +1,108 @@
+<?php
+//  首先引入XLSXWriter包
+
+putenv("NLS_LANG=AMERICAN_AMERICA.AL32UTF8");
+ob_start();
+include('includes/session2.inc');
+include('includes/SQL_CommonFunctions.inc');
+unset($result);
+ 
+$time =date("Y-m-d");
+
+ $sql = "SELECT a.vendor_code, d.vendor_name ,  b.stockid, c.item_desc,c.item_name, prt.transaction_type ,  prt.transaction_quantity ,prt.transaction_date,prt.receipt_num,prt.receipt_line,prt.po_num,prt.po_line,prt.created_by,prt.qc_remark   ,(SELECT prl.quantity_received FROM po_rcv_receipt_line prl WHERE prl.receipt_num = prt.receipt_num and prl.receipt_line = prt.receipt_line) quantity_received
+FROM po_headers_all a, po_lines_all b, sf_item_no c, vendors d, po_rcv_transactions prt
+WHERE  a.po_num = b.po_num
+AND a.vendor_code = d.vendor_code
+AND b.po_num = prt.po_num
+and  prt.transaction_type in ('REJECT','ACCEPT')
+AND b.line = prt.po_line
+AND b.stockid = c.item_no  ";
+    if(isset($_GET['vendorCode']) and $_GET['vendorCode'] != ''){
+        $sql = $sql." and d.vendor_code ".LIKE." '%".$_GET['vendorCode']."%' ";
+    }
+    if(isset($_GET['vendorName']) and $_GET['vendorName'] != ''){
+        $sql = $sql." and d.vendor_name ".LIKE." '%".$_GET['vendorName']."%' ";
+    }
+    if(isset($_GET['FromDate']) and $_GET['FromDate'] != ''){
+        $sql = $sql." and prt.transaction_date >=".strtotime($_GET['FromDate'])." ";
+    }
+     if(isset($_GET['ToDate']) and $_GET['ToDate'] != ''){
+        $sql = $sql." and prt.transaction_date <=".strtotime($_GET['ToDate'])." ";
+    }
+ 
+	if(isset($_GET['Stockid_from']) and $_GET['Stockid_from'] != ''){
+        $sql = $sql." and c.item_no ".LIKE." '%".$_GET['Stockid_from']."%' ";
+    }
+	if(isset($_GET['item_name']) and $_GET['item_name'] != ''){
+        $sql = $sql." and c.item_name ".LIKE." '%".$_GET['item_name']."%' ";
+    }
+	if(isset($_GET['item_desc']) and $_GET['item_desc'] != ''){
+        $sql = $sql." and c.item_desc ".LIKE." '%".$_GET['item_desc']."%' ";
+    }
+     
+	 if(isset($_GET['receipt_num']) and $_GET['receipt_num'] != ''){
+        $sql = $sql." and prt.receipt_num ".LIKE." '%".$_GET['receipt_num']."%' ";
+    }
+	 if(isset($_GET['po_num']) and $_GET['po_num'] != ''){
+        $sql = $sql." and prt.po_num ".LIKE." '%".$_GET['po_num']."%' ";
+    }
+
+	 if($_GET['checkresult']!=""){
+        if($_GET['checkresult']=="合格"){
+            $sql .= " and prt.transaction_type = 'ACCEPT'";
+        }
+        if($_GET['checkresult']=="不合格"){
+             $sql .=" and prt.transaction_type = 'REJECT'";
+        }     
+      }
+   $sql .="  order by prt.transaction_date";
+ $result_num = DB_query($sql, $db); 
+//oci_execute($par);
+include_once("xlsxwriter.class.php");
+$date=date('YmdHis');
+//ini_set('display_errors', 0);
+//ini_set('log_errors', 1);
+error_reporting(E_ALL & ~E_NOTICE);
+
+$filename = "采购进料检验明细报表".$date.".xlsx";
+header('Content-disposition: attachment; filename="'.XLSXWriter::sanitize_filename($filename).'"');
+header("Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+header('Content-Transfer-Encoding: binary');
+header('Cache-Control: must-revalidate');
+header('Pragma: public');
+$rows2 = array( 
+  array('采购进料检验明细报表'),
+
+);
+$rows = array( 
+  array('供应商编码','来料报检单号','行','采购单号','行','料号','料号名称','规格型号','报检数量','检验结果','数量','检验备注','检验日期','检验人员'),
+
+); 
+ 
+ 
+$writer = new XLSXWriter();
+$writer->setAuthor('Shunfansoft'); 
+
+//$writer->writeSheetHeader('Sheet1', $header);
+ foreach($rows2 as $row2)
+	$writer->writeSheetRow('Sheet1', $row2);
+foreach($rows as $row)
+	$writer->writeSheetRow('Sheet1', $row);
+
+	while ($v = DB_fetch_array($result_num)) {
+  if  ($v['transaction_type']== 'ACCEPT') {
+			    $transaction_type='合格';
+					}
+				 else  {
+				 $transaction_type='不合格';}
+
+	 $writer->writeSheetRow('Sheet1', array($v['vendor_code'],$v['receipt_num'],$v['receipt_line'],$v['po_num'],$v['line'],$v['stockid'],$v['item_name'],$v['item_desc'],$v['quantity_received'],$transaction_type,$v['transaction_quantity'],$v['qc_remark'],date('Y-m-d H:i:s',$v['transaction_date']),$v['created_by'] ));
+	 }
+    
+	
+
+$writer->writeToStdOut();
+//$writer->writeToFile('example.xlsx');
+//echo $writer->writeToString();
+exit(0);
+?>

@@ -1,0 +1,325 @@
+<?php
+include('includes/session.inc');
+$Title = _('工单工时录入');
+$ViewTopic= '工单工时录入';
+$BookMark = '工单工时录入';
+include('includes/header.inc');
+include('includes/SQL_CommonFunctions.inc');
+unset($result);
+$transaction_date=time();
+if(isset($_POST['save'])){
+    $wip_entity_name=$_POST['wip_entity_namen'];
+        //插入表wip_resoure_transactions
+        for($i=0;$i<count($_POST['wip_entity_namen']);$i++){
+            //工单号码
+            $wip_entity_name=$_POST['wip_entity_namen'][$i];
+            //料号
+            $primary_item=$_POST['primary_itemn'][$i];
+            //料号名称
+            $item_name=$_POST['item_namen'][$i];
+            //规格型号
+            $item_desc=$_POST['item_descn'][$i];
+            //开工日期
+            $plan_start_date=$_POST['plan_start_daten'][$i];
+            //工序
+            $op_code=$_POST['op_code'][$i];
+            //线别
+            $line_code=$_POST['line_code'][$i];
+            //时长
+            $transaction_quantity=$_POST['transaction_quantity'][$i];
+            //单位
+            $transaction_uom=$_POST['transaction_uom'][$i];
+            //产量
+            $chanliang=$_POST['chanliang'][$i];
+            //异常代码
+            $yichang_code=$_POST['yichang_code'][$i];
+            //责任人员
+            $zeren_person=$_POST['zeren_person'][$i];
+            //生产日期
+            $transaction_date=strtotime($_POST['transaction_date']);
+            //时间日期
+            $last_update_date=time();
+            $last_updated_by=$_SESSION['UserID'];
+            $creation_date=time();
+            $created_by=$_SESSION['UserID'];
+
+            //判断时长和产量是否有一个为空
+            if($transaction_quantity==""&& $chanliang==""){
+                continue;
+            }elseif($transaction_quantity!=""&& $chanliang==""){
+                prnMsg(_($wip_entity_name.'产量不能为空') ,'error');die;
+            }elseif($transaction_quantity==""&& $chanliang!=""){
+                prnMsg(_($wip_entity_name.'工时不能为空') ,'error');die;
+            }
+                $sql="insert into wip_resoure_transactions
+                    (wip_entity_name,transaction_date,op_code,line_code,transaction_quantity,
+                     transaction_uom,chanliang,yichang_code,zeren_person,last_update_date,
+                     last_updated_by,creation_date,created_by)
+                    value('".$wip_entity_name."','".$transaction_date."','".$op_code."',
+                        '".$line_code."','".$transaction_quantity."','".$transaction_uom."',
+                        '".$chanliang."','".$yichang_code."','".$zeren_person."',
+                        '".$last_update_date."','".$last_updated_by."','".$creation_date."',
+                        '".$created_by."')";
+                $result = DB_query($sql,$db);
+                prnMsg(_($wip_entity_name.'工单工时录入成功') ,'success');
+
+        }
+        if($result){
+             prnMsg(_('工单工时录入成功') ,'success');
+         }else{
+             prnMsg(_('工单工时录入失败') ,'error');
+         }
+
+
+}
+?>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>应收开票</title>
+<link rel="shortcut icon" href="/JXC/favicon.ico"/>
+<link rel="icon" href="/JXC/favicon.ico"/>
+<meta http-equiv="Content-Type" content="application/html; charset=utf-8"/>
+<link href="/css/xenos/default.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src ="/JXC/javascripts/miscfunctions.js"></script>
+<script type="text/javascript" src ="/JXC/javascripts/wdatepicker.js"></script>
+<script type="text/javascript">var basepath='/JXC/statics/base/images';</script>
+<script type="text/javascript" src="./JXC/statics/base/js/metvar.js"></script>
+<script type="text/javascript" src="./JXC/statics/base/js/jQuery1.7.2.js"></script>
+<script type="text/javascript" src="./JXC/statics/base/js/uploadify/jquery.uploadify.v2.1.4.min.js"></script>
+<script type="text/javascript" src="./JXC/statics/base/js/iframes.js"></script>
+<script type="text/javascript" src="./JXC/statics/base/js/cookie.js"></script>
+<script type="text/javascript" src="./JXC/statics/base/js/jquery.livequery.js"></script>
+
+<link href="/css/xenos/default.css" rel="stylesheet" type="text/css"/>
+<link rel="stylesheet" href="jquery.ui.autocomplete.css">
+<script type="text/javascript" src="ui/jquery.ui.core.js"></script>
+<script type="text/javascript" src="ui/jquery.ui.widget.js"></script>
+<script type="text/javascript" src="ui/jquery.ui.position.js"></script>
+<script type="text/javascript" src="ui/jquery.ui.autocomplete.js"></script>
+<script src="./JXC/javascript/jquery-1.7.2.min.js"></script>
+<script src="./JXC/javascript/lhgdialog.min.js?self=true&skin=chrome"></script>
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="/javascript/bootstrap.min.js"></script>
+
+<script type="text/javascript">
+/*ajax执行*/
+var lang = 'cn';
+var metimgurl='/JXC/statics/base/images/';
+var depth='';
+$(document).ready(function(){
+    ifreme_methei();
+});
+</script>
+<script type="text/javascript">
+function metreturn(url){
+    if(url){
+        location.href=url;
+    }else if($.browser.msie){
+        history.go(-1);
+    }else{
+        history.go(-1);
+    }
+}
+
+function addsave()
+{
+
+    var v = $('#idcount').val();
+    $("#purchase_table_"+v).css("display","");
+    var c = parseFloat(v) + 1;
+    $('#idcount').val(c);
+}
+
+ </script>
+</head>
+<body>
+<div id="CanvasDiv">
+    <div id="BodyDiv">
+        <div id="BodyWrapDiv">
+            <p class="page_title_text"><img src="<?php echo $RootPath; ?>/css/<?php echo $Theme; ?>//images/transactions.png" title="工单工时录入" alt="工单工时录入">工单工时录入</p>
+            <form action="" method ="POST">
+                <div>
+                <input type="hidden" name="FormID" value = "<?php echo $_SESSION['FormID']; ?>">
+                <input type="hidden" name="header_id" value="<?php echo $data['header_id']?>">
+                        <div class="text-nav3">
+                            <div class="text-nav-1"><div>工单号码:</div>
+                                <input type="text" name="wip_entity_name" value="">
+                            </div>
+                            <div class="text-nav-1"><div>料号:</div>
+                                <input type="text" name="stockid">
+                            </div>
+                            <div class="text-nav-1"><div>料号名称:</div>
+                                <input type="text" name="item_name">
+                            </div>
+                            <div class="text-nav-1"><div>开工日期起:</div>
+                                <input type="text" name="plan_start_date" onfocus="WdatePicker()">
+                            </div>
+                            <div class="text-nav-1"><div>开工日期止:</div>
+                                <input type="text" name="plan_end_date" onfocus="WdatePicker()">
+                            </div>
+                            <div class="text-nav-1"><div>生产日期</div>
+                                <input type="text" name="transaction_date" onfocus="WdatePicker()" value="<?php echo date('Y-m-d',$transaction_date)?>">
+                            </div>
+                            <div class="centre">
+                            <input type="submit" name="search" value="查询">
+                            </div>
+                        </div>
+
+
+<?php
+if(isset($_POST['search'])){
+//工单号码
+$wip_entity_name=$_POST['wip_entity_name'];
+//料号
+$stockid=$_POST['stockid'];
+//料号名称
+$item_name=$_POST['item_name'];
+//开工日期起
+$plan_start_date=strtotime($_POST['plan_start_date']);
+//开工日期止
+$plan_end_date=strtotime($_POST['plan_end_date']);
+
+$sql='select a.*,c.item_name,c.item_desc from wip_jobs_all a,sf_item_no c
+        where (a.STATUS_TYPE not in ("关闭"))
+        and a.primary_item=c.item_no';
+if(!empty($wip_entity_name)){
+    $sql=$sql." and a.wip_entity_name like '%".$wip_entity_name."%'";
+}
+if(!empty($stockid)){
+    $sql=$sql." and a.primary_item like '%".$stockid."%'";
+}
+if(!empty($item_name)){
+    $sql=$sql."and c.item_name like '%".$item_name."%'";
+}
+if(!empty($plan_start_date)){
+    $sql=$sql." and a.plan_start_date >='".$plan_start_date."'";
+}
+if(!empty($plan_end_date)){
+     $sql=$sql." and a.plan_end_date <='".$plan_end_date."'";
+}
+$result = DB_query($sql, $db);
+if (DB_num_rows($result) == 0) {
+    unset($result);
+    prnMsg(_('找不到该工单，请重新输入条件查询！'), 'error');die;
+}
+$data=mysqli_fetch_all($result,MYSQL_ASSOC);
+
+//查询工序
+$sql2='select * from bom_operation_parameters';
+$result2 = DB_query($sql2, $db);
+$data2=mysqli_fetch_all($result2,MYSQL_ASSOC);
+//查询线序
+$sql3='select * from wip_lines';
+$result3 = DB_query($sql3, $db);
+$data3=mysqli_fetch_all($result3,MYSQL_ASSOC);
+
+
+                        echo '<table id="purchase_table" cellpadding="2" class="selection">';
+                        echo    '<tr>';
+                        echo         '<th >工单</th>';
+                        echo         '<th 料号</th>';
+                        echo         '<th >料号名称</th>';
+                        echo         '<th >规格型号</th>';
+                        echo         '<th >开工日期</th>';
+                        echo         '<th >工序</th>';
+                        echo         '<th >线别</th>';
+                        echo         '<th >时长</th>';
+                        echo         '<th>单位</th>';
+                        echo         '<th >产量</th>';
+                        echo         '<th >异常代码</th>';
+                        echo         '<th >责任人员</th>';
+                        echo    '</tr>';
+                        foreach ($data as $k => $v):
+                        echo    '<tr>';
+                                     //工单
+                        echo         '<td>'.$v["wip_entity_name"].'</td>';
+                                     //料号
+                        echo         '<td>'.$v["primary_item"].'</td>';
+                                     //料号名称
+                        echo         '<td>'.$v["item_name"].'</td>';
+                                    //规格型号
+                        echo         '<td>'.$v["item_desc"].'</td>';
+                                    //开工日期
+                        echo         '<td>'.date("Y-m-d",$v["plan_start_date"]).'</td>';
+
+                                    //工序
+                        echo         '<td>';
+                        echo            '<select name="op_code[]">';
+                                            foreach ($data2 as $k2 => $v2){
+                        echo                '<option value="'.$v2["route_code"].'">'
+                                            .$v2["route_code"].'</option>';
+                                            }
+                        echo            '</select>';
+                        echo         '</td>';
+                                    //线别
+                        echo         '<td>';
+                        echo            '<select name="line_code[]">';
+                                            foreach ($data3 as $k3 => $v3){
+                        echo                '<option value="'.$v3["line_code"].'">'
+                                            .$v3["line_code"].'</option>';
+                                            }
+                        echo            '</select>';
+                        echo         '</td>';
+
+                                    //生产时长
+                        echo         '<td>';
+                        echo           '<input type="text" class="number" name="transaction_quantity[]"
+                                         style="width:50px;">';
+                        echo         '</td>';
+                                    //单位
+                        echo         '<td>';
+                        echo           '<input type="text" name="transaction_uom[]" value="分"
+                                        style="width:50px;">';
+                        echo         '</td>';
+
+                                    //产量
+                        echo         '<td>';
+                        echo           '<input type="text" class="number" name="chanliang[]" value=""
+                                        style="width:100px;">';
+                        echo         '</td>';
+
+                                     //异常代码
+                        echo         '<td>';
+                        echo           '<input type="text" name="yichang_code[]" value="">';
+                        echo         '</td>';
+
+                                     //责任人员
+                        echo         '<td>';
+                        echo           '<input type="text" name="zeren_person[]" value=""
+                                        style="width:150px;">';
+                        echo         '</td>';
+                        echo    '</tr>';
+                                    //工单号，料号，料号名称，规格型号，开工日期
+                        echo    '<input type="hidden" name="wip_entity_namen[]"
+                                    value="'.$v["wip_entity_name"].'">';
+                        echo    '<input type="hidden" name="primary_itemn[]"
+                                    value="'.$v["primary_item"].'">';
+                        echo    '<input type="hidden" name="item_namen[]"
+                                     value="'.$v["item_name"].'">';
+                        echo    '<input type="hidden" name="item_descn[]"
+                                     value="'.$v["item_desc"].'">';
+                        echo    '<input type="hidden" name="plan_start_daten[]"
+                                     value="'.$v["plan_start_date"].'">';
+                        endforeach;
+                        echo '</table>';
+                        echo    '<div class="centre">';
+                        echo        '<input type="submit" name="save" value="确认提交">';
+                        echo    '</div>';
+
+
+
+}
+?>
+                </div>
+            </form>
+        </div>
+</div>
+</body>
+</html>
+<?php
+include('includes/footer.inc');
+?>
+
+

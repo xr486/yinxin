@@ -1,0 +1,740 @@
+<?php
+include('includes/session.inc');
+$Title = _('生产工单修改');
+$ViewTopic = '生产工单修改';
+$BookMark = '生产工单修改';
+
+include('includes/header.inc');
+include('includes/SQL_CommonFunctions.inc');
+
+$wip_entity_name = $_GET['Updatewip_entity_name'];
+$sql ="SELECT a.*,b.item_no,b.item_name,b.item_desc,b.units
+	 from wip_jobs_all a ,sf_item_no b
+	where a.primary_item =b.item_no and  a.wip_entity_name = '" . $wip_entity_name . "' 
+	";
+$CustResult = DB_query($sql, $db);
+$myrow1 = DB_fetch_array($CustResult);
+
+
+if (isset($_GET['delete'])   ) {
+   $time = time();
+    $sql = "delete from wip_material_requierments   where  seq_id= '" . $_GET['seq_id'] . "' ";
+	   $result = DB_query($sql,$db);
+    echo '<meta http-equiv="refresh" content="0; url=' . $RootPath .
+                    '/WIPMaterialModify.php?Updatewip_entity_name='. $_GET['wip_entity_name'] . '" />';
+}
+
+if (isset($_POST['Save'])) {
+		$errorflag = 1;
+		foreach ($_POST as $key => $value) {
+			if ($value != '') {
+				if (substr($key, 0,7)=='stockid') {
+					$errorflag = 0;
+					$i = substr($key, 7);
+					if ($value != '') {
+						if ($_POST['UOM'.$i]=='') {
+						$errorflag = 1;
+						prnMsg($value.'未填写单位，请填写单位！',error);
+						}
+						if ($_POST['operation_seq_num'.$i]=='') {
+						$errorflag = 1;
+						prnMsg($value.'工序未填写，请填写！',error);
+						}
+						if ($_POST['wip_entity_name']=='') {
+						$errorflag = 1;
+						prnMsg($value.'工单号码未填写，请填写！',error);
+						}
+						 
+						if ($_POST['required_quantity'.$i]=='') {
+							$errorflag = 1;
+							prnMsg($value.'未填写数量，请填写数量！',error);
+						}
+            $line= 0;
+			$sql = "select count(*) line
+			from wip_material_requierments
+			where wip_entity_name='".$_POST['wip_entity_name']."'
+			and segment1 = '".$_POST['stockid'.$i]."'
+			and operation_seq_num = '".$_POST['operation_seq_num'.$i]."'";
+			//echo $sql ;
+						
+			$result = DB_query($sql,$db);
+			 while ($myrow = DB_fetch_array($result)) {
+                 $line=$myrow['line'];
+			 }
+			 if ($line>1 ) {
+				 $errorflag = 1;
+				 prnMsg($_POST['stockid'.$i].'料号在工单中已存在，不要重复增加！',error);
+			 }
+
+
+	 
+						 
+						
+					}
+				}
+			}
+		}
+		
+		
+		if ($errorflag == 0) {
+			$ScheduleDate = strtotime($_POST['ScheduleDate']);
+			DB_Txn_Begin($db);
+			$time = time();
+			$line = 0;
+      
+            
+ 
+			
+			foreach ($_POST as $key => $value) {
+				if ($value != '') {
+					if (substr($key, 0,7)=='stockid') {
+						$i = substr($key, 7);
+						$lineamount[$i] =$_POST['quantity'.$i] * $_POST['zhujian_unitprice'.$i] ;
+						
+                       //若所对应行的需求日期不输入，则使用头的需求日期
+						if  ($_POST['need_date'.$i]=='') {
+						    $need_date[$i] =$ScheduleDate;}
+						else {
+							$need_date[$i] =strtotime($_POST['need_date'.$i]);
+						  }
+						  $line=$line+1;
+						 
+					    if  ( $_POST['start_quantity']=='') {
+						  $_POST['start_quantity'] =1;
+							}
+						$quantity_per_assembly=$_POST['required_quantity'.$i]/ $_POST['start_quantity'] ;
+						$sql = "insert into wip_material_requierments(wip_entity_name,segment1,operation_seq_num,date_required,required_quantity	,quantity_issued,quantity_per_assembly,comments,last_update_date,last_updated_by,creation_date,created_by)
+						values('".$_POST['wip_entity_name']."','".$_POST['stockid'.$i]."','".$_POST['operation_seq_num'.$i]."','".$_POST['plan_start_date']."',
+						'".$_POST['required_quantity'.$i]."','0','".$quantity_per_assembly."','".$_POST['comments'.$i]."','".$time."','".$_SESSION['UserID']."','".$time."','".$_SESSION['UserID']."') ";
+						
+						$result = DB_query($sql,$db);
+
+						$sql44 = "insert into wip_material_requierment_log(update_by,update_date,update_type,wip_entity_name,segment1,operation_seq_num,date_required,required_quantity	,quantity_issued,quantity_per_assembly,comments,last_update_date,last_updated_by,creation_date,created_by)
+						values('".$_SESSION['UserID']."','".$time."','新增','".$_POST['wip_entity_name']."','".$_POST['stockid'.$i]."','".$_POST['operation_seq_num'.$i]."','".$_POST['plan_start_date']."',
+						'".$_POST['required_quantity'.$i]."','0','".$quantity_per_assembly."','".$_POST['comments'.$i]."','".$time."','".$_SESSION['UserID']."','".$time."','".$_SESSION['UserID']."') ";
+                         
+			           $result = DB_query($sql44,$db);
+
+						$order_amount = $order_amount + $lineamount[$i];
+					}
+				}
+			}
+			
+			DB_Txn_Commit($db);
+			if ($line>0)  {
+			prnMsg('工单'.$_POST['wip_entity_name'].'用料新增成功！',success);
+			echo '<meta http-equiv="refresh" content="0; url=' . $RootPath .
+                    '/WIPMaterialModify.php?Updatewip_entity_name='. $_POST['wip_entity_name'] . '" />';
+		 
+			 }
+
+		}
+	}
+
+if (isset($_POST['ReSave']) ) {
+      $errorflag = 0;
+
+	    $sql1="select * from wip_material_requierments 
+                    WHERE  wip_entity_name='".$_POST['wip_entity_name']."'
+					and quantity_issued>0 "; 
+        // echo $sql2;
+        $result1 = DB_query($sql1, $db,$ErrMsg);
+		if (DB_num_rows($result1) > 0) {
+			$errorflag = 1;
+			prnMsg('工单'.$_POST['wip_entity_name'].'已发料不能重新带BOM！',error);
+		}
+		if ( $errorflag == 0) {
+
+	    $sql2="delete from wip_material_requierments 
+                    WHERE  wip_entity_name='".$_POST['wip_entity_name']."'
+                    "; 
+        // echo $sql2; 
+        $result2 = DB_query($sql2, $db,$ErrMsg);
+ 
+		$sql = "INSERT INTO wip_material_requierments (wip_entity_name,segment1,component_sequence_id,operation_seq_num,date_required,required_quantity
+			 ,quantity_issued,quantity_per_assembly,comments,last_update_date,last_updated_by,creation_date,created_by)
+					SELECT '".$_POST['wip_entity_name']."' AS WIP_ENTITY_NAME,
+							component_item,
+							component_sequence_id,operation_seq_num,
+							".strtotime($_POST['start_date'])." AS DATE_REQUIRED,
+							".component_quantity."". "*".$_POST['start_quantity']." AS REQUIRED_QUANTITY,
+							'0' AS QUANTITY_ISSUED,
+							component_quantity as QUANTITY_PER_ASSEMBLY,
+							component_remarks,
+							'".$time."' AS LAST_UPDATE_DATE,
+							'".$_SESSION['UserID']."' AS LAST_UPDATED_BY,
+							'".$time."' AS CREATION_DATE,
+							'".$_SESSION['UserID']."' AS CREATED_BY
+					FROM bom_lines_all a
+					WHERE   a.disable_date=0
+					and bom_header_id='".$_POST['bom_header_id']."';";
+       $result2 = DB_query($sql, $db,$ErrMsg);
+		prnMsg('工单'.$_POST['wip_entity_name'].'用料修改成功！',success);
+			echo '<meta http-equiv="refresh" content="0; url=' . $RootPath .
+                    '/WIPMaterialModify.php?Updatewip_entity_name='. $_POST['wip_entity_name'] . '" />';
+
+        
+        }
+     }
+
+
+if (isset($_POST['DeleteStatus']) ) {
+
+        $errorflag = 0;
+        $line=0;
+        if ($errorflag == 0) {
+			 
+        foreach ($_POST as $key => $value){
+ 
+           if (mb_substr($key,0,10)=='UpdateLine') {
+            $seq_id =mb_substr($key,10);
+         
+            $i = $_POST[$key];   
+            
+            $time = strtotime(Date('Y-m-d H:i:s'));
+            $line=$line+1;
+             $startdate=strtotime($_POST['startdate' . $i]);
+             $enddate=strtotime($_POST['enddate' . $i]);
+			 if ($_POST['quantity_issued'.$i]==0 ) {
+			 
+			 
+
+			  
+
+			 $sql2="delete from wip_material_requierments  
+                    WHERE  seq_id='".$seq_id."'
+                    "; 
+                // echo $sql2;
+              $ErrMsg = _('更新wip_jobs_all不成功,原因');
+            $result_invtrancsation1 = DB_query($sql2, $db,$ErrMsg);
+
+			$sql = "insert into wip_material_requierment_log(update_by,update_date,update_type,seq_id,wip_entity_name,segment1,operation_seq_num,date_required,required_quantity	,quantity_issued,quantity_per_assembly,comments,last_update_date,last_updated_by,creation_date,created_by)
+               select '".$_SESSION['UserID']."','".$time."','删除',seq_id,wip_entity_name,segment1,operation_seq_num,date_required,required_quantity	,quantity_issued,quantity_per_assembly,comments,last_update_date,last_updated_by,creation_date,created_by from wip_material_requierments  where seq_id='" . $seq_id . "'  ";
+               $result_invtrancsation1 = DB_query($sql, $db,$ErrMsg);
+				DB_Txn_Commit($db);
+
+				} else {
+				prnMsg('工单'.$_POST['item_no'. $i].'用料删除失败！',error);
+				
+				}
+			if ($line>0)  {
+			prnMsg('工单'.$_POST['wip_entity_name'].'用料删除成功！',success);
+			echo '<meta http-equiv="refresh" content="0; url=' . $RootPath .
+                    '/WIPMaterialModify.php?Updatewip_entity_name='. $_POST['wip_entity_name'] . '" />';
+ 
+    
+			 }
+  
+		
+  
+             }
+     }
+        }//插入交易表
+        }
+
+if (isset($_POST['UpdateStatus']) ) {
+
+        $errorflag = 0;
+        $line=0;
+        if ($errorflag == 0) {
+			 
+        foreach ($_POST as $key => $value){
+ 
+           if (mb_substr($key,0,10)=='UpdateLine') {
+            $seq_id =mb_substr($key,10);
+         
+            $i = $_POST[$key];   
+            
+            $time = strtotime(Date('Y-m-d H:i:s'));
+            $line=$line+1;
+             $startdate=strtotime($_POST['startdate' . $i]);
+             $enddate=strtotime($_POST['enddate' . $i]);
+			 if ($_POST['start_quantity'.$i]==0 ) {
+			 $_POST['start_quantity'.$i]=1;
+			 }
+
+			  
+
+			 $sql2="UPDATE wip_material_requierments 
+                    SET   	required_quantity=   '" . $_POST['required_quantity'.$i]. "'
+					,quantity_per_assembly=   '" . $_POST['required_quantity'.$i] / $_POST['start_quantity']. "'
+					,comments= '" . $_POST['comments'.$i]. "'
+					,last_update_date='" . $time. "'
+                    ,last_updated_by='" . $_SESSION['UserID'] . "'
+                    WHERE  seq_id='".$seq_id."'
+                    "; 
+                // echo $sql2;
+              $ErrMsg = _('更新wip_jobs_all不成功,原因');
+            $result_invtrancsation1 = DB_query($sql2, $db,$ErrMsg);
+
+			$sql = "insert into wip_material_requierment_log(update_by,update_date,update_type,seq_id,wip_entity_name,segment1,operation_seq_num,date_required,required_quantity	,quantity_issued,quantity_per_assembly,comments,last_update_date,last_updated_by,creation_date,created_by)
+               select '".$_SESSION['UserID']."','".$time."','修改',seq_id,wip_entity_name,segment1,operation_seq_num,date_required,required_quantity	,quantity_issued,quantity_per_assembly,comments,last_update_date,last_updated_by,creation_date,created_by from wip_material_requierments  where seq_id='" . $seq_id . "'  ";
+               $result_invtrancsation1 = DB_query($sql, $db,$ErrMsg);
+				DB_Txn_Commit($db);
+			if ($line>0)  {
+			prnMsg('工单'.$_POST['wip_entity_name'].'用料修改成功！',success);
+			echo '<meta http-equiv="refresh" content="0; url=' . $RootPath .
+                    '/WIPMaterialModify.php?Updatewip_entity_name='. $_POST['wip_entity_name'] . '" />';
+ 
+    
+			 }
+  
+		
+  
+             }
+     }
+        }//插入交易表
+        }
+ 
+ //取消的foecast不再显示
+if(isset($_GET['Updatewip_entity_name']) OR isset($_POST['Go']) OR isset($_POST['Next']) OR isset($_POST['Previous'])){
+	$sql ="SELECT  a.component_sequence_id,a.seq_id,a.quantity_per_assembly,a.quantity_issued, a.date_required,a.required_quantity,
+	a.wip_entity_name,e.item_no,e.item_name,e.item_desc,e.units,a.comments,a.operation_seq_num,a.creation_date,a.created_by,a.last_update_date,a.last_updated_by,(select count(*) 
+		from bom_substitutes_all bsa where a.component_sequence_id=bsa.component_sequence_id ) sub_count ,
+		(select sum(quantity)  from  inv_onhand_quantity_all f where f.stockid=e.item_no) onhand_quantity
+	 from wip_material_requierments a,sf_item_no e
+	where a.segment1=e.item_no
+	
+	";  	 	 	
+      //  and a.required_quantity>0       
+        $sql = $sql . " and a.wip_entity_name ='" . $_GET['Updatewip_entity_name'] . "' ";
+  
+
+    $result = DB_query($sql,$db);
+    if (DB_num_rows($result)==0) {
+        unset($result);
+        prnMsg(_('没有资料，请重新查询！') ,'error');
+    }
+
+    
+}
+
+?>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>生产工单修改</title>
+<link rel="shortcut icon" href="/favicon.ico"/>
+<link rel="icon" href="/favicon.ico"/>
+<meta http-equiv="Content-Type" content="application/html; charset=utf-8"/>
+<link href="/css/xenos/default.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src ="/javascripts/miscfunctions.js"></script>
+<script type="text/javascript" src ="/javascripts/wdatepicker.js"></script>
+<script type="text/javascript">var basepath='/statics/base/images';</script>
+<script type="text/javascript" src="/statics/base/js/metvar.js"></script>
+<script type="text/javascript" src="/statics/base/js/jQuery1.7.2.js"></script>
+<script type="text/javascript" src="/statics/base/js/uploadify/jquery.uploadify.v2.1.4.min.js"></script>
+<script type="text/javascript" src="/statics/base/js/iframes.js"></script>
+<script type="text/javascript" src="/statics/base/js/cookie.js"></script>
+<script type="text/javascript" src="/statics/base/js/jquery.livequery.js"></script>
+<script src="/javascript/jquery-1.7.2.min.js"></script>
+<script src="/javascript/lhgdialog.min.js?self=true&skin=chrome"></script>
+<script src="/javascript/bootstrap.min.js"></script>
+<style type="text/css">
+    #div0 {width:200px;}
+</style>
+<style type="text/css">
+    #div1 {width:1200px;}
+</style>
+<style type="text/css">
+    #div2 {width:500px;}
+</style>
+<style type="text/css">
+    #div3 {width:550px;}
+</style>
+<style type="text/css">
+    #div4 {width:450px;}
+</style>
+<style type="text/css">
+    #div5 {width:900px;}
+</style>
+<script type="text/javascript">
+/*ajax执行*/
+var lang = 'cn';
+var metimgurl='/statics/base/images/';
+var depth='';
+$(document).ready(function(){
+    ifreme_methei();
+});
+</script>
+<script type="text/javascript">
+function metreturn(url){
+    if(url){
+        location.href=url;
+    }else if($.browser.msie){
+        history.go(-1);
+    }else{
+        history.go(-1);
+    }
+}
+function addsave() 
+{
+ 
+    var v = $('#ilot_numberount').val();
+    $("#purchase_table_"+v).css("display","");
+    var c = parseInt(v) + 1;
+    $('#ilot_numberount').val(c);     
+}
+
+function checkall(thisform){for(var i=0;i<thisform.elements.length;i++){if(thisform.elements[i].type=="checkbox"&&thisform.elements[i].checked==false&&thisform.elements[i].name!="selectall"){thisform.elements[i].checked=true;}else if(thisform.elements[i].type=="checkbox"&&thisform.elements[i].checked==true&&thisform.elements[i].name!="selectall"){thisform.elements[i].checked=false;}} }
+ </script>
+
+ 
+
+</head>
+<?php
+echo '<form action="' . htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES, 'UTF-8') . '" method="post">';
+echo '<div>';
+echo '<input type="hidden" name="FormID" value="' . $_SESSION['FormID'] . '" />';
+echo '<p class="page_title_text"><img src="' . $RootPath . '/css/' . $Theme . '/images/magnifier.png" title="' . _('Search') . '" alt="" />' . ' ' .  _('工单用料修改') . '</p>';
+
+echo '<div class="text-nav">
+		<div class="text-nav-1"><div>' . _('工单号') . ':</div> 
+		<input type="text" name="wip_entity_name" readonly="readonly" value="' . $_GET['Updatewip_entity_name'] . '" />
+		</div>';
+ 	
+echo '
+<div class="text-nav-1"><div>' . _('订单号码') . ':</div>
+			<input type="text" size="11" readonly="readonly" name="so_header_number"   value="' . $myrow1['so_header_number'] . '" /> </div>
+			<div class="text-nav-1"><div>' . _('订单行') . ':</div>
+			<input type="text" size="11" readonly="readonly" name="so_line_number"   value="' . $myrow1['so_line_number'] . '" /> </div>
+			<div class="text-nav-1"><div>' . _('料号') . ':</div>
+			<input type="text" size="11" readonly="readonly" name="ship_city"   value="' . $myrow1['primary_item'] . '" /> </div>
+			<div class="text-nav-1"><div>' . _('料号名称') . ':</div>
+			<input type="text"  size="11" readonly="readonly"  name="tax_amount" id="item_name"  value="' . $myrow1['item_name'] . '" /> </div>
+			<div class="text-nav-1"><div>' . _('规格型号') . ':</div>
+			<input type="text"  size="11" readonly="readonly"  name="tax_amount" id="item_name"  value="' . $myrow1['item_desc'] . '" /> </div>
+			
+			';
+  	
+echo '  <div class="text-nav-1"><div>' . _('单位') . ':</div>
+			<input type="text"  size="11" readonly="readonly"  name="uom" id="uom"  value="' . $myrow1['units'] . '" /> </div>
+			<div class="text-nav-1"><div>' . _('开工量') . ':</div>
+			<input type="text"  size="11" readonly="readonly"  name="start_quantity"  value="' . $myrow1['start_quantity'] . '" /> </div>
+<div class="text-nav-1"><div>' . _('版本') . ':</div>
+		<input type="text"  size="11" readonly="readonly"  name="version" id="version"  value="' . $myrow1['version'] . '" /></div>
+		<div class="text-nav-1"><div>' . _('开工日期') . ':</div>
+		<input type="text" readonly="readonly"  name="start_date"  value="' . date('Y-m-d',$myrow1['plan_start_date']) . '" /> 
+		<input type="hidden"  name="bom_header_id" id="bom_header_id"  value="' . $myrow1['bom_header_id'] . '" /> </div>
+			<div class="text-nav-1"><div>' . _('建立者') . ':</div>
+			<input type="text"  size="11" readonly="readonly"     value="' . $myrow1['created_by'] . '" /> </div>
+			<div class="text-nav-1"><div>' . _('建立时间') . ':</div>
+			<input type="text"  size="11" readonly="readonly"    value="' . date('Y-m-d H:i:s', $myrow1['creation_date']) . '" /> </div>
+			<div class="text-nav-1"><div>' . _('最近修改者') . ':</div>
+			<input type="text"  size="11" readonly="readonly"   value="' . $myrow1['last_updated_by'] . '" /> </div>
+			<div class="text-nav-1"><div>' . _('最近修改时间') . ':</div>
+			<input type="text"  size="11" readonly="readonly"   value="' . date('Y-m-d H:i:s', $myrow1['last_update_date']) . '" /> </div>
+			
+			</div>
+			<div class="centre">
+	                <input type="submit" name="ReSave" value="重新带BOM">
+					</div>
+
+';
+
+if (isset($_GET['Updatewip_entity_name']) and isset($result) OR isset($_POST['Go']) OR isset($_POST['Next']) OR isset($_POST['Previous'])){
+    $ListCount = DB_num_rows($result);
+  //  <div style="overflow:scroll">
+    echo ' <div class="text-nav-table"> 
+	<table cellpadding="2" class="selection">';
+    
+
+    echo '<tr>   <th width =40 >' . '选择' . '</th>    
+	       <th  width =10 >' . _('工序') . '</th> 
+              <th class="ascending" w >' . _('料号') . '</th> 
+			  <th   width ="40">替代料</th> 
+					<th  width =140 >' . _('料号名称') . '</th> 
+					<th  width =20 >' . _('规格型号') . '</th> 
+					<th   >' . _('单位') . '</th>
+					  <th  >' . _('需求量') . '</th>
+					  <th  >' . _('库存量') . '</th>
+					 <th   >' . _('单耗') . '</th>	
+					 <th >' . _('已发量') . '</th>		
+					 <th  >' . _('新需求量<span style="color:red">*</span>') . '</th>	
+					 <th  >' . _('备注') . '</th> 
+            </tr>';  
+    $k = 0; //row counter to determine background colour
+    $RowIndex = 0;
+ 
+		//	<td><input type="text" readonly="readonly" size="35" name="item_name'.$i.'" value="'. $myrow['item_name'] .'"  size="5" /></td>
+        $i = 0; //counter for input controls
+        while (($myrow = DB_fetch_array($result)) ) { 
+                $_SESSION['status_id' . $identifier]=100;    
+            echo '<td> <input type="checkbox" name="UpdateLine'.$myrow['seq_id'].'" value="'.$i.'" /></td>
+			<td>' . $myrow['operation_seq_num'] . '</td>
+			<td>' . $myrow['item_no'] . '</td>
+			<td><a href="' . $RootPath . '/WIPMaterialModify3.php?component_sequence_id=' . $myrow['component_sequence_id'].'&wip_entity_name='.$myrow['wip_entity_name'].  '" target="_blank">' . $myrow['sub_count'] . ' </td>
+			   <td>' . $myrow['item_name'] . '</td>
+				<td>' . $myrow['item_desc'] . '</td>
+			    <td>' . $myrow['units'] . '</td>		
+			    <td>' . $myrow['required_quantity']  . '</td>
+			    <td>' . $myrow['onhand_quantity']  . '</td>
+				<td>' . $myrow['quantity_per_assembly']  . '</td>
+				<td>' . $myrow['quantity_issued']  . '</td> 	
+                ';?>
+				
+        <?php 
+		echo '<td><input type="text"  class="number"  id="required_quantity'.$i.'" name="required_quantity'.$i.'" value="'. $myrow['required_quantity'] .'"  size="4" /></td>';
+		echo '<td><input type="text"  si id="comments'.$i.'" name="comments'.$i.'" value="'. $myrow['comments'] .'"  size="8" /></td>';
+		if ($myrow['quantity_issued']==0) {
+		echo '<td><a href="' . htmlspecialchars($_SERVER['PHP_SELF'],ENT_QUOTES,'UTF-8') . '?wip_entity_name=' .$myrow['wip_entity_name'] .'&seq_id=' .$myrow['seq_id'] . '&amp;delete=1" onclick="return confirm(\'' . _('是否要删除这个料号?') . '\');">' . _('删除')  . '</a></td>';
+		}
+		echo '<input type="hidden"  name="wip_entity_name'.$i.'" value="' . $myrow['wip_entity_name'] . '" />
+		<input type="hidden"  name="start_quantity'.$i.'" value="' . $myrow['start_quantity'] . '" />
+		<input type="hidden"  name="quantity_issued'.$i.'" value="' . $myrow['quantity_issued'] . '" />
+		<input type="hidden"  name="item_no'.$i.'" value="' . $myrow['item_no'] . '" />
+          </td>';  
+          
+           echo '<td> <input type="hidden" name="seq_id'.$myrow['seq_id'].'" value="'.$i.'" />
+		   
+		   
+           </td>   ';
+         
+          echo  '
+            </tr>';
+            $i++;
+            $RowIndex++;
+
+            //end of page full new headings if
+        } //end loop through customers
+        echo '</table></div>';
+		echo '<tr><td colspan="11"><p><input type="checkbox" name="selectall" onclick="checkall(this.form);"/>全选/取消全选</p></td></tr>
+	<td ><input type="hidden" name="flag" value="<?=$i-1?>" size="15" maxlength="45"/></td> ';
+        echo '<input type="hidden" name="JustSelectedACustomer" value="Yes" />';
+echo '<a name="end"></a><div class="centre"><input type="submit" name="UpdateStatus"   value="修改确认" />
+<input type="submit" name="DeleteStatus"   value="删除确认" />
+
+</div>  
+ </form> ';
+ 
+  }
+
+  ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>新建销售订单</title>
+<link rel="shortcut icon" href="./favicon.ico"/>
+<link rel="icon" href="./favicon.ico"/>
+<meta http-equiv="Content-Type" content="application/html; charset=utf-8"/>
+<link href="/css/xenos/default.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src ="./javascripts/miscfunctions.js"></script>
+<script type="text/javascript" src ="./javascripts/wdatepicker.js"></script>
+<script type="text/javascript">var basepath='./statics/base/images';</script>
+<script type="text/javascript" src="./statics/base/js/metvar.js"></script>
+<script type="text/javascript" src="./statics/base/js/jQuery1.7.2.js"></script>
+<script type="text/javascript" src="./statics/base/js/uploadify/jquery.uploadify.v2.1.4.min.js"></script>
+<script type="text/javascript" src="./statics/base/js/iframes.js"></script>
+<script type="text/javascript" src="./statics/base/js/cookie.js"></script>
+<script type="text/javascript" src="./statics/base/js/jquery.livequery.js"></script>
+
+
+<script src="./javascript/jquery-1.7.2.min.js"></script>
+<script src="./javascript/lhgdialog.min.js?self=true&skin=chrome"></script>
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="/javascript/bootstrap.min.js"></script>
+
+<script type="text/javascript">
+/*ajax执行*/
+var lang = 'cn';
+var metimgurl='./statics/base/images/';
+var depth='';
+$(document).ready(function(){
+	ifreme_methei();
+});
+</script>
+<script type="text/javascript">
+function metreturn(url){
+	if(url){
+		location.href=url;
+	}else if($.browser.msie){
+		history.go(-1);
+	}else{
+		history.go(-1);
+	}
+} 
+
+function addsave() 
+{
+
+	var v = $('#idcount').val();
+    $("#purchase_table_"+v).css("display","");
+	var c = parseInt(v) + 1;
+	$('#idcount').val(c);     
+}
+
+ </script>
+</head>
+<body>
+ <div id="CanvasDiv">
+	<div id="BodyDiv">
+		<div id="BodyWrapDiv">
+			<p class="page_title_text"><img src="<?php echo $RootPath; ?>/css/<?php echo $Theme; ?>//images/transactions.png" title="增加需求料号" alt="增加需求料号">增加需求料号</p>
+			<form action="<?php echo htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES, 'UTF-8'); ?>" method ="POST"><input type="hidden" name="time" value="<?=$time?>">
+				<div>
+				<input type="hidden" name="FormID" value = "<?php echo $_SESSION['FormID']; ?>">	
+				
+				<input type="hidden" name="wip_entity_name" value = "<?php echo $_GET['Updatewip_entity_name']; ?>">	
+				<input type="hidden" name="start_quantity" value = "<?php echo $myrow1['start_quantity']; ?>">	
+			 
+				<input type="hidden" name="plan_start_date" value = "<?php echo $myrow1['plan_start_date']; ?>">		
+ 
+	<input type="hidden" name="PageOffset" value="1"/> 	 
+              <input id="purchase_table_lastRow" name="purchase_table_lastRow" type=hidden value="">
+			  <div class="centre"> 
+                        <p id="Prompt" style="color: red;font-size: 20px"></p>
+					</div>
+					<div class="text-nav-table"> 
+					<table id="purchase_table" cellpadding="2" class="selection">
+					<tr id="list-top">
+					<th   width="20">工序<span style="color:red">*</span></th>
+					<th   width="220">料号<span style="color:red">*</span></th>
+					<th width="160">料号名称</th>
+					<th width="160">规格型号</th>
+					<th width="20" >单位</th> 
+					<th   width="100">需求数量<span style="color:red">*</span></th> 
+					<th width="30">备注</th>
+					<th width="50" align="center">操作</th>
+					</tr>
+					<?php for($j=1;$j<=50;$j++){?>
+			
+					<tr id="purchase_table_<?=$j?>" <?php echo $j>1&&$_POST['stockid'.$j]==''?'style="display:none"':''?> class="mouse click">
+					 <td ><input type="text" name="operation_seq_num<?=$j?>" id="operation_seq_num<?=$j?>" value="<?=$_POST['operation_seq_num'.$j]?>" size="1" maxlength="60"/></td>
+
+					<td><input type="text" readonly="readonly" style="background-color:#D2E9FF;" name="stockid<?=$j?>" id="text_slect_item_no<?=$j?>" value="<?=$_POST['stockid'.$j]?>" size="17" />
+					<?php
+					if($myrow1['wip_type'] == '改制工单'){
+						?>
+
+<a class="btn btn-info btn-xs" id="btn_slect_buliaogz<?=$j?>" hfre="###" title="选择料号">选</a> 
+					<?php
+
+					}else{
+						?>
+<a class="btn btn-info btn-xs" id="btn_slect_buliao<?=$j?>" hfre="###" title="选择料号">选</a> 
+
+<?php
+
+					}
+					
+					?>
+					
+					</td>
+					   <td ><input readonly="readonly" type="text" name="ItemDesc<?=$j?>" id="text_slect_item_name<?=$j?>" value="<?=$_POST['ItemDesc'.$j]?>" size="22" maxlength="60"/></td>
+					   <td ><input readonly="readonly" type="text" name="item_desc<?=$j?>" id="text_slect_item_desc<?=$j?>" value="<?=$_POST['item_desc'.$j]?>" size="22" maxlength="60"/></td>
+					   <td><input readonly="readonly" type="text" name="UOM<?=$j?>" id="text_slect_units<?=$j?>" value="<?=$_POST['UOM'.$j]?>" size="3" maxlength="4"/></td>
+					   <td><input type="text" name="required_quantity<?=$j?>" class="number"  onblur="check(<?=$j?>)"  id="required_quantity<?=$j?>" value="<?=$_POST['required_quantity'.$j]?>" size="6" maxlength="14"/></td>
+						
+					
+						<td class="list-text"><input type="text" name="comments<?=$j?>" value="<?=$_POST['comments'.$j]?>" size="15" maxlength="45"/></td> 
+                      <td>  <a onclick="delettr($(this));" style="padding:0px 5px;" href="javascript:;">删除</a></td>
+
+					  <td><input  type="hidden" name="Subinventory_name<?=$j?>" id="text_slect_locationname<?=$j?>" value="<?=$_POST['Subinventory_name'.$j]?>" size="8" maxlength="25"/>
+
+					</tr>
+					<?php }?>
+					
+					</table>
+					</div>
+	               <div class="centre">
+					<a onclick="addsave();">添加行</a>
+	                
+					</div>
+
+					<div class="centre">
+	                <input type="submit" name="Save" value="提交">
+					</div>
+	 
+					<input type="hidden" name="idcount" id='idcount' value="11"/>
+					<input type="hidden" name="JustSelectedACustomer" value="Yes"/>
+				</div>
+			</form>
+		</div>
+	</div>
+	
+	<div id="FooterDiv">
+		<div id="FooterWrapDiv">
+		 	 
+		</div>
+	</div>
+</div>
+
+<script type="text/javascript">
+    $(document).ready(function(){
+
+        $('.divToilet table tr td a').click(function(){
+            $(this).parent('td').toggleClass('highlight');
+            if(!($(this).parent('td').hasClass('highlight'))) {
+                $(this).next().val('0');
+            }else {
+                $(this).next().val('1');
+            }
+        });
+      
+
+     
+       $('#btn_slect_vendor').dialog({
+            title:'选择供应商',
+            width: '950px',
+            height: 470,
+            content:'url:BtnSearchVendor.php?fwValue=&cat=buliao',
+            init:function(){
+                this.content.document.getElementById('cat').value = 'buliao';
+                this.content.document.getElementById('fwValue').value = '';
+            }
+        });
+
+     
+		 <?php for($j=1;$j<=50;$j++){?> 
+        $('#btn_slect_buliaogz<?=$j?>').dialog({
+            title:'选择料号',
+            width: '950px',
+            height: 470,
+			content:'url:SearchAllItemWIPgz.php?fwValue=<?=$j?>&cat=<?=$_GET['Updatewip_entity_name']?>',
+            init:function(){
+			    this.content.document.getElementById('cat').value = 'buliao';
+                this.content.document.getElementById('fwValue').value = '<?=$j?>';
+            }
+        });
+		<?php }?>
+
+		<?php for($j=1;$j<=50;$j++){?> 
+        $('#btn_slect_buliao<?=$j?>').dialog({
+            title:'选择料号',
+            width: '950px',
+            height: 470,
+			content:'url:SearchAllItemWIP.php?fwValue=<?=$j?>&cat=<?=$_GET['Updatewip_entity_name']?>',
+            init:function(){
+			    this.content.document.getElementById('cat').value = 'buliao';
+                this.content.document.getElementById('fwValue').value = '<?=$j?>';
+            }
+        });
+		<?php }?>
+
+ 
+
+        //Function to get URL arguments
+        function getRequest() {
+            var url = location.search; //获取url中"?"符后的字串
+            var theRequest = new Object();
+            if (url.indexOf("?") != -1) {
+                var str = url.substr(1);
+                strs = str.split("&");
+                for(var i = 0; i < strs.length; i ++) {
+                    theRequest[strs[i].split("=")[0]]=(strs[i].split("=")[1]);
+                }
+            }
+            return theRequest;
+        }
+          
+ 
+    });
+</script>
+</body>
+
+</html>
+  <?php
+  
+include('includes/footer.inc');
+?>

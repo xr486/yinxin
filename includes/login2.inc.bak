@@ -1,0 +1,10 @@
+<?php
+$db_host='localhost';
+$db_user='biaopinjie';
+$db_pass='biaopinjie';
+$db_name='biaopinjie';
+$con=mysql_connect($db_host,$db_user,$db_pass);
+mysql_query("set names 'utf8'");
+if(!$con)die(mysql_error()); 
+mysql_select_db($db_name); 
+?>

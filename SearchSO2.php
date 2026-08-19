@@ -1,0 +1,344 @@
+<?php
+
+/* $Id: vendors.php 6338 2013-09-28 05:10:46Z daintree $ */
+ob_start();
+include('includes/session.inc');
+if (isset($_GET['identifier'])) {
+    $_POST['identifier'] = $_GET['identifier'];
+}
+
+if (!isset($_POST['identifier'])) {
+    $identifier = date('U');
+} else {
+    $identifier = $_POST['identifier'];
+}
+if (isset($_GET['Updateorder_number'])) {
+    $Updateorder_number = $_GET['Updateorder_number'];
+} else {
+    $Updateorder_number = '';
+}
+$Title = _('订单详情');
+$ViewTopic = '订单详情';
+$BookMark = '订单详情';
+include('includes/header.inc');
+include('includes/SQL_CommonFunctions.inc');
+include('includes/CountriesArray.php');
+
+echo '<p class="page_title_text">
+		<img src="' . $RootPath . '/css/' . $Theme . '/images/customer.png" title="' . _('订单头信息') .
+ '" alt="" />' . ' ' . _('订单头信息') . '
+	</p>';
+if (isset($Updateorder_number) and $Updateorder_number != '') {
+    //CreditLimit,
+    $sql2 = "SELECT a.order_number,
+                    order_type,
+                    a.status,
+                    b.customer_name,
+                    a.order_all_amount,a.youhui_amount,a.all_line_amount,a.tax_amount,
+                    a.tax_name,a.tax_flag,
+                    a.currency_code,
+                    a.header_remark ,
+                    a.need_date,a.qianding_date,
+					b.customer_contacts,
+		b.contacts_phone, a.tax_name,a.term_name,c.employee_name yewu,
+                    a.creation_date,a.customer_code,a.subject,a.project,a.coycode,subject,project,jiaohuotiaojian,baozhuang,zhiliangbaozheng,mainfeifuwu,a.yunfei_amount,a.ship_address,a.youxiaoxing1,a.youxiaoxing2,a.approve_remark,a.approve_date,a.approved_by,a.payment_amount,a.contract_number
+FROM so_headers_all a,
+	customers b,hr_employees c  
+WHERE  a.customer_code = b.customer_code
+and c.employee_num=a.yewu
+and a.order_number = '" .$Updateorder_number."'";
+
+    $result2 = DB_query($sql2, $db);
+    $myrow = DB_fetch_array($result2);
+    $_POST['order_number'] = $myrow['order_number'];
+    $_POST['order_type'] = $myrow['order_type'];
+	$_POST['status'] = $myrow['status'];
+    $_POST['remark'] = $myrow['header_remark'];
+	if ($_SESSION['price_flag']=='N') {	
+    $_POST['all_line_amount'] = $myrow['all_line_amount'];   
+    $_POST['order_all_amount'] = $myrow['order_all_amount'];   
+    $_POST['order_invoice_amount'] = $myrow['order_invoice_amount'];  
+    $_POST['youhui_amount']=$myrow['youhui_amount'];
+	}
+	$_POST['tax_flag']=$myrow['tax_flag'];
+	$_POST['customer_code']=$myrow['customer_code'];
+    $_POST['tax_amount']=$myrow['tax_amount'];
+    $_POST['currency_code']=$myrow['currency_code'];
+    $_POST['customer_name']=$myrow['customer_name'];
+    $_POST['need_date'] = $myrow['need_date'];
+    $_POST['qianding_date'] = $myrow['qianding_date'];
+    $_POST['creation_date'] = $myrow['creation_date'];
+	$_POST['yewu']=$myrow['yewu'] ;
+	$_POST['ship_address']=$myrow['ship_address'] ;
+	   $_POST['subject']=$myrow['subject'] ;
+	   $_POST['project']=$myrow['project'] ;
+	   $_POST['jiaohuotiaojian']=$myrow['jiaohuotiaojian'] ;
+	   $_POST['baozhuang']=$myrow['baozhuang'] ;
+	   $_POST['zhiliangbaozheng']=$myrow['zhiliangbaozheng'] ;
+	   $_POST['mainfeifuwu']=$myrow['mainfeifuwu'] ;
+	   $_POST['currency_code']=$myrow['currency_code'] ;
+	   $_POST['tax_name']=$myrow['tax_name'] ;
+	   $_POST['term_name']=$myrow['term_name'] ;
+	   $_POST['coycode']=$myrow['coycode'] ;
+	   $_POST['yunfei_amount']=$myrow['yunfei_amount'] ;
+	   $_POST['youxiaoxing1']=$myrow['youxiaoxing1'] ;
+	   $_POST['youxiaoxing2']=$myrow['youxiaoxing2'] ; 	
+	   $_POST['approve_remark']=$myrow['approve_remark'] ;
+	   $_POST['approve_date']=$myrow['approve_date'] ;
+	   $_POST['approved_by']=$myrow['approved_by'] ;
+	   $_POST['payment_amount']=$myrow['payment_amount'] ;
+	   $_POST['contract_number']=$myrow['contract_number'] ;
+    if (!isset($_GET['delete'])) {
+        echo '<form method="post" action="' . htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES, 'UTF-8') . '">'
+        . '<input type="hidden" name = "identifier" value ="' . $identifier . '">';
+        echo '<div>';
+        echo '<input type="hidden" name="FormID" value="' . $_SESSION['FormID'] . '" />';
+        
+        echo '<table class="selection" id="SignFrame">
+        <div class="text-nav">
+        <div class="text-nav-1"><div>' . _('订单号') . ':</div>
+        <input type="text" readonly="readonly" value="' . $_POST['order_number'] . '" /></div>
+                <input  type="hidden" name="order_number"  value="' . $_POST['order_number'] . '" />
+
+				<div class="text-nav-1"><div>' . _('客户编号') . ':</div>
+				<input type="text" readonly="readonly" value="' . $_POST['customer_code'] . '" /> </div>
+				<div class="text-nav-2"><div>' . _('客户名称') . ':</div>
+				<input type="text" readonly="readonly" value="' . $_POST['customer_name'] . '" />  </div>
+			
+                <div class="text-nav-2"><div>' . _('地址') . ':</div>
+                <input type="text" readonly="readonly" value="' . $_POST['ship_address'] . '" /> </div>
+             <div class="text-nav-1"><div>' . _('状态') . ':</div>
+             <input type="text" readonly="readonly" value="' .  $_POST['status'] . '" /></div>
+			
+			';
+        
+        $v_need_date = date('Y-m-d',$_POST['need_date']);
+		$v_qianding_date = date('Y-m-d',$_POST['qianding_date']);
+        $v_creation_date = date('Y-m-d H:i:s',$_POST['creation_date']);
+		if ($_POST['approve_date']>0) {
+			$_POST['approve_date']= date('Y-m-d H:i:s',$_POST['approve_date']);
+		}
+        echo'
+        <div class="text-nav-1"><div>' . _('付款条件') . ':</div>
+        <input type="text" readonly="readonly" value="' . $_POST['term_name']. '" /> </div>
+				<div class="text-nav-1"><div>' . _('订单备注') . ':</div>
+				<input type="text" readonly="readonly" value="' . $_POST['remark'] . '" /> </div>
+				
+				<div class="text-nav-1"><div>' . _('签订日') . ':</div>
+				<input type="text" readonly="readonly" value="' . $v_qianding_date . '" /> </div>
+				<div class="text-nav-1"><div>' . _('建立日') . ':</div>
+				<input type="text" readonly="readonly" value="' . $v_creation_date . '" />  </div>
+			 
+			 
+				
+			 <div class="text-nav-1"><div>' . _('税别') . ':</div>
+             <input type="text" readonly="readonly" value="' . $_POST['tax_name']. '" /> </div>
+                
+                <div class="text-nav-1"><div>' . _('币别') . ':</div>
+				<input type="text" readonly="readonly" value="' . $_POST['currency_code']. '" /> </div>
+                
+						 <div class="text-nav-1"><div>是否含税：</div> 
+                <input type="text" readonly="readonly" value="' . $_POST['tax_flag']. '" /></div>   
+                            
+                <div class="text-nav-1"><div>' . _('含税金额') . ':</div>
+				<input type="text" readonly="readonly" value="' . sprintf("%.2f",$_POST['order_all_amount']). '"  />  </div>
+                <div class="text-nav-1"><div>' . _('运费') . ':</div>
+				<input type="text" readonly="readonly" value="' . sprintf("%.2f",$_POST['yunfei_amount']). '" />  </div>
+                <div class="text-nav-1"><div>' . _('优惠金额') . ':</div>
+				<input type="text" readonly="readonly" value="' . sprintf("%.2f",$_POST['youhui_amount']). '" />  </div>
+                <div class="text-nav-1"><div>' . _('未税金额') . ':</div>
+				<input type="text" readonly="readonly" value="' . sprintf("%.2f",$_POST['all_line_amount'] ). '" /> </div>
+					<div class="text-nav-1"><div>' . _('税金') . ':</div>
+				<input type="text" readonly="readonly" value="' . sprintf("%.2f",$_POST['tax_amount'] ). '" />  </div>	
+					<div class="text-nav-1"><div>' . _('已收款') . ':</div>
+				<input type="text" readonly="readonly" value="' . sprintf("%.2f",$_POST['payment_amount'] ). '" />  </div>	
+                <div class="text-nav-1"><div>业务：</div> 
+                <input type="text" readonly="readonly" value="' . $_POST['yewu']. '" /></div>  
+			<div class="text-nav-1"><div>签核人：</div> 
+            <input type="text" readonly="readonly" value="' . $_POST['approved_by']. '" /></div>
+			<div class="text-nav-1"><div>签核日期：</div> 
+            <input type="text" readonly="readonly" value="' . $_POST['approve_date']. '" /> </div>
+            <div class="text-nav-2"><div>签核备注：</div> 
+            <input type="text" readonly="readonly" value="' . $_POST['approve_remark']. '" /></div>   
+             <div class="text-nav-1"><div>' . _('订单类型') . ':</div>
+             <input type="text" readonly="readonly" value="' . $_POST['order_type']. '" /></div>
+             <div class="text-nav-1"><div>' . _('合同编号') . ':</div>
+             <input type="text" readonly="readonly" value="' . $_POST['contract_number']. '" /></div>
+             </div>
+			';
+        echo '</table>';
+ 
+        echo '<br />';
+        $sql2 = "SELECT
+	c.line,
+	stockid,d.item_desc,d.item_name,d.gongyi,
+	c.price,c.other_price ,c.zhidao_price,
+	uom, 
+	quantity_shiped,
+	quantity_cancelled, 	 
+	quantity_billed,
+	line_amount,
+	quantity,
+	line_remark,c.need_date,
+  subinventory_code,c.customer_item
+FROM so_lines_all c,sf_item_no d
+        where c.stockid=d.item_no 
+		and order_number = '" .$Updateorder_number."'";
+        $result2 = DB_query($sql2, $db);
+        if (DB_num_rows($result2) == 0) {
+            unset($result2);
+            prnMsg(_('没有找到订单详细信息，请重新登录查询！'), 'info');
+        } else {
+			echo '<p class="page_title_text">
+		<img src="' . $RootPath . '/css/' . $Theme . '/images/customer.png" title="' . _('订单头信息') .
+ '" alt="" />' . ' ' . _('订单行信息') . '
+	</p>';
+            echo '<form method="post" action="' . htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES, 'UTF-8') . '"><input type="hidden" name = "identifier" value ="' . $identifier . '">';
+            echo '<div>';
+            echo '<input type="hidden" name="FormID" value="' . $_SESSION['FormID'] . '" />';
+            echo '<div class="text-nav-table"> <table class="selection" align="center" >';
+            $tableheader = '<tr>
+	                           
+                                        <th width =40 >' . '行' . '</th>
+                                        <th  width =180>' . '料号' . '</th>
+										<th  width =150>' . '料号名称' . '</th>
+										<th  width =150>' . '规格型号' . '</th> 
+                                         <th width =50 >' . '单位' . '</th>
+                                         <th width =150 >' . '客户料号' . '</th>
+										<th width =120 >' . '数量' . '</th>  
+                                    
+					                    <th  width =50>' . '销售单价' . '</th>              
+										<th width =80 >' . '金额' . '</th>										
+                                        <th  width =100>' . '已出货数量' . '</th>									                                            
+									   <th  >' . '需求日期' . '</th>
+									   <th width =120 >' . '备注' . '</th>
+                                       
+                                       
+				</tr>';
+                       
+            echo $tableheader;
+            $RowCounter = 1;
+            $k = 0; //row colour counter
+            while ($myrow = DB_fetch_array($result2)) {
+                if ($k == 1) {
+                    echo '<tr class="EvenTableRows">';
+                    $k = 0;
+                } else {
+                    echo '<tr class="EvenTableRows">';
+                    $k++;
+                }
+
+
+                echo '
+		              <td>' . $myrow['line'] . '</td>
+                      <td>' . $myrow['stockid'] . '</td>
+					  <td>' . $myrow['item_name'] . '</td>
+					  <td>' . $myrow['item_desc'] . '</td> 
+                      <td>' . $myrow['uom'] . '</td>
+                      <td>' . $myrow['customer_item'] . '</td>
+                      <td class="number">' . $myrow['quantity'] . '</td>  ';
+					   if ($_SESSION['price_flag']=='N') {	 
+                      echo '
+                      <td class="number">' .  sprintf("%.2f",$myrow['price'] ) . '</td>                      
+					  <td class="number">' . sprintf("%.2f",$myrow['line_amount'] ) . '</td> '; 
+					   } else {
+					    echo '<td class="number"> </td>
+                      <td class="number"> </td>
+                      <td class="number"> </td>                      
+					  <td class="number"></td> '; 
+					   }
+                    echo '  <td class="number">' . $myrow['quantity_shiped'] . '</td>
+                      <td class="number">' . date('Y-m-d',$myrow['need_date']) . '</td>
+					  <td>' . $myrow['line_remark']  . '</td>
+                        
+
+        </tr>';
+                $RowCounter++;
+                If ($RowCounter == 500) {
+                    $RowCounter = 1;
+                    echo $tableheader;
+                }
+            }
+            echo '</table></div> ';
+
+
+            echo '</div>
+          </form>';
+        }
+
+ $sql2 = "SELECT
+	 	file_patch,creation_date,created_by,file_name
+FROM so_headers_all_file  
+        where  order_number = '" .$Updateorder_number."'";
+        $result2 = DB_query($sql2, $db);
+        if (DB_num_rows($result2) == 0) {
+            unset($result2);
+          //  prnMsg(_('无附件'), 'info');
+        } else {
+			echo '<p class="page_title_text">
+		<img src="' . $RootPath . '/css/' . $Theme . '/images/customer.png" title="' . _('订单头信息') .
+ '" alt="" />' . ' ' . _('订单附件信息') . '
+	</p>';
+            echo '<form method="post" action="' . htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES, 'UTF-8') . '"><input type="hidden" name = "identifier" value ="' . $identifier . '">';
+            echo '<div>';
+            echo '<input type="hidden" name="FormID" value="' . $_SESSION['FormID'] . '" />';
+            echo '<table class="selection" align="center" >';
+            $tableheader = '<tr>
+	                           
+                                        <th width =150 >' . '附件名称' . '</th>
+										<th width =190 >' . '上传时间' . '</th>
+										<th width =80 >' . '上传人员' . '</th>
+                                        <th  width =50>' . '下载' . '</th>
+									 
+                                       
+                                       
+				</tr>';
+                       
+            echo $tableheader;
+            $RowCounter = 1;
+            $k = 0; //row colour counter
+            while ($myrow = DB_fetch_array($result2)) {
+                if ($k == 1) {
+                    echo '<tr class="EvenTableRows">';
+                    $k = 0;
+                } else {
+                    echo '<tr class="EvenTableRows">';
+                    $k++;
+                }
+ 
+                echo '
+		              <td>' . $myrow['file_name'] . '</td>
+                      <td>' . date('Y-m-d h:i:s',$myrow['creation_date']) . '</td>
+					  <td>' . $myrow['created_by'] . '</td>                      
+					  <td><a href="' . $RootPath . '/' . $myrow['file_patch'] . '" target="_blank">' . '下载' . '</td>
+                     
+                        
+
+        </tr>';
+                $RowCounter++;
+                If ($RowCounter == 500) {
+                    $RowCounter = 1;
+                    echo $tableheader;
+                }
+            }
+            echo '</table> ';
+
+
+            echo '</div>
+          </form>';
+        }
+
+        echo '<br />
+                                <input type="submit" name="return" value="' . "关闭当前页面" . '" />&nbsp;
+                                 
+</div>';
+    }
+    echo '</div>
+          </form>';
+}
+if (isset($_POST['return'])) {
+//    echo 'AAAAAAAAAA';
+  echo '<script>window.close();</script>'; 
+}
+include('includes/footer.inc');
+?>

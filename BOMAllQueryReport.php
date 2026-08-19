@@ -1,0 +1,520 @@
+<?php
+
+/* $Id: bom_lines_alls.php 6310 2013-08-29 10:42:50Z daintree $*/
+
+include('includes/session.inc');
+
+$Title = _('多层BOM查询');
+
+include('includes/header.inc');
+include('includes/SQL_CommonFunctions.inc');
+
+function display_children($bom_header_id,$assembly_item_no, $Level, &$bom_lines_allTree) {
+
+	global $db;
+	global $i;
+
+	// retrive all children of assembly_item_no
+	$c_result = DB_query("SELECT  assembly_item_no,
+								component_item,bom_header_id
+						FROM  bom_lines_all b WHERE bom_header_id='" . $bom_header_id. "'"
+						,$db);
+	if (DB_num_rows($c_result) > 0) {
+
+		while ($row = DB_fetch_array($c_result)) {
+			//echo '<br />assembly_item_no: ' . $assembly_item_no . ' Level: ' . $Level . ' row[component]: ' . $row['component']  . '<br />';
+			if ($assembly_item_no != $row['component_item']) {
+				// indent and display the title of this child
+				$bom_lines_allTree[$i]['Level'] = $Level; 		// Level
+				if ($Level > 15) {
+					prnMsg(_('A maximum of 15 levels of bill of materials only can be displayed'),'error');
+					exit;
+				}
+				$bom_lines_allTree[$i]['bom_header_id'] = $bom_header_id;
+				$bom_lines_allTree[$i]['assembly_item_no'] = $assembly_item_no;			// Assemble
+				$bom_lines_allTree[$i]['component_item'] = $row['component_item'];	// component_item
+				// call this function again to display this
+				// child's children
+				$i++;
+				display_children($row['bom_header_id'],$row['component_item'], $Level + 1, $bom_lines_allTree);
+			}
+		}
+	}
+}
+
+
+function CheckForRecursivebom_lines_all ($Ultimateassembly_item_no, $ComponentToCheck, $db) {
+
+/* returns true ie 1 if the bom_lines_all contains the assembly_item_no part as a component
+ie the bom_lines_all is recursive otherwise false ie 0 */
+
+	$sql = "SELECT component_item FROM bom_lines_all WHERE assembly_item_no='".$ComponentToCheck."'";
+	$ErrMsg = _('An error occurred in retrieving the components of the bom_lines_all during the check for recursion');
+	$DbgMsg = _('The SQL that was used to retrieve the components of the bom_lines_all and that failed in the process was');
+	$result = DB_query($sql,$db,$ErrMsg,$DbgMsg);
+
+	if (DB_num_rows($result)!=0) {
+		while ($myrow=DB_fetch_array($result)){
+			if ($myrow['component_item']==$Ultimateassembly_item_no){
+				return 1;
+			}
+			if (CheckForRecursivebom_lines_all($Ultimateassembly_item_no, $myrow['component_item'],$db)){
+				return 1;
+			}
+		} //(while loop)
+	} //end if $result is true
+
+	return 0;
+
+} //end of function CheckForRecursivebom_lines_all
+
+function DisplayBOMItems($bom_header_id,$Ultimateassembly_item_no, $assembly_item_no, $Component,$Level, $db) {
+
+		global $assembly_item_noMBflag;
+		$sql = "SELECT a.component_item,a.item_num,
+						b.item_name itemdescription, b.item_desc itemspec, 
+						a.component_quantity,
+						a.effectivity_date,
+						a.disable_date,a.operation_seq_num,a.component_remarks,
+						b.units,(select operation_code
+						from bom_routings_all c 
+						where c.assembly_item_no=a.assembly_item_no and c.operation_seq_num=a.operation_seq_num ) as operation_code,
+						(select sum(quantity) from inv_onhand_quantity_all d where d.stockid=a.component_item) as qoh
+
+				FROM bom_lines_all a, sf_item_no b
+				where a.component_item=b.item_no 
+				and a.component_item='".$Component."'
+				and a.component_item='".$Component."'
+				and a.bom_header_id='".$bom_header_id."'
+				AND a.assembly_item_no = '".$assembly_item_no."'";
+
+		$ErrMsg = _('Could not retrieve the bom_lines_all components because');
+		$DbgMsg = _('The SQL used to retrieve the components was');
+		$result = DB_query($sql,$db,$ErrMsg,$DbgMsg);
+
+		//echo $TableHeader;
+		$RowCounter =0;
+
+		while ($myrow=DB_fetch_array($result)) {
+
+			$Level1 = str_repeat('-&nbsp;',$Level-1).$Level;
+			
+ 
+
+			  if ($myrow['disable_date']>1) {
+			     $disable_date=  date('Y-m-d',$myrow['disable_date']) ;}
+			 else  
+				 {$disable_date='';}
+
+			printf('<td>%s</td>
+					<td>%s</td> 
+					<td>%s</td> 
+					<td>%s</td> 
+					<td>%s</td>
+					<td class="number">%s</td>
+					<td>%s</td>
+					<td>%s</td>
+					<td>%s</td>
+					<td>%s</td>
+					<td class="number">%s</td>					
+					 </tr>',
+					$Level1,
+					$myrow['item_num'],  
+					$myrow['component_item'],
+					$myrow['itemdescription'],$myrow['itemspec'],
+					$myrow['component_quantity'],
+					$myrow['units'],
+					//locale_number_format($myrow['component_quantity'],'Variable'),					
+					 date('Y-m-d',$myrow['effectivity_date']),
+					$disable_date,
+					$myrow['component_remarks'],
+					$myrow['qoh']);
+					 
+
+		} //END WHILE LIST LOOP
+} //end of function DisplayBOMItems
+
+//---------------------------------------------------------------------------------
+
+/* Selectedassembly_item_no could come from a post or a get */
+if (isset($_GET['Selectedassembly_item_no'])){
+	$Selectedassembly_item_no = $_GET['Selectedassembly_item_no'];
+}else if (isset($_POST['Selectedassembly_item_no'])){
+	$Selectedassembly_item_no = $_POST['Selectedassembly_item_no'];
+}
+
+
+
+/* SelectedComponent could also come from a post or a get */
+if (isset($_GET['SelectedComponent'])){
+	$SelectedComponent = $_GET['SelectedComponent'];
+} elseif (isset($_POST['SelectedComponent'])){
+	$SelectedComponent = $_POST['SelectedComponent'];
+}
+
+/* delete function requires Location to be set */
+if (isset($_GET['Location'])){
+	$Location = $_GET['Location'];
+} elseif (isset($_POST['Location'])){
+	$Location = $_POST['Location'];
+}
+
+/* delete function requires WorkCentre to be set */
+if (isset($_GET['WorkCentre'])){
+	$WorkCentre = $_GET['WorkCentre'];
+} elseif (isset($_POST['WorkCentre'])){
+	$WorkCentre = $_POST['WorkCentre'];
+}
+
+if (isset($_GET['Select'])){
+	$Select = $_GET['Select'];
+} elseif (isset($_POST['Select'])){
+	$Select = $_POST['Select'];
+}
+
+
+$msg='';
+
+if (isset($Errors)) {
+	unset($Errors);
+}
+
+$Errors = array();
+$InputError = 0;
+
+if (isset($Select)) { //assembly_item_no Stock Item selected so display bom_lines_all or edit Component
+	$Selectedassembly_item_no = $Select;
+	unset($Select);// = NULL;
+	echo '<p class="page_title_text"><img src="'.$RootPath.'/css/'.$Theme.'/images/maintenance.png" title="' . _('Search') .
+		'" alt="" />' . ' ' . $Title . '</p><br />';
+
+	if (isset($Selectedassembly_item_no) AND isset($_POST['Submit'])) {
+
+		//editing a component need to do some validation of inputs
+
+		$i = 1;
+
+		if (!Is_Date($_POST['effectivity_date'])) {
+			$InputError = 1;
+			prnMsg(_('The effective after date field must be a date in the format') . ' ' .$_SESSION['DefaultDateFormat'],'error');
+			$Errors[$i] = 'effectivity_date';
+			$i++;
+		}
+		if (!Is_Date($_POST['disable_date'])) {
+			$InputError = 1;
+			prnMsg(_('The effective to date field must be a date in the format')  . ' ' .$_SESSION['DefaultDateFormat'],'error');
+			$Errors[$i] = 'disable_date';
+			$i++;
+		}
+		if (!is_numeric(filter_number_format($_POST['Quantity']))) {
+			$InputError = 1;
+			prnMsg(_('The quantity entered must be numeric'),'error');
+			$Errors[$i] = 'Quantity';
+			$i++;
+		}
+		if (filter_number_format($_POST['Quantity'])==0) {
+			$InputError = 1;
+			prnMsg(_('The quantity entered cannot be zero'),'error');
+			$Errors[$i] = 'Quantity';
+			$i++;
+		}
+		if(!Date1GreaterThanDate2($_POST['disable_date'], $_POST['effectivity_date'])){
+			$InputError = 1;
+			prnMsg(_('The effective to date must be a date after the effective after date') . '<br />' . _('The effective to date is') . ' ' . DateDiff($_POST['disable_date'], $_POST['effectivity_date'], 'd') . ' ' . _('days before the effective after date') . '! ' . _('No updates have been performed') . '.<br />' . _('Effective after was') . ': ' . $_POST['effectivity_date'] . ' ' . _('and effective to was') . ': ' . $_POST['disable_date'],'error');
+			$Errors[$i] = 'effectivity_date';
+			$i++;
+			$Errors[$i] = 'disable_date';
+			$i++;
+		}
+	
+		if (!in_array('effectivity_date', $Errors)) {
+			$effectivity_dateSQL = FormatDateForSQL($_POST['effectivity_date']);
+		}
+		if (!in_array('disable_date', $Errors)) {
+			$disable_dateSQL = FormatDateForSQL($_POST['disable_date']);
+		}
+ 
+		if ($msg != '') {prnMsg($msg,'success');}
+
+	}  elseif (isset($Selectedassembly_item_no)
+		AND !isset($SelectedComponent)
+		AND ! isset($_POST['submit'])) {
+
+	 
+
+	} //bom_lines_all editing/insertion ifs
+
+
+	if(isset($_GET['ReSelect'])) {
+		$Selectedassembly_item_no = $_GET['ReSelect'];
+	}
+
+	//DisplayBOMItems($Selectedassembly_item_no, $db);
+	$sql = "SELECT item_name,units
+			FROM sf_item_no
+			WHERE item_no='" . $Selectedassembly_item_no . "'";
+
+	$ErrMsg = _('Could not retrieve the description of the assembly_item_no part because');
+	$DbgMsg = _('The SQL used to retrieve description of the assembly_item_no part was');
+	$result=DB_query($sql,$db,$ErrMsg,$DbgMsg);
+
+	$myrow=DB_fetch_row($result);
+
+	$assembly_item_noMBflag = $myrow[1];
+
+	echo '<br /><div class="centre"><a href="' . htmlspecialchars($_SERVER['PHP_SELF'],ENT_QUOTES,'UTF-8') . '">' . _('查询其它BOM') . '</a></div><br />';
+	 
+	 
+ 
+	echo '<br />
+			<table class="selection">';
+	echo '<tr>
+			<th colspan="13"><div class="centre"><b>' . $Selectedassembly_item_no .' - ' . $myrow[0] . ' ('. $myrow[1]. ') </b></div></th>
+		</tr>';
+
+	$bom_lines_allTree = array();
+	//bom_lines_allTree is a 2 dimensional array with three elements for each item in the array - Level, assembly_item_no, Component
+	//display children populates the bom_lines_all_Tree from the selected assembly_item_no
+	$i =0;
+	display_children($Selectedassembly_item_no, 1, $bom_lines_allTree);
+
+	$TableHeader =  '<tr>
+						<th>' . _('层级') . '</th>
+						<th>' . _('序号') . '</th>  
+						<th>' . _('料号') . '</th>
+						<th>' . _('料号名称') . '</th>
+						<th>' . _('规格型号') . '</th>
+						<th>' . _('数量') . '</th>
+						<th>' . _('单位') . '</th>
+						<th>' . _('生效日期') . '</th>
+						<th>' . _('失效日期') . '</th>
+						<th>' . _('备注') . '</th>
+						<th>' . _('库存量') . '</th>
+					</tr>';
+	echo $TableHeader;
+	if(count($bom_lines_allTree) == 0) {
+		echo '<tr class="OddTableRows">
+				<td colspan="8">' . _('No materials found.') . '</td>
+			</tr>';
+	} else {
+		$Ultimateassembly_item_no = $Selectedassembly_item_no;
+		$k = 0;
+		$RowCounter = 1;
+		$bom_lines_allTree = arrayUnique($bom_lines_allTree);
+		foreach($bom_lines_allTree as $bom_lines_allItem){
+			$Level = $bom_lines_allItem['Level'];
+			$assembly_item_no = $bom_lines_allItem['assembly_item_no'];
+			$Component = $bom_lines_allItem['component_item'];
+			if ($k==1){
+				echo '<tr class="EvenTableRows">';
+				$k=0;
+			}else {
+				echo '<tr class="OddTableRows">';
+				$k++;
+			}
+			DisplayBOMItems($bom_header_id,$Ultimateassembly_item_no, $assembly_item_no, $Component, $Level, $db);
+		}
+	}
+	echo '</table>
+		<br />';
+    /* We do want to show the new component entry form in any case - it is a lot of work to get back to it otherwise if we need to add */
+
+		echo '<form method="post" action="' . htmlspecialchars($_SERVER['PHP_SELF'],ENT_QUOTES,'UTF-8') . '?Select=' . $Selectedassembly_item_no .'">';
+        echo '<div>';
+		echo '<input type="hidden" name="FormID" value="' . $_SESSION['FormID'] . '" />';
+
+		if (isset($_GET['SelectedComponent']) AND $InputError !=1) {
+		//editing a selected component from the link to the line item
+
+			$sql = "SELECT loccode,
+						effectivity_date,
+						disable_date,
+						workcentreadded,
+						quantity,
+						autoissue
+					FROM bom_lines_all
+					WHERE assembly_item_no='".$Selectedassembly_item_no."'
+					AND component_item='".$SelectedComponent."'";
+
+			$result = DB_query($sql, $db);
+			$myrow = DB_fetch_array($result);
+
+			$_POST['LocCode'] = $myrow['loccode'];
+			$_POST['effectivity_date'] = ConvertSQLDate($myrow['effectivity_date']);
+			if ($myrow['disable_date']>1) {
+			$_POST['disable_date'] = ConvertSQLDate($myrow['disable_date']);
+			} else {
+				$_POST['disable_date'] = '';
+			}
+			$_POST['WorkCentreAdded']  = $myrow['workcentreadded'];
+			$_POST['Quantity'] = locale_number_format($myrow['quantity'],'Variable');
+			$_POST['AutoIssue'] = $myrow['autoissue'];
+
+			prnMsg(_('Edit the details of the selected component in the fields below') . '. <br />' . _('Click on the Enter Information button to update the component details'),'info');
+			echo '<br />
+					<input type="hidden" name="Selectedassembly_item_no" value="' . $Selectedassembly_item_no . '" />';
+			echo '<input type="hidden" name="SelectedComponent" value="' . $SelectedComponent . '" />';
+			echo '<table class="selection">';
+			echo '<tr>
+					<th colspan="13"><div class="centre"><b>' .  ('Edit Component Details')  . '</b></div></th>
+				</tr>';
+			echo '<tr>
+					<td>' . _('Component') . ':</td>
+					<td><b>' . $SelectedComponent . '</b></td>
+					 <input type="hidden" name="component_item" value="' . $SelectedComponent . '" />
+				</tr>';
+
+		} else { //end of if $SelectedComponent
+
+			echo '<input type="hidden" name="Selectedassembly_item_no" value="' . $Selectedassembly_item_no . '" />';
+			/* echo "Enter the details of a new component in the fields below. <br />Click on 'Enter Information' to add the new component, once all fields are completed.";
+			*/
+			echo '<table class="selection">';
+			
+		}
+
+	
+
+		echo '</table>
+			<br />
+			
+            </div>
+			</form>';
+
+
+	// end of bom_lines_all maintenance code - look at the assembly_item_no selection form if not relevant
+// ----------------------------------------------------------------------------------
+
+} elseif (isset($_POST['Search'])){
+	// Work around to auto select
+ 
+
+		$sql = "SELECT a.item_no,
+					a.item_name description,
+					item_desc,
+					a.units,b.creation_date, 
+					(select SUM(b.quantity)  from inv_onhand_quantity_all b where a.item_no = b.stockid)   as totalonhand
+				FROM sf_item_no a ,bom_headers_all b   where a.item_no=b.assembly_item_no ";
+		 if (isset($_POST['StockCode']) and $_POST['StockCode'] != '') { 
+        $sql = $sql . " and     a.item_no " . LIKE  . "'%" . $_POST['StockCode'] . "%'  ";
+          }
+
+		   if (isset($_POST['item_name']) and $_POST['item_name'] != '') { 
+        $sql = $sql . " and     a.item_name " . LIKE  . "'%" . $_POST['item_name'] . "%'  ";
+          }
+		   if (isset($_POST['item_desc']) and $_POST['item_desc'] != '') { 
+        $sql = $sql . " and     a.item_desc " . LIKE  . "'%" . $_POST['item_desc'] . "%'  ";
+          }
+
+		   $sql = $sql . " ORDER BY a.creation_date desc ";
+      
+		$ErrMsg = _('The SQL to find the parts selected failed with the message');
+		$result = DB_query($sql,$db,$ErrMsg);
+ 
+} //end of if search
+
+if (!isset($Selectedassembly_item_no)) {
+
+	echo '<p class="page_title_text"><img src="'.$RootPath.'/css/'.$Theme.'/images/magnifier.png" title="' . _('Search') . '" alt="" />' . ' ' . $Title . '</p>';
+	echo '<form action="' . htmlspecialchars($_SERVER['PHP_SELF'],ENT_QUOTES,'UTF-8') . '" method="post">' .
+	'
+     <br />
+     <table class="selection" cellpadding="3">
+	<tr><td>  <b>' . _('料号') . '</b>:</td>
+		<td><input tabindex="2" type="text" name="StockCode"   size="15" maxlength="18" value="' . $_POST['StockCode'] . '" /></td>
+	<td>  <b>' . _('料号名称') . '</b>:</td>
+		<td><input  type="text" name="item_name" size="20" maxlength="25" value="' . $_POST['item_name'] . '" /></td>
+		<td>  <b>' . _('规格型号') . '</b>:</td>
+		<td><input  type="text" name="item_desc" size="20" maxlength="25" value="' . $_POST['item_desc'] . '" /></td>
+		 
+		
+	</tr>
+	</table>
+	<br /><div class="centre"><input tabindex="3" type="submit" name="Search" value="' . _('查询BOM') . '" /></div>';
+	echo '<input type="hidden" name="FormID" value="' . $_SESSION['FormID'] . '" />';
+
+	if (isset($_POST['Search'])
+		AND isset($result)
+		AND !isset($Selectedassembly_item_no)) {
+
+		echo '<br />
+			<table cellpadding="2" class="selection">';
+		$TableHeader = '<tr>
+							<th>' . _('料号') . '</th>
+							<th>' . _('料号名称') . '</th>
+							<th>' . _('规格型号') . '</th>
+							<th>' . _('库存') . '</th>
+							<th>' . _('单位') . '</th>
+							<th>' . _('建立日期') . '</th>
+						</tr>';
+
+		echo $TableHeader;
+
+		$j = 1;
+		$k=0; //row colour counter
+		while ($myrow=DB_fetch_array($result)) {
+			if ($k==1){
+				echo '<tr class="EvenTableRows">';;
+				$k=0;
+			} else {
+				echo '<tr class="OddTableRows">';;
+				$k++;
+			}
+		  
+			$tab = $j+3;
+			printf('<td><input tabindex="' . $tab . '" type="submit" name="Select" value="%s" /></td>
+					<td>%s</td>
+					<td>%s</td>
+					<td class="number">%s</td>
+					<td>%s</td>
+						<td>%s</td>
+					</tr>',
+					$myrow['item_no'],
+					$myrow['description'],
+					$myrow['item_desc'],
+					$StockOnHand,
+					$myrow['units'],
+					date('Y-m-d',$myrow['creation_date']) );
+
+			$j++;
+	//end of page full new headings if
+		}
+	//end of while loop
+
+		echo '</table>';
+
+	}
+	//end if results to show
+
+	echo '</div>';
+	echo '</form>';
+
+	} //end StockID already selected
+// This function created by Dominik Jungowski on PHP developer blog
+function arrayUnique($array, $preserveKeys = false)
+{
+	//Unique Array for return
+	$arrayRewrite = array();
+	//Array with the md5 hashes
+	$arrayHashes = array();
+	foreach($array as $key => $item) {
+		// Serialize the current element and create a md5 hash
+		$hash = md5(serialize($item));
+		// If the md5 didn't come up yet, add the element to
+		// arrayRewrite, otherwise drop it
+		if (!isset($arrayHashes[$hash])) {
+			// Save the current element hash
+			$arrayHashes[$hash] = $hash;
+			//Add element to the unique Array
+			if ($preserveKeys) {
+				$arrayRewrite[$key] = $item;
+			} else {
+				$arrayRewrite[] = $item;
+			}
+		}
+	}
+	return $arrayRewrite;
+}
+
+include('includes/footer.inc');
+?>

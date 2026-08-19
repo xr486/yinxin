@@ -1,0 +1,16 @@
+# WorkBuddy 项目数据（严禁提交）
+.workbuddy/
+
+# 前端依赖
+node_modules/
+
+# 系统/IDE 临时文件
+Thumbs.db
+.DS_Store
+*.log
+.idea/
+.vscode/
+
+# 会话/缓存临时文件
+session/
+tmp/

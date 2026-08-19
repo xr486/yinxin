@@ -1,0 +1,107 @@
+/* $Id: login.css for CNCERP  2013-12-29 02:38:24Z cncerp CQZ $*/
+
+*{margin: 0px;padding: 0px;outline: none;}
+body{
+Line-height:24px;
+color:#e1e1e1;
+
+
+	}
+#container {
+background: url(images/loging.png) no-repeat #016aa9;
+background-size:contain;
+margin-left:auto;
+margin-right:auto;
+margin-top:50px;
+width:915px;
+height:414px;
+text-align: left;
+font-size:17px ;
+   }
+#login_logo {
+background:url("../logo.png") no-repeat scroll center center ;
+border:none;
+margin-left:410px;
+height:40px;
+padding:0;
+width:70px;
+ }
+
+#login_box{
+margin-left:387px;/*密码输入栏位左坐标 */
+
+width:130px;
+	}
+select {
+margin-top:13px;
+color:#e1e1e1;
+width:120px;
+height:25px;
+border-radius:8px 8px 8px 8px;
+background-color:transparent;
+border:1px solid ;
+border-color:#000000 #000000 #000000 #000000 ;
+box-shadow: 10px 10px 13px #ffffff   inset; /* 用户名密码字体颜色 */
+Text-indent:0.2em;
+    }
+input {
+color:#000000;/* 账号密码字颜色 */
+width:155px; /* 账号密码输入框的长度 */
+height:25px;
+border:0px solid ;
+/*border-color:#000000 #000000 #000000 #000000 ;*/
+background-color:transparent;
+border-radius:14px;
+/*box-shadow: 10px 10px 13px #ffffff inset;*/ /* 阴影 */
+Text-indent:1em;
+}
+
+
+
+input[type="submit"]{
+margin-top:1px;
+margin-left:1px;/* 登陆按钮坐标 */
+width:150px; /* 登陆按钮 */
+height:34px;
+font-size:20px ;
+border-radius:3px;
+color:#000000;
+box-shadow: -2px 0px 13px #000000 inset  ;  /* 阴影 */
+border:0;
+Text-indent:0;
+}
+input[type="submit"]:hover {
+color:#5ce5f7;
+margin-top:1px;
+margin-left:1px;
+width:150px;
+height:34px;
+font-size:20px ;
+box-shadow: -2px 0px 13px #000000 inset; /* 阴影 */
+border-radius:3px;
+border:0;
+Text-indent:0;
+}
+input[type="submit"]:active {
+color:black;
+margin-top:1px;
+margin-left:1px;
+width:150px;
+height:34px;
+font-size:20px ;
+box-shadow: -2px 0px 13px #000000 inset; /* 阴影 */
+border-radius:3px;
+border:0;
+Text-indent:0;
+ } 
+
+input: hover{
+
+	}	
+#demo_text {
+color:black;
+width:200px;
+margin-top:60px;
+margin-left:1px;
+    }
+/*END*/

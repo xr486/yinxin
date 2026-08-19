@@ -1,0 +1,685 @@
+<?php
+
+/* $Id: MainMenuLinksArray.php 6190 2013-08-12 02:12:02Z rchacon $ */
+
+/* webERP menus with Captions and URLs. */
+$ModuleLink = array('orders',
+'Purchase',  
+'INV',
+'BOM',
+'WIP',
+'QM',
+ 'FIN', 
+'system');
+$ReportList = array('orders' => 'ord', 
+                    'Purchase' => 'PO',                      
+                    'INV' => 'INV',
+					'BOM' => 'BOM',
+				  	'WIP' => 'WIP', 
+				 	'QM' => 'QM',
+					 'FIN' => 'FIN', 
+                    'system' => 'sys'  );
+
+/* The headings showing on the tabs accross the main index used also in WWW_Users for defining what should be visible to the user */
+$ModuleList = array(    _('销售'), 
+                        _('采购'), 
+                        
+                        _('仓库'),
+						_('BOM'),
+					  	_('生产'), 
+					 	_('品质'), 
+						 _('月结'), 
+                        _('系统设置'));
+
+$MenuItems['orders']['Transactions']['Caption'] = array(  /*_('报价单建立'),
+                                                         _('报价申请'),
+														 _('报价单修改'),
+														 _('报价客户回复'),
+                                                         _('报价单转销售订单'), */
+                                                         _('订单建立'),
+														 _('订单修改'),
+                                                         _('订单签核'),
+                                                        // _('订单高阶签核'),
+														 _('出货单建立'),
+														  _('出货单签核'),
+														  _('出货单仓库确认'),
+														 _('销售退回')
+														 );
+
+
+$MenuItems['orders']['Transactions']['URL'] = array( /* '/QuoteRequest.php',
+													 
+                                                      '/QuoteRequestModify.php',
+                                                    
+													  '/QuoteCustomerReply.php',
+													
+                                                      '/QuoteToSo.php', */
+													  '/AddNewOrder.php?New=Y',
+
+													'/UpdateSoForApprove.php',
+                                                     '/SearchSoForApprove.php',
+                                                   //  '/ARFinApprove.php',
+                                                     '/SearchShipOrder.php',
+												 	 '/ShipOrderApprove.php',
+												 	 '/ShipOrderConfirm.php',
+											         '/OrderReturn.php' 
+											       );
+
+
+
+
+
+$MenuItems['orders']['Reports']['Caption'] = array( _('客户资料查询'),
+													// _('报价单查询'),
+                                                    /*_('报价申请明细报表'),
+                                                    _('报价申请处理明细报表'),
+                                                    _('报价单待签核报表'), */
+													_('业务订单查询'),
+                                                    _('业务订单明细查询'),
+                                                    _('业务订单统计报表'),
+
+                                                    _('待出货明细报表'), 
+                                                    _('逾期未出货报表'), 
+                                                    _('出货单查询'),
+                                                    _('出货明细查询'),
+                                                    _('出货明细毛利报表'),
+													_('出货汇总查询') );
+
+$MenuItems['orders']['Reports']['URL'] = array('/SearchCustomerInfo.php',
+                                               /*'/SearchQuote.php',
+                                               '/DOPODetailReport.php' ,
+                                               '/QuoteWaitReport.php',
+                                               '/PreSignReport.php',*/
+                                               '/SearchSO.php',
+                                               '/SearchSODetails.php',
+                                               '/SOCountReport.php',
+                                               '/SoWaitshipReport.php',
+                                               '/SoOvershipReport.php', 
+                                               '/SearchShipInfo.php', 
+                                               '/SOShipDetailReport.php', 
+                                               '/SOShipDetailCostReport.php', 
+                                               '/SoshipsumReport.php' 
+
+
+                                             );
+
+$MenuItems['orders']['Maintenance']['Caption'] = array( _('客户维护'),
+                                                       _('客户料号关系维护')
+                                                        );
+
+$MenuItems['orders']['Maintenance']['URL'] = array('/SearchCustomer.php',
+                                                   '/SearchCustomerItem.php');
+
+ 
+ $MenuItems['PMC']['Transactions']['Caption'] = array(	 _('请购单申请'),
+														 _('请购单审核'),
+														 _('业务订单对应采购单关系删除'));
+
+$MenuItems['PMC']['Transactions']['URL'] = array(	 '/PrCreate.php',
+														'/PRApproved.php', 
+														'/SoMappingPoDelete.php'  );
+
+$MenuItems['PMC']['Reports']['Caption'] = array(	_('请购单报表'),
+														_('请购单明细'),
+														_('待转请购单明细查询'),
+														_('待审核请购单明细查询'),
+														_('业务订单对应采购单明细查询'),
+														_('虚拟仓采购单明细查询')  );
+
+$MenuItems['PMC']['Reports']['URL'] = array('/PrReport.php',
+														 '/PrDetailReport.php',
+														 '/PrWaitToPoDetailReport.php',
+														 '/PrWaitApprovedReport.php' ,
+														 '/SoMappingPoReport.php',
+														 '/PoNonMappingReport.php'  );
+
+$MenuItems['PMC']['Maintenance']['Caption'] = array( );
+                            
+$MenuItems['PMC']['Maintenance']['URL'] = array(  );
+
+
+$MenuItems['Purchase']['Transactions']['Caption'] =  array(_('请购单申请'),
+														 _('请购单修改'),
+														 _('请购单审核'),
+														 _('请购单转采购单处理'),
+                                                            _('采购单建立'), 
+                                                            _('采购单修改'),
+                                                            _('采购单签核'),
+                                                            _('采购单结案'),
+                                                            _('采购单上传'),
+                                                            _('采购单审核撤销'),
+                                                              _('采购单暂收'),
+                                                              _('供应商批量暂收'),
+                                                              _('暂收单删除'),
+                                                              _('采购单入库'),
+															  _('采购检验不良退货'),
+													          
+															_('采购单退货') ,
+															_('材料价格申请'),	
+                                                             _('材料价格审核')
+														);
+
+ $MenuItems['Purchase']['Transactions']['URL'] = array( '/PrCreate.php',
+														'/PRUpdate.php',
+														'/PRApproved.php',
+														// '/MrpAddPO.php',
+                                                        //'/SafeAddPO.php', 
+                                                         '/PRToPO.php',
+                                                        '/AddPurchaseOrder.php',
+                                                        '/POUpdate.php',
+                                                        '/POApproved.php',
+                                                        '/POClose.php',
+                                                        '/POupload.php',
+                                                        '/POReverseApprove.php',
+                                                       // '/POFinApproved.php',
+														 '/SearchPOReceipt.php',	
+														 '/SearchVendorReceipt.php',
+														 '/POReceiptDelete.php',							
+                                                         '/InPODelivery.php',
+														  '/InPOCheckNo.php', 	
+														'/InPOReturn.php', 
+                                                        //'/InDeliveryNo.php',
+														 '/Priceshengqing.php', 
+                                                     '/PriceApprove.php'
+														);
+
+$MenuItems['Purchase']['Reports']['Caption'] = array(   _('供应商查询'),
+                                                        _('采购单查询'),
+													 	_('采购单价查询'),
+                                                        _('采购单明细查询'),
+														_('采购单未收货明细查询'),
+														_('采购单收货明细查询'),
+														_('采购进料记录查询'),
+                                                        _('采购进料允收未入库报表'),
+                                                        _('采购进料拒收未退报表'),
+                                                        _('采购入库明细报表'),
+                                                        _('采购入库汇总报表') ,
+														 _('采购价格明细表') 
+														);
+
+$MenuItems['Purchase']['Reports']['URL'] = array(
+                                                    '/SearchVendor.php',
+                                                    '/SearchPO.php', 
+													'/POPriceReport.php', 
+                                                    '/PODetail.php',
+													'/POWaitdeliveryDetail.php',
+													'/POdeliveryDetail.php',
+                                                        '/InPORecord.php',
+                                                         '/InPOWaitDelivery.php',
+                                                         '/InPOWaitReturnVendor.php',
+                                                        '/InPODeliveryReport.php',
+                                                        '/InPODeliverySumReport.php' ,
+                                                    '/PriceReport.php' 
+													);
+
+$MenuItems['Purchase']['Maintenance']['Caption'] = array(_('供应商维护')   );
+
+$MenuItems['Purchase']['Maintenance']['URL'] = array('/SearchSupplier.php' );
+
+
+$MenuItems['SH']['Transactions']['Caption'] = array(	 _('售后服务单填写'),
+                                                        _('售后服务单结案') );
+
+$MenuItems['SH']['Transactions']['URL'] = array(	 '/ShOrdercreate.php',
+														 '/ShOrderClosed.php' );
+
+$MenuItems['SH']['Reports']['Caption'] = array(	_('售后服务单查询报表'),
+														_('未结案服务单报表'));
+
+$MenuItems['SH']['Reports']['URL'] = array(	'/ShOrderReport.php',
+														 '/ShOrderWaitClosedReport.php' );
+
+$MenuItems['SH']['Maintenance']['Caption'] = array( );
+                            
+$MenuItems['SH']['Maintenance']['URL'] = array(  );
+
+
+$MenuItems['INV']['Transactions']['Caption']=array(	  _('其他原因入库'),
+														_('其他原因出库'),
+                                                         _('仓库调拨') 
+														);
+                            
+$MenuItems['INV']['Transactions']['URL'] = array(       
+                                                          '/InHouse.php',
+														  '/OutHouse.php',	
+                                                         											
+														  '/InchangeHouse.php' 
+														
+														);
+$MenuItems['INV']['Reports']['Caption'] = array(	    _('料号查询') ,
+                                                      _('库存报表'),
+                                                      _('库存金额报表'),
+                                                        _('低于安全库存报表'),       
+                                                        _('杂项出入库明细报表'),
+                                                        _('杂项出入库汇总报表'),
+                                                        _('库存交易明细报表'),
+                                                        _('库存交易汇总报表'),
+													//	_('仓库盘点报表')
+														);
+$MenuItems['INV']['Reports']['URL'] = array(          '/Item_No.php' , 
+                                                       '/InWHItem.php',
+                                                       '/InWHItemCost.php',
+                                                        '/InvLowsafestock.php',  
+                                                        '/InHouseReport.php',
+                                                        '/InHouseSumReport.php',
+                                                        '/InvTxnReport.php',
+                                                        '/InvTxnSumReport.php',
+													//	'/StockChecks.php'
+														);
+$MenuItems['INV']['Maintenance']['Caption'] = array( _('交易类型设置') );
+                            
+$MenuItems['INV']['Maintenance']['URL'] = array( '/invclassset.php'	);
+
+$MenuItems['BOM']['Transactions']['Caption'] = array(	  _('料号维护'),
+                                                         _('BOM建立'),  
+													 	_('BOM修改'),
+                                                         _('BOM复制'),
+														 _('BOM上传'),
+														 _('SMT料站表维护'),
+														 _('产品工艺设置') ,
+														 _('工艺设置') 
+														);
+
+$MenuItems['BOM']['Transactions']['URL'] = array(	 '/segment1set.php',
+                                                     '/BOMSetup.php',  
+                                                          '/BOMModify.php',
+                                                         '/BOMCopy.php',
+														  '/BOMUpload.php',
+														  '/BOMSMTZhan.php',
+														  '/BOMRouteModify.php',
+														  '/BomOperation.php' 
+														 );
+
+$MenuItems['BOM']['Reports']['Caption'] = array(	 _('料号查询') ,
+                                                        _('当前BOM查询'),
+                                                        _('历史BOM查询'),
+                                                        _('BOM及替代料查询'),
+                                                       // _('BOM及替代料零件位置查询'),
+                                                         _('BOM多阶查询'),
+                                                      //  _('BOM差异比较查询'),
+                                                        _('料号用途查询'),
+                                                        _('BOM成本查询'),
+														// _('工单用量与BOM比对报表'),
+                                                        //_('产品工艺查询'),
+														);
+
+$MenuItems['BOM']['Reports']['URL'] = array(	 '/Item_No.php',
+                                                '/BOMQueryReport.php',
+                                                '/BOMQueryAllReport.php',
+                                                 '/BOMSubQueryReport.php',
+                                               //  '/BOMSubQueryWeiReport.php',
+                                                '/BOMAllQueryReport.php',
+                                                //'/BOMCompare.php',
+                                               '/BOMWhereUsed.php',
+                                               '/BOMCostReport.php',
+												 //'/WipUsedCompBOM.php',
+                                                //'/BOMRoutesReport.php'
+												);
+
+$MenuItems['BOM']['Maintenance']['Caption'] = array( //_('工艺参数维护')
+                                                      );
+                            
+$MenuItems['BOM']['Maintenance']['URL'] = array( //'/BOMRouteParamenter.php'
+                                                );
+
+ $MenuItems['Fina']['Transactions']['Caption'] = array(	_('其它收入录入'),
+ 										             _('其它支出录入'),
+ 										             _('其它收入/支出主管审核'),
+ 										             _('其它收入/支出财务审核'),
+ 										             _('其它收入/支出修改')
+ 														);
+$MenuItems['WIP']['Transactions']['Caption'] = array ( _('订单转工单处理'),
+                                                       _('工单建立'),
+                                                        _('工单修改'),
+                                                     //  _('工单生产排程调整签核'),
+                                                     //   _('工单用料修改'), 
+													//	_('工单工序维护'),
+													//	_('工单产出处理'),
+													//	 _('工单领料申请'),
+													 //	_('工单领料单打印'),
+													 	_('工单领料'),
+														_('工单整批领料'),
+														_('工单超耗领料'),
+														_('工单退料'),
+														_('工单整批退料'),
+														_('工单工时录入'),
+														_('工单完工入库处理'),
+														 _('工单成品返工处理'),
+														_('工单关闭'),
+														_('工单强制关闭'),
+														_('转常州生产'),
+														_('常州回货')
+ 													 
+);
+
+$MenuItems['WIP']['Transactions']['URL'] = array(
+													 '/WIPCreate.php', 
+													 '/WIPJobCreate.php',
+                                                      '/WIPModify.php',
+                                                   
+													// '/WIPOPComplete.php',
+													 // '/WIPMaterialRequest.php',
+													//  '/WIPMaterialPrint.php',
+													// '/WIPMaterialIssue.php',
+													 '/WIPIssue.php',
+													 '/WIPMaterialBatch.php',
+													 '/WIPMaterialOverIssue.php',
+													 '/WIPMaterialReturn.php',
+													 '/WIPReturnBatch.php',
+													 '/WIPMaterialHour.php' ,
+													 '/WIPCompleteInSub.php' ,
+													  '/WIPCompleteOutSub.php' , 
+													 '/WIPClose.php' 	, 
+													 '/WIPClose2.php' 	, 
+													 '/WIPToChangzhou.php' , 
+													 '/WIPChangzhouBack.php' 											 
+);
+ 
+$MenuItems['WIP']['Reports']['Caption'] = array( 
+	                                              _('工单排程查询'),
+												 // _('工单完工查询'),
+												 // _('工单生产明细查询'),
+												//  _('工单工时明细查询'),
+                                                 // _('工单排程变更历史查询'),
+										          _('工单超耗记录查询'), 
+												 _('工单料况明细报表'),
+										          _('工单未领料明细报表'),
+										          _('工单缺料明细报表'),
+                                                  _('未入库工单明细查询'),
+                                                  _('工单领退料明细报表'),
+                                                  _('工单入库返工明细查询'),
+                                                  _('已入库未关闭工单明细报表'),
+                                                  _('工单资料查询报表'),
+                                                  _('常州生产汇总报表'),
+                                                  _('常州生产明细报表')
+);
+
+$MenuItems['WIP']['Reports']['URL'] = array(
+                                                 '/WIPScheduling.php',
+												// '/WIPSchedulinglog.php',
+												//'/WIPOPCompleteReport.php',
+												//'/WIPOPCompleteDetailReport.php',
+												//'/WIPResoucreReport.php',
+												//'/WIPMaterialPrintReport.php',
+												 '/WIPMaterialOverReport.php',
+												'/WIPMaterialDetail.php',
+												'/WIPWaitMaterial.php',
+												'/WIPShortMaterial.php',
+												 '/WIPWaitCompleteIn.php',
+                                                '/WIPMaterialInOutQuery.php',
+                                                 '/WIPCompleteInOutQuery.php',								
+												 '/WIPWaitColse.php',										 
+                                                '/WIPQueryDetail.php',										 
+                                                '/WIPChangzhouReport.php',									 
+                                                '/WIPChangzhouDetailReport.php'
+												);
+
+$MenuItems['WIP']['Maintenance']['Caption'] = array( 
+_('工艺维护')
+);
+                            
+$MenuItems['WIP']['Maintenance']['URL'] = array( 
+  '/Route.php'
+);
+
+ $MenuItems['FIN']['Transactions']['Caption'] = array(	_('库存月结'),
+                                                         _('在制品月结') );
+
+$MenuItems['FIN']['Transactions']['URL'] = array(	'/InvStock.php',
+                                                        '/WIPStock.php');
+
+ $MenuItems['FIN']['Reports']['Caption'] = array(	_('原材料进耗存明細表'),
+                                                         _('库存WIP明细表'),
+                                                         _('成品进耗存明细表'),
+                                                         _('成品库存明细表') );
+
+ $MenuItems['FIN']['Reports']['URL'] = array(	
+                                                '/CstINVMDetailReport.php',
+                                                '/CstWIPDetailReport.php',
+                                                '/CstINVFDetailReport.php',
+                                                 '/CstINVOnhandReport.php'  );
+
+ $MenuItems['FIN']['Maintenance']['Caption'] = array(  
+ 												     );
+                            
+ $MenuItems['Fina']['Maintenance']['URL'] = array(  '/BankSetup.php',
+                                                    '/ExpTypes.php'  );
+
+ $MenuItems['Fina']['Transactions']['URL'] = array(	'/ExpInCreate.php',
+                                                        '/ExpOutCreate.php',
+                                                        '/ExpInApproved.php',
+                                                        '/ExpInFInApproved.php',
+                                                        '/ExpInModify.php');
+
+ $MenuItems['Fina']['Reports']['Caption'] = array(	_('银行/账户余额查询'),
+                                                         _('账户流水查询'),
+                                                         _('其它收入支出报表查询'),
+                                                         _('收入支出报表汇总查询'),
+ 										             _('其它收入/支出待主管审核'),
+ 										             _('其它收入/支出待财务审核'));
+
+ $MenuItems['Fina']['Reports']['URL'] = array(	
+                                                '/BankonhandReport.php',
+                                                '/ExpDayListReport.php',
+                                                '/ExpOutDayReport.php',
+                                                 '/ExpOutSumReport.php',
+                                                        '/ExpInWaitApproved.php',
+                                                        '/ExpInFInWaitApproved.php'  );
+
+ $MenuItems['Fina']['Maintenance']['Caption'] = array(  _('银行账户设置'),
+                                                         _('收入和支出类型管理')
+ 												     );
+                            
+ $MenuItems['Fina']['Maintenance']['URL'] = array(  '/BankSetup.php',
+                                                    '/ExpTypes.php'  );
+
+$MenuItems['AP']['Transactions']['Caption'] = array(     _('供应商发票录入'), 
+                                                         _('供应商发票审核'),
+                                                         _('供应商发票修改'), 
+														 _('供应商付款录入'),
+                                                         _('供应商付款签核'),
+                                                         _('供应商付款修改'),
+                                                         _('供应商红字发票录入'), 
+                                                         _('供应商扣款录入'));
+
+$MenuItems['AP']['Transactions']['URL'] = array(	    '/APInvoice.php',
+                                                        '/APInvoiceApproved.php',
+                                                        '/APInvoiceModify.php',
+														 '/APPayment.php',
+														 '/APPaymentApproved.php',
+                                                        '/APPaymentModify.php',
+														 '/APInvoiceBack.php',
+                                                        '/APPaymentBack.php');
+
+$MenuItems['AP']['Reports']['Caption'] = array(	  _('已对账未开票明细报表'),   
+                                                      _('已对账未付款明细查询'),
+                                                        _('已对账未开票汇总报表'),
+                                                        _('已对账未付款汇总报表') ,            
+                                                        _('供应商发票明细报表'),
+														_('供应商发票对应采购单明细报表'),
+														_('已付款明细查询'),
+														_('已付款账款对应采购单明细报表')
+                                                        
+														   
+                                                        );
+
+$MenuItems['AP']['Reports']['URL'] = array(	  '/APSearchWaitinvoice.php',
+                                                '/APSearchWaitPayment.php',
+                                                '/APWaitInvoicesum.php',
+                                                '/APWaitPaymentsum.php',
+                                                '/APSearchInvoice.php',
+                                                '/APSearchInvoiceMatchPO.php',
+                                                '/APSearchPayment.php',
+												'/APSearchPaymentMatchPO.php'
+                                                );
+
+$MenuItems['AP']['Maintenance']['Caption'] = array(	_('供应商付款条件维护') );
+                            
+$MenuItems['AP']['Maintenance']['URL'] = array(	 '/APPaymentTerm.php' );
+
+$MenuItems['AR']['Transactions']['Caption'] = array(	 _('客户发票录入'), 
+                                                         _('客户发票审核'),
+                                                         _('客户发票修改'), 
+														 _('客户收款录入'),
+                                                         _('客户收款签核'),
+                                                         _('客户收款修改'),
+                                                         _('客户红字发票录入'), 
+                                                         _('客户退款录入')
+														   
+                                                        );
+
+$MenuItems['AR']['Transactions']['URL'] =     array(     '/ARInvoice.php',
+                                                        '/ARInvoiceApproved.php',
+                                                        '/ARInvoiceModify.php',
+														 '/ARPayment.php',
+														 '/ARPaymentApproved.php',
+                                                        '/ARPaymentModify.php',
+														 '/ARInvoiceBack.php',
+                                                        '/ARPaymentBack.php');
+
+$MenuItems['AR']['Reports']['Caption'] =           array( _('已销售对账未开票明细报表'), 
+                                                        _('未收款明细查询'),  
+                                                        _('客户已对账未开票汇总报表'),
+                                                        _('客户已对账未付款汇总报表'),
+                                                         _('客户发票明细报表'),
+														_('客户发票与销售订单匹配报表'),
+														_('已收款明细查询'),
+														_('已收款冲销订单报表')
+
+													    );
+$MenuItems['AR']['Reports']['URL'] = array(              '/ARSearchWaitinvoice.php',
+                                                '/ARSearchWaitPayment.php',
+                                                '/ARSearchWaitinvoiceSum.php',
+                                                '/ARSearchWaitPaymentSum.php',
+                                                '/ARSearchInvoice.php',
+                                                '/ARSearchInvoiceMatchSO.php',
+                                                '/ARSearchPayment.php',
+												'/ARSearchPaymentMatchSO.php');
+
+$MenuItems['AR']['Maintenance']['Caption'] = array(	 );
+                            
+$MenuItems['AR']['Maintenance']['URL'] = array(	 );
+
+$MenuItems['QM']['Transactions']['Caption']=array(	_('采购单进货检测'));
+                            
+$MenuItems['QM']['Transactions']['URL'] = array(	'/InPOCheck.php');
+$MenuItems['QM']['Reports']['Caption'] = array(	      //  _('采购单进货检验结果查询'),
+                                                        _('待检验采购单信息查询'), 
+                                                        _('采购进料检验明细查询'), 
+                                                        _('采购进料检验汇总查询'));
+$MenuItems['QM']['Reports']['URL'] = array(           //  '/InPOCheck2.php',
+                                                        '/InPOCheck3.php', 
+                                                        '/InPOCheck4.php', 
+                                                        '/InPOCheck6.php');
+$MenuItems['QM']['Maintenance']['Caption'] = array(	);
+                            
+$MenuItems['QM']['Maintenance']['URL'] = array(	);
+
+
+$MenuItems['HR']['Transactions']['Caption'] = array(	   _('人事资料建立'),  
+													 	_('人事资料修改')
+														);
+
+$MenuItems['HR']['Transactions']['URL'] = array(	   '/HrEmployee.php',  
+                                                          '/HrEmployeeModify.php'
+														 );
+
+$MenuItems['HR']['Reports']['Caption'] = array(	 
+                                                        _('人事资料查询')
+														);
+
+$MenuItems['HR']['Reports']['URL'] = array(	 
+                                                '/HrEmployeeReports.php' 
+												);
+
+$MenuItems['HR']['Maintenance']['Caption'] = array( 
+                                                        _('部门新增'),
+                                                        _('部门修改')
+                                                      );
+                            
+$MenuItems['HR']['Maintenance']['URL'] = array( '/AddDepart.php',
+                                                     '/SearchDept.php'
+                                                );
+
+$MenuItems['system']['Transactions']['Caption'] = array(_('帐号设置'),
+                                                        _('权限设置'),
+                                                        _('用户功能设置'),
+                                                        _('程序设置'),
+                                                      //  _('料号维护'),
+                                                      //  _('税率维护'),                                                       
+                                                       // _('料号大分类维护'),
+                                                      //  _('料号小分类维护')
+                                                        );
+
+
+$MenuItems['system']['Transactions']['URL'] = array('/WWW_Users.php',
+                                                    '/SearchUserForFunction.php',
+                                                    '/SetFunction.php',
+                                                    '/SetProcess.php',
+                                                   // '/segment1set.php',
+                                                   // '/taxset.php',
+                                                  //  '/segment1set2.php',
+                                                  //  '/segment1set3.php',)
+                                                    );
+
+$MenuItems['system']['Reports']['Caption'] = array(
+                                                       
+														//_('成品料号查询'),
+                                                        //_('材料料号维护'),
+                                                        //_('成品料号维护'),
+												       // _('单位维护'),
+												       // _('材料类型维护'),
+                                                        //_('材料分类维护'),
+												       // _('仓库维护'),
+														//_('部门新增'),
+                                                       // _('部门修改'),
+                                                       // _('员工维护')
+                                                    );
+
+$MenuItems['system']['Reports']['URL']   = array(
+                                                  //'/ItemFG_No.php',
+                                                    // '/SearchItemNo.php',
+													// '/SearchFGItemNo.php',
+													// '/UnitsOfMeasure.php',
+												 	// '/ItemCategory.php',
+                                                   //  '/ItemType.php',                  
+													// '/Locations.php',
+													// '/AddDepart.php',
+													// '/SearchDept.php',
+                                                    //'/SearchEmployee.php'
+                                                    );  
+$MenuItems['system']['Maintenance']['Caption'] = array(
+                                                        _('币别维护'),
+                                                        _('税率维护'),                                         
+														_('线别维护'),              
+                                                        _('产品类型维护'),
+                                                        _('材料分类维护'),
+                                                        _('单位维护'),
+                                                        _('仓库维护'),
+                                                        _('付款条件维护'),
+                                                        _('部门维护'),
+                                                        _('员工维护'),
+                                                        _('公司资料维护'),
+                                                        _('采购订单类型维护')
+                                                        
+                                                        
+
+);
+                            
+$MenuItems['system']['Maintenance']['URL'] = array(
+													// '/SearchFGItemNo.php',
+													 '/Currency.php',
+                                                    '/taxset.php',
+													'/xianbie.php',
+                                                    '/segment1set2.php',
+                                                    '/segment1set3.php',
+                                                    '/UnitsOfMeasure.php',
+                                                    '/Locations.php',
+                                                    '/PaymentMain.php', 
+                                                    '/SearchDept.php', 
+                                                     '/SearchEmployee.php',
+                                                     '/SearchCompany.php',
+                                                     '/po_order_type.php'
+
+);
+?>

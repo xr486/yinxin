@@ -1,0 +1,107 @@
+/* $Id: login.css for CNCERP  2013-12-29 02:38:24Z cncerp CQZ $*/
+
+*{margin: 0px;padding: 0px;outline: none;}
+body{
+Line-height:24px;
+color:#e1e1e1;
+
+
+	}
+#container {
+background: url(images/loging.png) no-repeat #016aa9;
+background-size:contain;
+margin-left:auto;
+margin-right:auto;
+margin-top:50px;
+width:915px;
+height:414px;
+text-align: left;
+font-size:17px ;
+   }
+#login_logo {
+background:url("../logo.png") no-repeat scroll center center ;
+border:none;
+margin-left:410px;
+height:64px;
+padding:0;
+width:70px;
+ }
+
+#login_box{
+margin-left:380px;
+
+width:130px;
+	}
+select {
+margin-top:13px;
+color:#e1e1e1;
+width:120px;
+height:25px;
+border-radius:8px 8px 8px 8px;
+background-color:transparent;
+border:1px solid ;
+border-color:#1a4e6f #1a4c6d #356795 #1b5c6e ;
+box-shadow: 10px 10px 13px #000028 inset; /* 阴影 */
+Text-indent:0.2em;
+    }
+input {
+color:#e1e1e1;
+width:170px;
+height:25px;
+border:1px solid ;
+border-color:#1a4e6f #1a4c6d #244766 #1b5c6e ;
+background-color:transparent;
+border-radius:14px;
+box-shadow: 10px 10px 13px #000028 inset; /* 阴影 */
+Text-indent:1em;
+}
+
+
+
+input[type="submit"]{
+margin-top:1px;
+margin-left:-58px;
+width:150px;
+height:34px;
+font-size:20px ;
+border-radius:3px;
+color:#f03a0d;
+box-shadow: -2px 0px 13px #094a73 inset  ;  /* 阴影 */
+border:0;
+Text-indent:0;
+}
+input[type="submit"]:hover {
+color:#f00000;
+margin-top:1px;
+margin-left:-58px;
+width:150px;
+height:34px;
+font-size:20px ;
+box-shadow: -2px 0px 13px #ff8000 inset; /* 阴影 */
+border-radius:3px;
+border:0;
+Text-indent:0;
+}
+input[type="submit"]:active {
+color:red;
+margin-top:15px;
+margin-left:-58px;
+width:150px;
+height:34px;
+font-size:20px ;
+box-shadow: -2px 0px 13px #ffffff inset; /* 阴影 */
+border-radius:3px;
+border:0;
+Text-indent:0;
+ } 
+
+input: hover{
+
+	}	
+#demo_text {
+color:red;
+width:200px;
+margin-top:60px;
+margin-left:-58px;
+    }
+/*END*/

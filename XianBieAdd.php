@@ -1,0 +1,64 @@
+<?php
+ ob_start();
+include('includes/session.inc');
+$Title = _('线别添加');
+$ViewTopic = '线别添加';
+$BookMark = '线别添加';
+include('includes/header.inc');
+include('includes/SQL_CommonFunctions.inc');
+
+unset($result);
+//执行添加
+if(isset($_POST['add'])){
+    //线别
+    $line_code=$_POST['line_code'];
+    //线别描述
+    $line_desc=$_POST['line_desc'];
+    //时间日期
+    $last_update_date=time();
+    $last_updated_by=$_SESSION['UserID'];
+    $creation_date=time();
+    $created_by=$_SESSION['UserID'];
+    if($line_code!=""){
+        $sql="insert into wip_lines(line_code,line_desc,
+                last_update_date,last_updated_by,
+                creation_date,created_by)
+                value('".$line_code."','".$line_desc."','".$last_update_date."',
+                '".$last_updated_by."','".$creation_date."','".$created_by."')";
+        $result = DB_query($sql, $db);
+         if($result){
+             prnMsg(_('线别添加成功') ,'success');
+         }else{
+             prnMsg(_('线别添加失败') ,'error');
+         }
+    }else{
+        prnMsg(_('线别和线别描述不能为空') ,'error');
+    }
+}
+
+?>
+
+<p class="page_title_text"><img src="<?php echo $RootPath; ?>/css/<?php echo $Theme; ?>//images/magnifier.png" title="线别添加" alt="线别添加">线别添加</p>
+<form action="<?php echo htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES, 'UTF-8'); ?>" method ="POST">
+    <div>
+        <input type="hidden" name="FormID" value = "<?php echo $_SESSION['FormID']; ?>">
+            <div class="text-nav">
+                <div class="text-nav-1 ">
+                <div>线别：</div>
+                <input type="text" name="line_code">
+                </div>
+                <div class="text-nav-1 ">
+                <div>线别描述：</div>
+                <input type="text" name="line_desc">
+                </div>
+            </div>
+            <div class="centre">
+                <input type="submit" name="add" value="添加">
+                <button><a href="xianbie.php" style="color:#fff;">返回</a></button>
+            </div>
+    </div>
+</form>
+<?php
+include('includes/footer.inc');
+?>
+

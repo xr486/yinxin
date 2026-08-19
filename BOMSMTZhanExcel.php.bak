@@ -1,0 +1,73 @@
+<?php
+//  首先引入XLSXWriter包
+
+putenv("NLS_LANG=AMERICAN_AMERICA.AL32UTF8");
+ob_start();
+include('includes/session2.inc');
+include('includes/SQL_CommonFunctions.inc');
+unset($result);
+ 
+ 
+$sql ="SELECT  *
+FROM bom_smt_liaozhan 
+WHERE 1=1  " ;
+
+ 
+    if(isset( $_GET['item_no']) and  $_GET['item_no'] != ''){
+        $sql = $sql." and  assembly_item_no ".LIKE." '%". $_GET['item_no']."%' ";
+    }
+     
+    $sql = $sql." order by component_item";
+
+    $result_num = DB_query($sql,$db);
+//oci_execute($par);
+include_once("xlsxwriter.class.php");
+$date=date('YmdHis');
+//ini_set('display_errors', 0);
+//ini_set('log_errors', 1);
+error_reporting(E_ALL & ~E_NOTICE);
+
+$filename = "出货单".$date.".xlsx";
+header('Content-disposition: attachment; filename="'.XLSXWriter::sanitize_filename($filename).'"');
+header("Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+header('Content-Transfer-Encoding: binary');
+header('Cache-Control: must-revalidate');
+header('Pragma: public');
+$rows2 = array( 
+  array('出货单明细'),
+);
+
+$rows = array( 
+  array('客户代码','客户名称','出货单号码','出货日期','出货人','建单日期'),
+); 
+ 
+$writer = new XLSXWriter();
+$writer->setAuthor('Shunfansoft'); 
+
+//$writer->writeSheetHeader('Sheet1', $header);
+ foreach($rows2 as $row2)
+	$writer->writeSheetRow('Sheet1', $row2);
+foreach($rows as $row)
+	$writer->writeSheetRow('Sheet1', $row);
+
+	while ($v = DB_fetch_array($result_num)) {
+
+		 /* if ($v['status'] == 'INPROCESS') {
+                $v_status = '待签核';
+            } elseif ($v['status'] == 'APPROVED') {
+                $v_status = '已签核';
+            } elseif ($v['status'] == 'REJECTED') {
+                $v_status = '已拒签';
+            } else {
+                $v_status = '已取消';
+            } */
+
+     $writer->writeSheetRow('Sheet1', array($v['customer_code'],$v['customer_name'],$v['delivery_num'],
+        date('Y-m-d', $v['delivery_date']),$v['created_by'],date('Y-m-d h:i:s', $v['creation_date'])));
+	 }
+    
+$writer->writeToStdOut();
+//$writer->writeToFile('example.xlsx');
+//echo $writer->writeToString();
+exit(0);
+?>

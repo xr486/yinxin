@@ -1,0 +1,694 @@
+<?php
+
+if(isset($_GET['data'])){
+	 
+	 include_once("connect.php"); 
+	 $sql = "select * from locations where locationname = '".$_GET['data']."'";
+	 $result_num = mysql_query($sql, $db);
+	 $res = mysql_fetch_assoc($result_num);
+	 echo $res['loccode'];
+	 return ;
+ }
+ 
+ if(isset($_GET['data2'])){
+	 
+	 include_once("connect.php"); 
+	 $sql = "select * from hr_employees where employee_name = '".$_GET['data2']."'";
+	 $result_num = mysql_query($sql, $db);
+	 $res_customer_name = mysql_fetch_assoc($result_num);
+	 echo $res_customer_name['employee_num'];
+	 return ;
+ }
+ 
+ if(isset($_GET['data3'])){
+	 
+	 include_once("connect.php"); 
+	 $sql = "select * from locations where locationname = '".$_GET['data3']."'";
+	 $result_num = mysql_query($sql, $db);
+	 $res = mysql_fetch_assoc($result_num);
+	 echo $res['loccode'];
+	 return ;
+ }
+ 
+ 
+
+include('includes/session.inc');
+$Title = _('调拨单建立');
+$ViewTopic= '调拨单建立';
+$BookMark = '调拨单建立';
+include('includes/header.inc');
+include('includes/SQL_CommonFunctions.inc');
+
+unset($result);
+        
+	 
+	if (isset($_POST['Save'])) {
+		$errorflag = 0;
+
+        if ($_POST['outsubinventory']==$_POST['insubinventory']) {
+            $errorflag = 1;
+            prnMsg($value.'调入调出仓库一样，请重新选择！',error);
+        }
+
+
+		foreach ($_POST as $key => $value) {
+			if ($value != '') {
+				if (substr($key, 0,7)=='stockid') {
+					
+					$i = substr($key, 7);
+
+					if ($value != '') {
+//仓库核查
+						if ($_POST['UOM'.$i]=='') {
+						$errorflag = 1;
+						prnMsg($value.'未填写单位，请填写单位！',error);
+						}
+						if ($_POST['Onhand_Quantity'.$i]=='') {
+							$errorflag = 1;
+							prnMsg($value.'未填写库存数量，请填写库存数量！',error);
+						}
+						if ($_POST['quantity'.$i]=='') {
+							$errorflag = 1;
+							prnMsg($value.'未填写数量，请填写数量！',error);
+						}
+
+						if ($_POST['quantity'.$i]>$_POST['Onhand_Quantity'.$i]) {
+							$errorflag = 1;
+							prnMsg($value.'调拨数量大于库存量，请确认！',error);
+						}
+
+						$sqlsubqty = "select sum(quantity) quantity
+						from inv_onhand_quantity_all 
+						where stockid='" .$_POST['stockid'.$i]. "' 
+						and subinventory_code ='" . $_POST['outsubinventory']  . "'
+						and lot_num='".$_POST['lot_num'.$i]."'
+						and shengchan_date='".strtotime($_POST['shengchan_date'.$i])."'
+						";
+   $result_subqty = DB_query($sqlsubqty, $db);
+   while ($v = DB_fetch_array($result_subqty)) {
+		 if ($v['quantity'] < $_POST['quantity'.$i] ) {
+				   $errorflag = 1;
+				   prnMsg($value.'调拨数量'.$_POST['quantity'.$i].'大于库存量'.$v['quantity'].'，请确认！',error);
+		 }
+   }
+						
+					}
+				}
+			}
+		}
+
+
+ 
+		$time = time();
+	$time2=$time - 60;
+	 
+	if ($_SESSION['lastsearchtime'] > $time2 )  {
+	$errorflag = 1;
+	prnMsg($value.'重复提交！',error);
+	}
+
+		if ($errorflag == 0) {
+			
+			$sumamount=0.00;
+         $date = date('Ymd');
+        $sql_num = "select 	(
+		CASE WHEN substr(max(trans_num) ,-2,1) = 0 THEN
+			RIGHT (
+				'100' + (
+					max(substr(trans_num ,- 1)) + 1
+				),
+				2
+			)
+		ELSE
+			substr(max(trans_num),-2,2) + 1
+		END
+        ) pr_num from inv_transactions_all_temp where substr(trans_num,1,2)='TF' and  substr(trans_num,-10,8) = '" . $date . "'";
+        $result_num = DB_query($sql_num, $db);
+        $rownum = DB_num_rows($result_num);
+        while ($v = DB_fetch_array($result_num)) {
+            if ($v['pr_num'] == null) {
+                $TransNum = 'TF'.$date . '01';
+            } else {
+                $TransNum =  'TF'. $date . $v['pr_num'];
+            }
+        }
+
+			$change_date = strtotime($_POST['ScheduleDate']);
+			DB_Txn_Begin($db);
+			$time = time();
+			$order_amount = 0;
+	
+			foreach ($_POST as $key => $value) {
+				if ($value != '') {
+					if (substr($key, 0,7)=='stockid') {
+						$i = substr($key, 7);
+						  if ($_POST['quantity'.$i]>0){
+						      
+
+		
+			$temp = $_POST['quantity'.$i];
+			$sqlprice = "select  cost_price
+			from inv_onhand_quantity_all where lot_num='" .$_POST['lot_num'.$i]. "'  and stockid='" . $_POST['stockid'. $i] . "' and subinventory_code ='" . $_POST['outsubinventory']  . "' ";
+			$result_price = DB_query($sqlprice, $db);
+			 $v1 = DB_fetch_array($result_price);
+			if($_POST['shengchan_date'.$i] == '' and $_POST['lot_num'.$i] != '') {
+				$sqlsubcode = "select id,stockid,quantity from inv_onhand_quantity_all where stockid='" .$_POST['stockid'.$i]. "' and subinventory_code ='" . $_POST['outsubinventory']  . "' and lot_num='" .$_POST['lot_num'.$i]. "'  order by id";
+			// echo $sqlsubcode;
+			   $result_subcode = DB_query($sqlsubcode, $db);
+			  
+		  }else if ($_POST['lot_num'.$i] == '' and $_POST['shengchan_date'.$i] != ''){
+			   $sqlsubcode = "select id,stockid,quantity from inv_onhand_quantity_all where stockid='" .$_POST['stockid'.$i]. "' and subinventory_code ='" . $_POST['outsubinventory']  . "' and shengchan_date='" .strtotime($_POST['shengchan_date'.$i]). "'  order by id";
+			// echo $sqlsubcode;
+			   $result_subcode = DB_query($sqlsubcode, $db);
+		  }else if($_POST['shengchan_date'.$i] == '' and $_POST['lot_num'.$i] == ''){
+			   $sqlsubcode = "select id,stockid,quantity from inv_onhand_quantity_all where stockid='" .$_POST['stockid'.$i]. "' and subinventory_code ='" . $_POST['outsubinventory']  . "'   order by id";
+			// echo $sqlsubcode;
+			   $result_subcode = DB_query($sqlsubcode, $db);
+		  }else{
+			   $sqlsubcode = "select id,stockid,quantity from inv_onhand_quantity_all where stockid='" .$_POST['stockid'.$i]. "' and subinventory_code ='" . $_POST['outsubinventory']  . "' and shengchan_date='" .strtotime($_POST['shengchan_date'.$i]). "' and lot_num='" .$_POST['lot_num'.$i]. "'  order by id";
+			// echo $sqlsubcode;
+			   $result_subcode = DB_query($sqlsubcode, $db);
+		  }
+           
+            while ($v = DB_fetch_array($result_subcode)) {
+                if ($temp > 0) {
+                    if ($v['quantity'] <= $temp) {
+                        $UpdateSubCode = "delete from  inv_onhand_quantity_all where id=" . $v['id'] . "";
+//                echo $UpdateSubCode;
+                        $result_updatesubcode = DB_query($UpdateSubCode, $db);
+                        unset($UpdateSubCode);
+                        $temp = $temp - $v['quantity'];
+                    } else {
+                        $UpdateSubCode1 = "Update inv_onhand_quantity_all 
+                                           set quantity=quantity-" . $temp . " 
+                                           where id=" . $v['id'] . "";
+//                            echo $UpdateSubCode1;
+                        $result_updatesubcode1 = DB_query($UpdateSubCode1, $db);
+                        $temp = 0;
+                    }
+                }
+            }
+
+			
+
+            $sqlinsertinv = "insert into inv_onhand_quantity_all(stockid,quantity,cost_price,subinventory_code,lot_num,shengchan_date,last_update_date,last_updated_by,creation_date,created_by) values('" . $_POST['stockid'.$i] . "','" . $_POST['quantity'.$i] . "','" . $v1['cost_price'] . "','" . $_POST['insubinventory'] . "','" .$_POST['lot_num'.$i]. "','" .strtotime($_POST['shengchan_date'.$i]). "','" . $time . "','" . $_SESSION['UserID'] . "','" . $change_date . "','" . $_SESSION['UserID'] . "')";
+            $result_inv = DB_query($sqlinsertinv, $db);
+
+			$sqlinsertinv = "select sum(quantity) quantity, sum(cost_price*quantity) cost_amount from  inv_onhand_quantity_all 
+			where stockid='" . $_POST['stockid'.$i] . "'
+	        and subinventory_code='" . $_POST['insubinventory'] . "' ";
+	   
+            $result_inv = DB_query($sqlinsertinv, $db); 
+          $v7 = DB_fetch_array($result_inv);
+
+            $sqlinvtrancsation = "insert into inv_transactions_all_temp(temp_type,status,transaction_type,transaction_date,quantity,after_onhand,after_amount,item_no,uom,remark,request_person,subinventory_from,subinventory_to,lot_num,shengchan_date,creation_date,created_by,last_update_date,last_updated_by,trans_num) ";
+            $sqlinvtrancsation.="values('仓库调拨','开始','仓库调入','" . $change_date . "', '" . $_POST['quantity'.$i] . "', '" . $v7['quantity'] . "', '" . $v7['cost_amount'] . "','" . $_POST['stockid'.$i] . "','" . $_POST['UOM'.$i] . "','" . $_POST['remark'.$i] . "','" . $_POST['requireemployee'] . "','" . $_POST['insubinventory'] . "','" . $_POST['outsubinventory'] . "','".$_POST['lot_num'.$i]."','".strtotime($_POST['shengchan_date'.$i])."','" . $time . "','" . $_SESSION['UserID'] . "','" . $time . "','" . $_SESSION['UserID'] . "','" . $TransNum . "')";
+            $result_invtrancsation = DB_query($sqlinvtrancsation, $db);
+
+
+			$sqlinsertinv = "select sum(quantity) quantity, sum(cost_price*quantity) cost_amount from  inv_onhand_quantity_all 
+			where stockid='" . $_POST['stockid'.$i] . "'
+	        and subinventory_code='" . $_POST['outsubinventory'] . "' ";
+	   
+            $result_inv = DB_query($sqlinsertinv, $db); 
+            $v8 = DB_fetch_array($result_inv);
+
+            $sqlinvtrancsation1 = "insert into inv_transactions_all_temp(temp_type,status,transaction_type,transaction_date,quantity,after_onhand,after_amount,item_no,uom,remark,request_person,subinventory_from,subinventory_to,lot_num,shengchan_date,creation_date,created_by,last_update_date,last_updated_by,trans_num) ";
+            $sqlinvtrancsation1.="values('仓库调拨','开始','仓库调出','" . $change_date . "', '-" . $_POST['quantity'.$i] . "','" . $v8['quantity'] . "', '" . $v8['cost_amount'] . "','" . $_POST['stockid'.$i] . "','" . $_POST['UOM'.$i] . "','" . $_POST['remark'.$i] . "','" . $_POST['requireemployee'] . "','" . $_POST['outsubinventory'] . "','" . $_POST['insubinventory'] . "','".$_POST['lot_num'.$i]."','".strtotime($_POST['shengchan_date'.$i])."','" . $time . "','" . $_SESSION['UserID'] . "','" . $time . "','" . $_SESSION['UserID'] . "','" . $TransNum . "')";
+            $result_invtrancsation1 = DB_query($sqlinvtrancsation1, $db);
+
+					}
+				}
+			}
+			}
+			if ($errorflag==0) {
+			DB_Txn_Commit($db);
+			$_SESSION['lastsearchtime']=$time;
+			prnMsg('调拨单编号'.$TransNum.'交易成功！',success);
+			header("Location: SucssCreate4.php?OrderNum=$TransNum");
+			}
+
+		}
+	}
+
+ ?>
+ 
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>新建调拨单</title>
+<link rel="shortcut icon" href="/JXC/favicon.ico"/>
+<link rel="icon" href="/JXC/favicon.ico"/>
+<meta http-equiv="Content-Type" content="application/html; charset=utf-8"/>
+<link href="/css/xenos/default.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src ="/JXC/javascripts/miscfunctions.js"></script>
+<script type="text/javascript" src ="/JXC/javascripts/wdatepicker.js"></script>
+<script type="text/javascript">var basepath='/JXC/statics/base/images';</script>
+<script type="text/javascript" src="/JXC/statics/base/js/metvar.js"></script>
+<script type="text/javascript" src="/JXC/statics/base/js/jQuery1.7.2.js"></script>
+<script type="text/javascript" src="/JXC/statics/base/js/uploadify/jquery.uploadify.v2.1.4.min.js"></script>
+<script type="text/javascript" src="/JXC/statics/base/js/iframes.js"></script>
+<script type="text/javascript" src="/JXC/statics/base/js/cookie.js"></script>
+<script type="text/javascript" src="/JXC/statics/base/js/jquery.livequery.js"></script>
+
+
+
+<script src="/JXC/javascript/jquery-1.7.2.min.js"></script>
+<script src="/JXC/javascript/lhgdialog.min.js?self=true&skin=chrome"></script>
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="/javascript/bootstrap.min.js"></script>
+
+<script type="text/javascript">
+/*ajax执行*/
+var lang = 'cn';
+var metimgurl='/JXC/statics/base/images/';
+var depth='';
+$(document).ready(function(){
+	ifreme_methei();
+});
+</script>
+<script type="text/javascript">
+function metreturn(url){
+	if(url){
+		location.href=url;
+	}else if($.browser.msie){
+		history.go(-1);
+	}else{
+		history.go(-1);
+	}
+} 
+
+function addsave() 
+{
+ 
+	var v = $('#idcount').val();
+    $("#purchase_table_"+v).css("display","");
+	var c = parseInt(v) + 1;
+	$('#idcount').val(c);     
+}
+
+ </script>
+</head>
+<body>
+
+<?php
+	 if (!isset($_POST['ScheduleDate'])) {
+      $_POST['ScheduleDate'] = Date('Y-m-d');
+     }
+	 
+?>
+ 
+<div id="CanvasDiv">
+	<div id="BodyDiv">
+		<div id="BodyWrapDiv">
+			<p class="page_title_text"><img src="<?php echo $RootPath; ?>/css/<?php echo $Theme; ?>//images/transactions.png" title="新建调拨单" alt="新建订单">新建调拨单</p>
+			<form action="<?php echo htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES, 'UTF-8'); ?>" method ="POST"><input type="hidden" name="time" value="<?=$time?>">
+				<div>
+				<input type="hidden" name="FormID" value = "<?php echo $_SESSION['FormID']; ?>">
+				<table class="selection">
+				<div class="text-nav">
+     
+	 <div class="text-nav-1 required">
+		 <div>申请人姓名：</div>  
+		   
+
+                      <select type="text" required="required" name="requireemployee" id="text_slect_employee" value="<?=$_POST['employename']?>"   >
+				<?php
+					$sql = "select employee_num,employee_name from hr_employees ";
+					$result = DB_query($sql,$db);
+					while ($v = DB_fetch_array($result)) {
+						if ($v['employee_num']==$_POST['requireemployee']) {
+				?>
+					<option value="<?=$v['employee_num']?>" selected="selected"><?=$v['employee_name']?></option>
+				<?php }else{?>
+				<option value="<?=$v['employee_num']?>"><?=$v['employee_name']?></option>
+				<?php		}
+					}
+				?>
+			</select> </div>
+			<div class="text-nav-1 required">
+		 <div>调拨时间：</div>  
+			 <input type="text" name="ScheduleDate"
+                        maxlength="20" size="16"
+                        required="required"
+                        value="<?=$_POST['ScheduleDate']?>"
+                        onfocus="WdatePicker() "></div>
+            
+						<div class="text-nav-1 required">
+		 <div>出库仓库名称：</div>  
+<select type="text" required="required" name="outsubinventory" id="text_slect_insubinventoryname" value="<?=$_POST['outsubinventory']?>"  onblur="sel()">
+				<?php
+					$sql = "select loccode,locationname from locations where managed='Y' ";
+					$result = DB_query($sql,$db);
+					while ($v = DB_fetch_array($result)) {
+						if ($v['loccode']==$_POST['outsubinventory']) {
+				?>
+					<option value="<?=$v['loccode']?>" selected="selected"><?=$v['locationname']?></option>
+				<?php }else{?>
+				<option value="<?=$v['loccode']?>"><?=$v['locationname']?></option>
+				<?php		}
+					}
+				?>
+			</select>
+				</div>
+
+           
+ 
+         
+				<div class="text-nav-1 required">
+		 <div>调入仓库名称：</div>  
+          
+                         <select type="text" required="required" name="insubinventory" id="text_slect_insubinventoryname" value="<?=$_POST['insubinventory']?>"  onblur="sel()">
+				<?php
+					$sql = "select loccode,locationname from locations where managed='Y' ";
+					$result = DB_query($sql,$db);
+					while ($v = DB_fetch_array($result)) {
+						if ($v['loccode']==$_POST['insubinventory']) {
+				?>
+					<option value="<?=$v['loccode']?>" selected="selected"><?=$v['locationname']?></option>
+				<?php }else{?>
+				<option value="<?=$v['loccode']?>"><?=$v['locationname']?></option>
+				<?php		}
+					}
+				?>
+			</select>
+				</div>
+	          
+        
+				<div class="text-nav-2">
+		 <div>调拨单备注：</div> 
+			 <input type="text"
+                                    name="Header_Remark"
+                                    value="<?=$_POST['Header_Remark']?>"
+                                    size="55" maxlength="20"/> </div>
+
+		  
+			
+			
+				</div>
+
+	</table>
+	<div class="centre">
+		<input type="submit" name="Hearder" value="确认调拨申请单头信息">
+	</div>
+	<div class="centre"> 
+                        <p id="Prompt" style="color: red;font-size: 20px"></p>
+                    </div>
+
+	<input type="hidden" name="PageOffset" value="1"/><br/>
+	<?php
+		if (isset($_POST['insubinventory']) and $_POST['insubinventory'] != '' and $_POST['outsubinventory'] != $_POST['insubinventory'] ) {
+	?>
+              <input id="purchase_table_lastRow" name="purchase_table_lastRow" type=hidden value="">
+					 <div class="text-nav-table">
+					<table id="purchase_table" cellpadding="2" class="selection">
+					<tr id="list-top">
+					<th bgcolor="#87CEFA" width="230" >料号</th>
+					<th bgcolor="#87CEFA" width="100">料号名称</th>
+                    <th bgcolor="#87CEFA" width="100">规格型号</th>
+					<th bgcolor="#87CEFA" width="30" >单位</th>
+					<th bgcolor="#87CEFA" width="30" >批号</th>
+					<th bgcolor="#87CEFA" width="30" >生产日期</th>
+					<th bgcolor="#87CEFA" width="20">库存数量</th>
+					<th bgcolor="#87CEFA" width="120">调拨数量</th>	 
+					<th bgcolor="#87CEFA" width="30">备注</th>
+					<th bgcolor="#87CEFA" width="50" align="center">操作</th>
+					</tr>
+					<?php for($i=1;$i<=50;$i++){?>
+			
+					<tr id="purchase_table_<?=$i?>"
+                        <?php echo $i>10&&$_POST['stockid'.$i]==''?'style="display:none"':''?>
+                        class="mouse click">
+	 <td><input type="text" name="stockid<?=$i?>" id="text_slect_buliao<?=$i?>" value="<?=$_POST['stockid'.$i]?>" size="18" maxlength="25"/> 
+                       
+						  <image class="select_img" src="img/search.png" id="btn_slect_buliao<?=$i?>"/></td>
+                       
+					   <td ><input readonly="readonly"
+                                   type="text" name="ItemDesc<?=$i?>"
+                                   id="text_slect_ItemDesc<?=$i?>"
+                                   value="<?=$_POST['ItemDesc'.$i]?>" size="25" maxlength="42"/> </td>
+					   <td ><input readonly="readonly" type="text"
+                                   name="item_spec<?=$i?>"
+                                   id="text_slect_item_spec<?=$i?>"
+                                   value="<?=$_POST['item_spec'.$i]?>"
+                                   size="25" maxlength="42"/> </td>
+
+					   <td><input readonly="readonly" type="text"
+                                  name="UOM<?=$i?>" id="text_slect_units<?=$i?>"
+                                  value="<?=$_POST['UOM'.$i]?>"
+                                  size="4" maxlength="4"/></td>
+								  <td><input readonly="readonly" type="text"
+                                  name="lot_num<?=$i?>" id="text_slect_lot_num<?=$i?>"
+                                  value="<?=$_POST['lot_num'.$i]?>"
+                                  size="10" maxlength="10"/></td>
+								  <td><input readonly="readonly" type="text"
+                                  name="shengchan_date<?=$i?>" id="text_slect_shengchan_date<?=$i?>"
+                                  value="<?=$_POST['shengchan_date'.$i]?>"
+                                  size="8" maxlength="20"/></td>
+
+					   <td><input type="text" readonly="readonly" name="Onhand_Quantity<?=$i?>"
+                                  id="text_slect_Onhand_Quantity<?=$i?>"
+                                  value="<?=$_POST['Onhand_Quantity'.$i]?>"
+                                  size="8" maxlength="25"/></td>
+ 
+						<td><input type="text" class="number" name="quantity<?=$i?>" id="quantity<?=$i?>" value="<?=$_POST['quantity'.$i]?>" size="8" maxlength="10" onblur="check(<?=$i?>)"/> </td>
+                     
+                     
+
+						<td class="list-text"><input type="text" name="remark<?=$i?>" value="<?=$_POST['remark'.$i]?>" size="15" maxlength="45"  /></td>
+ 
+						
+						<td>  <a onclick="delettr($(this));" style="padding:0px 5px;" href="javascript:;">删除</a></td>
+						<td><input type="hidden" style="background-color: #e2f5ff;" class="number" id="text_slect_unit_price<?=$i?>" name="price<?=$i?>"  value="<?=$_POST['price'.$i] ?>" size="6" maxlength="14" onblur="check(<?=$i?>)" />
+
+					  
+					     
+					</tr>
+					<?php }?>
+					
+					</table></div>
+
+					 <script type="text/javascript">
+                          window.onload = function(){
+                             
+                             document.getElementById("submit").onclick = function()
+							{
+
+                                return check();
+                             }
+                             
+                             function check()
+							{
+                                
+                                var stockid=new Array();
+                               
+                                for(var i=1 ; i < 50; i++){
+                                  
+                                   var stockid = document.getElementById("text_slect_buliao" + i).value;
+                                   
+                                  //var line = document.getElementById("text_slect_line" + i).value;
+ 
+                                   //如果input中有数据
+                                   if(stockid!=null && stockid!=""){
+                                       
+                                      for(var p=1; p<stockid.length; p++){
+                                          //alert("xunhuan");
+                                          //如果采购单号相同
+                                          if(stockid.in_array(stockid[p])){
+                                             //alert('a');
+                                             //接着判断行数是否相同
+                                            
+                                                document.getElementById("alert").innerHTML=
+                                                "错误提醒: 不能选择相同的采购单号+行号.<br>采购单号为:" + stockid + ".<br>行号为：" + line;
+                                                ""
+                                                ;
+                                                return false;
+                                              else 
+											{
+                                                
+                                             }
+                                          } 
+                                      }
+                                      stockid[i] = stockid;
+                                      
+                                       //alert("continue");
+                                      continue;
+                                   } else {
+                                      //下面数据退出循环
+                                      //alert("return");
+                                      return ;
+                                   }
+                                }
+                             }
+
+                          }
+						  echo stockid;
+                      </script>
+
+					
+	               <div class="centre">
+                   <a onclick="addsave();">添加行</a>
+				   </div>
+
+					<div class="centre">
+	                <input type="submit"  id="submit" name="Save" value="提交">
+					</div>
+	<?php
+		}
+	?>
+					<input type="hidden" name="idcount" id='idcount' value="11"/>
+					<input type="hidden" name="JustSelectedACustomer" value="Yes"/>
+				</div>
+			</form>
+		</div>
+	</div>
+	
+	<div id="FooterDiv">
+		<div id="FooterWrapDiv">
+		 	 
+		</div>
+	</div>
+</div>
+<script type="text/javascript">
+    $(document).ready(function(){
+
+        $('.divToilet table tr td a').click(function(){
+            $(this).parent('td').toggleClass('highlight');
+            if(!($(this).parent('td').hasClass('highlight'))) {
+                $(this).next().val('0');
+            }else {
+                $(this).next().val('1');
+            }
+        });
+        <?php for($i=1;$i<=50;$i++){?> 
+        $('#btn_slect_buliao<?=$i?>').dialog({
+            title:'选择料号',
+            width: '830px',
+            height: 470,
+            content:'url:SearchOnHandItem.php?fwValue=<?=$i?>&cat=<?=$_POST['outsubinventory']?>',
+            init:function(){
+			    this.content.document.getElementById('cat').value = 'buliao';
+                this.content.document.getElementById('fwValue').value = '<?=$i?>';
+            }
+        });
+		<?php }?>
+
+	 
+
+
+		$('#btn_slect_employee').dialog({
+            title:'选择员工',
+            width: '550px',
+            height: 470,
+            content:'url:BtnSearchemployee.php?fwValue=&cat=buliao',
+            init:function(){
+			    this.content.document.getElementById('cat').value = 'buliao';
+                this.content.document.getElementById('fwValue').value = '';
+            }
+        });
+
+		$('#btn_slect_outsubinventory').dialog({
+            title:'选择调出仓库',
+            width: '550px',
+            height: 470,
+            content:'url:BtnSearchoutsubinventory.php?fwValue=&cat=buliao',
+            init:function(){
+			    this.content.document.getElementById('cat').value = 'buliao';
+                this.content.document.getElementById('fwValue').value = '';
+            }
+        });
+
+		$('#btn_slect_insubinventory').dialog({
+            title:'选择调入仓库',
+            width: '550px',
+            height: 470,
+            content:'url:BtnSearchinsubinventory.php?fwValue=&cat=<?=$_POST['outsubinventory']?>',
+            init:function(){
+			    this.content.document.getElementById('cat').value = 'buliao';
+                this.content.document.getElementById('fwValue').value = '';
+            }
+        });
+
+ 
+
+        //Function to get URL arguments
+        function getRequest() {
+            var url = location.search; //获取url中"?"符后的字串
+            var theRequest = new Object();
+            if (url.indexOf("?") != -1) {
+                var str = url.substr(1);
+                strs = str.split("&");
+                for(var i = 0; i < strs.length; i ++) {
+                    theRequest[strs[i].split("=")[0]]=(strs[i].split("=")[1]);
+                }
+            }
+            return theRequest;
+        }
+          
+ 
+    });
+    
+    	<?php for($i=1;$i<=50;$i++){?> 
+	$(function(){
+		$( "#text_slect_buliao<?=$i?>" ).autocomplete({
+			source: "autosearchstock.php",
+			minLength: 2,
+			autoFocus: true
+		});
+	});
+	<?php }?>
+    
+      function sel(){
+		var name=$('#text_slect_outsubinventoryname').val()
+		$.get("","data="+name,function(res){
+			name = res.split(":")		  
+				$("#text_slect_outloccode").val(name[0])
+				
+		})	
+	} 
+    
+   
+    
+  	 function sel_second(){
+		var name=$('#text_slect_employee').val()
+		$.get("","data2="+name,function(res_customer_name){
+			name = res_customer_name.split(":")		  
+				$("#text_slect_requireemployee").val(name[0])
+				
+		})	
+	}
+    
+       function sel_third(){
+		var name=$('#text_slect_insubinventoryname').val()
+		$.get("","data3="+name,function(res_inv){
+			name = res_inv.split(":")		  
+				$("#text_slect_inloccode").val(name[0])
+				
+		})	
+	} 
+    
+    
+ 	 function  check(s1){
+	    var a=document.getElementById("text_slect_Onhand_Quantity"+s1).value;
+        var b=document.getElementById("quantity"+s1).value;  
+      if(parseInt(b)>parseInt(a)){
+            document.getElementById("Prompt").innerHTML="本次交易数量不可以大于库存！！！！";
+            document.getElementById("quantity"+s1).value="";
+            document.getElementById("quantity"+s1).focus();
+        } else if(parseInt(b)<0 ){
+            document.getElementById("Prompt").innerHTML="本次交易数量不可以小于0！！！！";
+            document.getElementById("quantity"+s1).value="";
+            document.getElementById("quantity"+s1).focus();
+        } else {
+			document.getElementById("Prompt").innerHTML="";
+        }
+     }
+     
+</script>
+</body>
+
+</html>
+<?
+include('includes/footer.inc');
+?>
+

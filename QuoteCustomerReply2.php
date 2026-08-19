@@ -1,0 +1,679 @@
+<?php
+
+include('includes/session.inc');
+$Title = _('客户报价回复');
+$ViewTopic= '客户报价回复';
+$BookMark = '客户报价回复';
+include('includes/header.inc');
+include('includes/SQL_CommonFunctions.inc');
+
+if (isset($_GET['Updateorder_number']) ) {
+$_POST['order_number']=$_GET['Updateorder_number'];
+}
+ 
+
+unset($result);
+ 
+if (isset($_POST['Reject'])) 
+{
+  $errorflag = 0;
+  $all_amount = 0;
+  $all_invoice_dis_amount = 0;
+  $k =0;
+   
+  if ($errorflag == 0) 
+  {
+    $Delivery_date = strtotime($_POST['Delivery_date']);
+    DB_Txn_Begin($db);
+    $time = time();
+    $delivery_amount = 0;
+    $k =0;
+   for ($i=1; $i<=$_POST['flag'];$i++)
+	{
+       $k = $k +1; 
+	   if($_POST['status'.$i]<>'')
+		   {         
+          if($_POST['this_invoice_amount'.$i]=='')
+		  {
+            $_POST['this_invoice_amount'.$i] = '0';
+            $bumishu[$i] = 0;
+          }  
+          if($_POST['this_invoice_dis_amount'.$i]=='')
+		  {
+            $_POST['this_invoice_dis_amount'.$i] = 0;
+          } 
+    
+          $sql = "update  quote_lines_all
+                    set customer_reply     =  '拒绝' ,
+					customer_reply_date =  '".$time."' 
+                  where  order_number  ='".$_POST['order_number']."' 
+				   and   line ='".$_POST['line'.$i]."' ";
+          $result = DB_query($sql,$db);
+		   
+ 
+        }
+
+		$sql = "update  quote_headers_all
+                    set customer_reply     =  '拒绝'   
+                  where  order_number  ='".$_POST['order_number']."'   ";
+          $result = DB_query($sql,$db);
+      } 	    
+ 
+
+          
+    DB_Txn_Commit($db);
+	if ($k>0) {
+    prnMsg('报价申请单'.$_POST['order_number'].'拒绝！',success);
+    echo "<script>location.href='index.php';</script>";
+	}
+        
+    }    
+}
+
+
+ 
+ if (isset($_POST['Agree'])) 
+{
+  $errorflag = 0;
+  $all_amount = 0;
+  $all_invoice_dis_amount = 0;
+  $k =0;
+   for ($i=1; $i<=$_POST['flag'];$i++)
+  {
+    if($_POST['status'.$i]<>'')
+	{        
+          if ($_POST['price'.$i]=='') 
+		  {
+            $errorflag = 1;
+            prnMsg($value.'报价未填写,请确认！',error);
+          }	 
+		  if ($_POST['price'.$i]<=0 ) 
+		  {
+            $errorflag = 1;
+            prnMsg($value.'报价必须大于哦,请确认！',error);
+          }	  
+		   if ($_POST['quantity'.$i]=='') 
+		  {
+            $errorflag = 1;
+            prnMsg($value.'需求数量未填写,请确认！',error);
+          }	 
+		  if ($_POST['quantity'.$i]<=0 ) 
+		  {
+            $errorflag = 1;
+            prnMsg($value.'需求数量必须大于0,请确认！',error);
+          }	  
+      }
+  }
+  if ($errorflag == 0) 
+  {
+    $Delivery_date = strtotime($_POST['Delivery_date']);
+    DB_Txn_Begin($db);
+    $time = time();
+    $delivery_amount = 0;
+    $k =0;
+   for ($i=1; $i<=$_POST['flag'];$i++)
+	{
+       $k = $k +1; 
+	   if($_POST['status'.$i]<>'')
+		   {         
+          if($_POST['this_invoice_amount'.$i]=='')
+		  {
+            $_POST['this_invoice_amount'.$i] = '0';
+            $bumishu[$i] = 0;
+          }  
+          if($_POST['this_invoice_dis_amount'.$i]=='')
+		  {
+            $_POST['this_invoice_dis_amount'.$i] = 0;
+          } 
+    
+          $sql = "update  quote_lines_all
+                    set  customer_reply     =  '同意' ,
+					customer_reply_date =  '".$time."' 
+                  where  order_number  ='".$_POST['order_number']."' 
+				   and   line ='".$_POST['line'.$i]."' ";
+				 
+          $result = DB_query($sql,$db);
+		   
+ 
+        }
+      } 	    
+ 
+	   
+
+          
+    DB_Txn_Commit($db);
+	if ($k>0) {
+		$sql = "update  quote_headers_all
+                    set  status='同意' 
+                  where  order_number  ='".$_POST['order_number']."'   ";
+          $result = DB_query($sql,$db);
+
+    prnMsg('报价申请单'.$_POST['order_number'].'同意！',success);
+     echo "<script>location.href='QuoteCustomerReply.php';</script>";
+	}
+        
+    }    
+}
+
+
+if (isset($_POST['Save'])) 
+{
+  $errorflag = 0;
+  $all_amount = 0;
+  $all_invoice_dis_amount = 0;
+  $k =0;
+   for ($i=1; $i<=$_POST['flag'];$i++)
+  {
+    if($_POST['status'.$i]<>'')
+	{        
+          if ($_POST['price'.$i]=='') 
+		  {
+            $errorflag = 1;
+            prnMsg($value.'报价未填写,请确认！',error);
+          }	 
+		  if ($_POST['price'.$i]<=0 ) 
+		  {
+            $errorflag = 1;
+            prnMsg($value.'报价必须大于哦,请确认！',error);
+          }	  
+		   if ($_POST['quantity'.$i]=='') 
+		  {
+            $errorflag = 1;
+            prnMsg($value.'需求数量未填写,请确认！',error);
+          }	 
+		  if ($_POST['quantity'.$i]<=0 ) 
+		  {
+            $errorflag = 1;
+            prnMsg($value.'需求数量必须大于0,请确认！',error);
+          }	  
+      }
+  }
+  if ($errorflag == 0) 
+  {
+    $Delivery_date = strtotime($_POST['Delivery_date']);
+    DB_Txn_Begin($db);
+    $time = time();
+    $delivery_amount = 0;
+    $k =0;
+   for ($i=1; $i<=$_POST['flag'];$i++)
+	{
+       $k = $k +1; 
+	   if($_POST['status'.$i]<>'')
+		   {         
+          if($_POST['this_invoice_amount'.$i]=='')
+		  {
+            $_POST['this_invoice_amount'.$i] = '0';
+            $bumishu[$i] = 0;
+          }  
+          if($_POST['this_invoice_dis_amount'.$i]=='')
+		  {
+            $_POST['this_invoice_dis_amount'.$i] = 0;
+          } 
+    
+          $sql = "update  quote_lines_all
+                    set price     =  '".$_POST['price'.$i]."',
+					quantity     =  '".$_POST['quantity'.$i]."' ,
+					line_amount     =  '".$_POST['line_amount'.$i]."'  
+                  where  order_number  ='".$_POST['order_number']."' 
+				   and   line ='".$_POST['line'.$i]."' ";
+          $result = DB_query($sql,$db);
+		   
+ 
+        }
+      } 	    
+   
+    DB_Txn_Commit($db);
+	if ($k>0) {
+		$sql = "update  quote_headers_all
+                    set  status='开始',
+					tax_amount =  '".$_POST['tax_amount']."' ,
+					order_all_amount =  '".$_POST['order_all_amount']."' ,
+					youhui_amount =  '".$_POST['youhui_amount']."' , 
+					order_payment_amount =  '".$_POST['order_payment_amount']."' ,
+					order_invoice_amount =  '".$_POST['order_invoice_amount']."' ,
+					all_line_amount =  '".$_POST['all_line_amount']."' 
+                  where  order_number  ='".$_POST['order_number']."'   ";
+          $result = DB_query($sql,$db);
+ 
+		  $sql2 = "insert into quote_headers_history (order_number,creation_date,created_by,tax_amount,
+              order_all_amount,youhui_amount,order_payment_amount,order_invoice_amount,all_line_amount) values ('".$_POST['order_number']."',
+			  '".$time."',
+			  '".$_SESSION['UserID']."',
+              '".$_POST['tax_amount']."' , 
+			   '".$_POST['order_all_amount']."' ,
+			   '".$_POST['youhui_amount']."' , 
+		       '".$_POST['order_payment_amount']."' ,
+			    '".$_POST['order_invoice_amount']."' ,
+				 '".$_POST['all_line_amount']."')   ";
+          $result = DB_query($sql2,$db);
+
+    prnMsg('报价申请单'.$_POST['order_number'].'修改完成！',success);
+    echo "<script>location.href='index.php';</script>";
+	}
+        
+    }    
+}
+
+?>
+ 
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>客户报价回复</title>
+<link rel="shortcut icon" href="/JXC/favicon.ico"/>
+<link rel="icon" href="/JXC/favicon.ico"/>
+<meta http-equiv="Content-Type" content="application/html; charset=utf-8"/>
+<link href="/css/xenos/default.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src ="/JXC/javascripts/miscfunctions.js"></script>
+<script type="text/javascript" src ="/JXC/javascripts/wdatepicker.js"></script>
+<script type="text/javascript">var basepath='/JXC/statics/base/images';</script>
+<script type="text/javascript" src="/JXC/statics/base/js/metvar.js"></script>
+<script type="text/javascript" src="/JXC/statics/base/js/jQuery1.7.2.js"></script>
+<script type="text/javascript" src="/JXC/statics/base/js/uploadify/jquery.uploadify.v2.1.4.min.js"></script>
+<script type="text/javascript" src="/JXC/statics/base/js/iframes.js"></script>
+<script type="text/javascript" src="/JXC/statics/base/js/cookie.js"></script>
+<script type="text/javascript" src="/JXC/statics/base/js/jquery.livequery.js"></script>
+
+
+
+<script src="/JXC/javascript/jquery-1.7.2.min.js"></script>
+<script src="/JXC/javascript/lhgdialog.min.js?self=true&skin=chrome"></script>
+<script src="/javascript/bootstrap.min.js"></script>
+
+<script type="text/javascript">
+/*ajax执行*/
+var lang = 'cn';
+var metimgurl='/JXC/statics/base/images/';
+var depth='';
+$(document).ready(function(){
+	ifreme_methei();
+});
+</script>
+<script type="text/javascript">
+function metreturn(url){
+	if(url){
+		location.href=url;
+	}else if($.browser.msie){
+		history.go(-1);
+	}else{
+		history.go(-1);
+	}
+} 
+
+function addsave() 
+{
+
+  var v = $('#idcount').val();
+  $("#purchase_table_"+v).css("display","");
+  var c = parseFloat(v) + 1;
+  $('#idcount').val(c);     
+}
+
+ </script>
+</head>
+<body>
+ 
+<div id="CanvasDiv">
+<div id="BodyDiv">
+<div id="BodyWrapDiv">
+<p class="page_title_text"><img src="<?php echo $RootPath; ?>/css/<?php echo $Theme; ?>//images/transactions.png" title="客户报价回复" alt="客户报价回复">客户报价回复</p>
+<form action="<?php echo htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES, 'UTF-8'); ?>" method ="POST"><input type="hidden" name="time"
+value="<?=$time?>">
+<div>
+<input type="hidden" name="FormID" value = "<?php echo $_SESSION['FormID']; ?>">
+<table class="selection">
+
+<?php
+	 
+
+$sql ="SELECT b.customer_code,
+    b.customer_name,p.tax_name,p.all_line_amount,p.tax_amount,
+    p.order_number,
+    p.status,  
+    p.yewu,p.order_amount,p.order_all_amount,p.youhui_amount,p.order_payment_amount,p.order_invoice_amount,
+    p.need_date, 
+    p.creation_date,
+    p.created_by,
+    p.last_update_date,
+    p.last_updated_by ,(select employee_name from hr_employees where employee_num=yewu) employee_name
+FROM quote_headers_all p, customers b
+WHERE p.customer_code = b.customer_code
+and p.order_number = '" .$_POST['order_number'] . "'
+and status='开始'";
+	// echo $sql;
+	$result = DB_query($sql,$db);
+    if (DB_num_rows($result)==0) {
+        unset($result);
+        prnMsg(_('没有预测，请重新输入条件查询！') ,'error');
+	 }
+ while ($myrow = DB_fetch_array($result))  {
+       $_POST['customer_code']=$myrow['customer_code'] ;
+       $_POST['customer_name']=$myrow['customer_name'] ;  
+	   $_POST['employee_name']=$myrow['employee_name'] ; 
+	   $_POST['need_date']=$myrow['need_date'] ; 
+	   $_POST['order_number']=$myrow['order_number'] ;  
+	   $_POST['order_amount']=$myrow['order_amount'] ;  
+	   $_POST['order_all_amount']=$myrow['order_all_amount'] ;  
+	   $_POST['youhui_amount']=$myrow['youhui_amount'] ;    
+	   $_POST['tax_name']=$myrow['tax_name'] ;      
+	   $_POST['tax_amount']=$myrow['tax_amount'] ;  
+	   $_POST['order_payment_amount']=$myrow['order_payment_amount'] ;   
+	   $_POST['order_invoice_amount']=$myrow['order_invoice_amount'] ;  
+	   $_POST['all_line_amount']=$myrow['all_line_amount'] ; 
+ }     
+?>
+
+<tr>
+ <td bgcolor="#87CEFA">报价申请单号码:</td>
+  <td  ><input type="text" required="required" maxlength="100" size="20" name="order_number"  value="<?=$_POST['order_number']?>" size="15" maxlength="20"/> </td>
+  <td bgcolor="#87CEFA">客户简称：</td>
+  <td><input type="text" required="required" name="customer_code" id="text_slect_vendor" value="<?=$_POST['customer_code']?>" size="10" maxlength="25"/> </td>
+  <td bgcolor="#87CEFA">业务：</td>
+  <td  ><input readonly="readonly" type="text"   name="employee_name" id="text_slect_currencycode" value="<?=$_POST['employee_name']?>" size="5" maxlength="10"/></td>
+   <td bgcolor="#87CEFA">需求日期：</td>
+  <td><input type="text" name="need_date" maxlength="20" size="10" required="required" value="<?=date('Y-m-d',$_POST['need_date'])?>" onfocus="WdatePicker() "></td>
+    <td bgcolor="#87CEFA">税别：</td>
+  <td  ><input readonly="readonly" type="text" name="tax_name" value="<?=$_POST['tax_name']?>" size="10" maxlength="10"/></td>
+</tr>
+
+<tr>
+  <td>客户名称：</td>
+  <td colspan="5"><input readonly="readonly" type="text" name="customer_name" id="text_slect_name" value="<?=$_POST['customer_name']?>" size="70" maxlength="50"/></td>
+
+   </tr>
+   <td bgcolor="#87CEFA">总价：</td>
+  <td  ><input readonly="readonly" type="text" name="order_all_amount" id="order_all_amount" value="<?=$_POST['order_all_amount']?>" size="10" maxlength="10"/></td>
+
+ <td bgcolor="#87CEFA">合计金额：</td>
+  <td  ><input readonly="readonly" type="text"   name="all_line_amount" id="all_line_amount" value="<?=$_POST['all_line_amount']?>" size="10" maxlength="10"/></td>
+   <td bgcolor="#87CEFA">优惠金额：</td>
+  <td><input type="text"  class="number" onblur="checkheader()" name="youhui_amount" id="youhui_amount" value="<?=$_POST['youhui_amount']?>" size="10" maxlength="10"/></td>
+  <td bgcolor="#87CEFA">税金：</td>
+  <td><input type="text" class="number" onblur="checkheader()"  name="tax_amount" id="tax_amount" value="<?=$_POST['tax_amount']?>" size="10" maxlength="10"/></td>
+   <td bgcolor="#87CEFA">付款金额：</td>
+  <td  ><input readonly="readonly" type="text"   name="order_payment_amount" id="order_payment_amount" value="<?=$_POST['order_payment_amount']?>" size="10" maxlength="10"/></td>
+   <td bgcolor="#87CEFA">开票金额：</td>
+  <td  ><input readonly="readonly" type="text"   name="order_invoice_amount" id="order_invoice_amount" value="<?=$_POST['order_invoice_amount']?>" size="10" maxlength="10"/></td>
+
+</tr>
+ 
+ 
+</table>
+
+<input type="hidden" name="PageOffset" value="1"/><br/>
+<?php
+if (isset($_POST['customer_name']) and $_POST['customer_name'] != '') {
+
+	$sql ="select *
+				from quote_lines_all c
+				where  c.order_number= '" .$_POST['order_number'] . "'
+				 ";
+	// echo $sql;
+	$result = DB_query($sql,$db);
+    if (DB_num_rows($result)==0) {
+		$line_count=DB_num_rows($result);
+        unset($result);
+        prnMsg(_('该客户没有需要开票，请重新输入条件查询！') ,'error');
+    }
+
+?>
+<input id="purchase_table_lastRow" name="purchase_table_lastRow" type=hidden value="">
+
+<div class="centre"> 
+                        <p id="Prompt" style="color: red;font-size: 20px"></p>
+                    </div>
+
+<table id="purchase_table" cellpadding="2" class="selection">
+ 
+<tr id="list-top">
+          <th bgcolor="#87CEFA" width="2">行</th>
+                <th width="130" bgcolor="#87CEFA">料号</th>
+                <th width="130" bgcolor="#87CEFA">料号名称</th>
+                <th width="130" bgcolor="#87CEFA">规格型号</th> 
+					<th bgcolor="#87CEFA" width="100">需求日期</th>
+					<th bgcolor="#87CEFA" width="250">要求</th>
+					<th bgcolor="#87CEFA">单位</th>
+					 
+                   	<th bgcolor="#87CEFA">需求数量</th>	 
+				    <th bgcolor="#87CEFA">单价 </th>
+				    <th bgcolor="#87CEFA">金额</th>	  
+ 
+  
+  <th width="15" align="center">选择</th>
+ 
+</tr>
+<?php   
+$i=1;
+ 
+ while ($myrow = DB_fetch_array($result)  )  {
+	
+	 ?>
+		 
+<tr id="purchase_table_<?=$i?>" >
+
+  <td> <input type="text" readonly="readonly" name="line<?=$i?>" id="text_slect_receipt_line<?=$i?>" value="<?= $myrow['line'] ?>" size="1" maxlength="10"/></td>
+  <td><input readonly="readonly" type="text" name="item_no<?=$i?>" id="item_no<?=$i?>" value="<?= $myrow['item_no'] ?>" size="13" maxlength="150"/></td>
+  <td><input readonly="readonly" type="text" name="item_name<?=$i?>" id="item_name<?=$i?>" value="<?= $myrow['item_name'] ?>" size="20" maxlength="150"/></td>
+  <td><input readonly="readonly" type="text" name="item_desc<?=$i?>" id="item_desc<?=$i?>" value="<?= $myrow['item_desc'] ?>" size="20" maxlength="150"/></td>
+<td><input readonly="readonly" type="text" name="need_date<?=$i?>"   value="<?= date('Y-m-d',$myrow['need_date']) ?>" size="8" maxlength="150"/></td>
+  
+    <td><input type="text" name="need_remark<?=$i?>" id="text_slect_buliao<?=$i?>" value="<?=$myrow['need_remark']?>" size="45" maxlength="150"  /> 
+   <td><input type="text" name="uom<?=$i?>" id="text_slect_buliao<?=$i?>" value="<?=$myrow['uom']?>" size="5" maxlength="50"  /> 
+	 <td><input type="text" class="number" name="quantity<?=$i?>" id="quantity<?=$i?>" value="<?=$myrow['quantity']?>" size="5" maxlength="50"  onblur="checktotal()"  /> 
+  <td><input type="text" class="number"  name="price<?=$i?>"  id="price<?=$i?>"    value="<?=  $myrow['price']?>"  onblur="checktotal()"   size="5" maxlength="10"/></td>
+           
+  <td><input type="text" class="number" name="line_amount<?=$i?>"  id="line_amount<?=$i?>"  value="<?= $myrow['line_amount']?>"  size="5" maxlength="200"/></td>
+ 
+
+  <td><input type="checkbox" name="status<?=$i?>" checked /></td>
+ <td> 
+
+  <input type="hidden"  name="order_number<?=$i?>"  value="<?= $myrow['order_number'] ?>" size="8" maxlength="10"/>
+ 
+  </td>
+</tr>
+<?php 
+ $i=$i+1;
+  
+ }
+  ?>
+
+  	<tr><td colspan="11"><p><input type="checkbox" name="selectall" onclick="checkall(this.form);"/>全选/取消全选</p></td></tr>
+	<td ><input type="hidden" name="flag" value="<?=$i-1?>" size="15" maxlength="45"/></td> 
+</table>
+
+<div class="centre">
+<input type="submit" name="Save" value="修改报价"> 
+<input type="submit" name="Agree" value="客户同意"> 
+<input type="submit" name="Reject" value="客户拒绝"> &nbsp;&nbsp;
+<a href="javascript:window.opener=null;window.open('','_self');window.close();">关闭</a>
+</div>
+ <br/>
+<?php
+
+}
+?>
+<input type="hidden" name="idcount" id='idcount' value="11"/>
+<input type="hidden" name="JustSelectedAvendor" value="Yes"/>
+</div>
+</form>
+</div>
+</div>
+
+<div id="FooterDiv">
+<div id="FooterWrapDiv">
+
+</div>
+</div>
+</div>
+
+
+<script type="text/javascript">
+        
+function checkheader(){  
+		     var  youhui_amount=document.getElementById("youhui_amount").value;
+			 var  tax_amount=document.getElementById("tax_amount").value;
+			 var  all_line_amount=document.getElementById("all_line_amount").value;
+			 order_payment_amount=Number(all_line_amount) + Number(tax_amount) - Number(youhui_amount); 
+			 order_all_amount=Number(all_line_amount) + Number(tax_amount) ; 
+			 document.getElementById("order_all_amount").value=order_all_amount;
+			 document.getElementById("order_invoice_amount").value=order_payment_amount;
+			 document.getElementById("order_payment_amount").value=order_payment_amount;
+}
+
+	function checktotal(){       
+								   var  all_invoice_amount=0;
+								   var  quantity=0;
+								   var  price=0;
+            for(var i=1 ; i < 50; i++){   
+					 if (document.getElementById("price" + i)==null)  {
+									p=0;
+					  		} 
+				    	else {							
+								   var  invoice_amount=0; 
+                                   var price=document.getElementById("price"+i).value; 
+                                   var quantity=document.getElementById("quantity"+i).value;
+                                   document.getElementById("line_amount"+i).value=Math.round(Number(price*quantity)*100)/100; 
+								   
+                                   var invoice_amount=document.getElementById("line_amount"+i).value;
+								   if( invoice_amount>0 )
+								   {  
+								   all_invoice_amount=Number(all_invoice_amount) + Number(invoice_amount);                                 
+                                   }							  
+
+					  }}
+									
+                    
+		     document.getElementById("all_line_amount").value=all_invoice_amount;
+			 
+			 var  youhui_amount=document.getElementById("youhui_amount").value;
+			 var  tax_amount=document.getElementById("tax_amount").value;
+			 order_payment_amount=Number(all_invoice_amount) + Number(tax_amount) - Number(youhui_amount); 
+			 order_all_amount=Number(all_invoice_amount) + Number(tax_amount) ; 
+			 document.getElementById("order_all_amount").value=order_all_amount;
+			 document.getElementById("order_invoice_amount").value=order_payment_amount;
+			 document.getElementById("order_payment_amount").value=order_payment_amount;
+	 
+		      }
+function  check(s1){
+	    var a=document.getElementById("quantity"+s1).value;
+        var b=document.getElementById("price"+s1).value;
+		 
+		if (parseFloat(a) >= 0 )
+		{  document.getElementById("text_this_baojia"+s1).value=Math.round(Number(a)*1)/1;;
+		   document.getElementById("text_this_baojia_rate"+s1).value=Math.round(Number(a/b)*100)/100;;
+		}  else if  (parseFloat(a) < 0 ){ 
+			 
+			document.getElementById("Prompt").innerHTML="报价不可以小于0！！！！";
+            document.getElementById("text_this_baojia_rate"+s1).value="";
+            document.getElementById("text_this_baojia_rate"+s1).focus();
+		}
+		else { 
+            document.getElementById("Prompt").innerHTML="";
+        }
+        
+    
+     }
+
+function  check2(s1){
+	    var a=document.getElementById("text_this_price"+s1).value;
+        var b=document.getElementById("text_this_baojia_rate"+s1).value;
+		if (parseFloat(b) >= 0)
+		{
+		   document.getElementById("text_this_baojia"+s1).value=Math.round(Number(a*b)*1)/1;
+		}  else if (parseFloat(b) < 0) {
+			document.getElementById("Prompt").innerHTML="报价系数不可以小于0！！！！";
+            document.getElementById("text_this_baojia_rate"+s1).value="";
+            document.getElementById("text_this_baojia_rate"+s1).focus();
+		}
+		else { 
+            document.getElementById("Prompt").innerHTML="";
+        }
+        
+    
+     }
+
+    $(document).ready(function(){
+
+        $('.divToilet table tr td a').click(function(){
+            $(this).parent('td').toggleClass('highlight');
+            if(!($(this).parent('td').hasClass('highlight'))) {
+                $(this).next().val('0');
+            }else {
+                $(this).next().val('1');
+            }
+        });
+        <?php for($i=1;$i<=50;$i++){?> 
+        $('#btn_slect_po<?=$i?>').dialog({
+            title:'选择未开票的采购入库单',
+            width: '950px',
+            height: 520,
+            content:'url:SearchNoInvoicePo2.php?fwValue=<?=$i?>&cat=<?=$_POST['customer_code']?>',
+            init:function(){
+			    this.content.document.getElementById('cat').value = 'buliao';
+                this.content.document.getElementById('fwValue').value = '<?=$i?>';
+            }
+        });
+		<?php }?>
+
+
+		 <?php for($i=1;$i<=50;$i++){?> 
+        $('#btn_slect_subcode<?=$i?>').dialog({
+            title:'选择仓库',
+            width: '600px',
+            height: 370,
+            content:'url:Searchsubcode.php?fwValue=<?=$i?>&cat=buliao',
+            init:function(){
+			    this.content.document.getElementById('cat').value = $_POST['customer_code'];
+                this.content.document.getElementById('fwValue').value = '<?=$i?>';
+            }
+        });
+		<?php }?>
+
+
+		$('#btn_slect_vendor').dialog({
+            title:'选择客户',
+            width: '950px',
+            height: 470,
+            content:'url:BtnSearchAPVendor3.php?fwValue=&cat=buliao',
+            init:function(){
+			    this.content.document.getElementById('cat').value ='buliao';
+                this.content.document.getElementById('fwValue').value = '';
+            }
+        });
+
+
+
+	
+        //Function to get URL arguments
+
+        function getRequest() {
+            var url = location.search; //获取url中"?"符后的字串
+            var theRequest = new Object();
+            if (url.indexOf("?") != -1) {
+                var str = url.substr(1);
+                strs = str.split("&");
+                for(var i = 0; i < strs.length; i ++) {
+                    theRequest[strs[i].split("=")[0]]=(strs[i].split("=")[1]);
+                }
+            }
+            return theRequest;
+        }
+          
+ 
+    });
+	function checkall(thisform){
+		for(var i=0;i<thisform.elements.length;i++){
+		if(thisform.elements[i].type=="checkbox"&&thisform.elements[i].checked==false&&thisform.elements[i].name!="selectall")
+		{thisform.elements[i].checked=true;}
+		else if(thisform.elements[i].type=="checkbox"&&thisform.elements[i].checked==true&&thisform.elements[i].name!="selectall")
+		{thisform.elements[i].checked=false;}} }
+</script>
+</body>
+
+</html>
+<?
+
+include('includes/footer.inc');
+?>
+
