@@ -25,6 +25,7 @@ if ($ItemNo != '' && !preg_match('/^[A-Za-z0-9_.\-]+$/', $ItemNo)) {
 }
 $SearchFilter = isset($_GET['q']) ? trim($_GET['q']) : '';
 $autoOpen = isset($_GET['auto_open']) ? intval($_GET['auto_open']) : 0; // 搜索定位后弹右键菜单用
+$CatFilter = isset($_GET['cat']) ? trim($_GET['cat']) : ''; // 当前选中的分类（点击左侧分类文件夹）
 
 /* ============================================================
  * 2. 查当前选中物料 + BOM + 图档
@@ -94,6 +95,8 @@ ksort($treeGroups);
 $CurrentCat = '';
 if ($ItemInfo) {
     $CurrentCat = $ItemInfo['item_category1'];
+} elseif ($CatFilter != '') {
+    $CurrentCat = $CatFilter;
 }
 
 $totalItems = 0;
@@ -207,6 +210,21 @@ foreach ($treeGroups as $g) { $totalItems += count($g); }
 .mm-empty{padding:30px;text-align:center;color:#999;font-size:13px;background:#fafbfc;border:1px dashed #d9d9d9;border-radius:4px}
 .mm-tree-sum{font-size:11px;color:#888;padding-top:6px;border-top:1px dashed #d9d9d9}
 .mm-tree-sum b{color:#1976D2}
+/* ====== 分类视图（点击分类文件夹进入） ====== */
+.mm-catview-search{display:flex;align-items:center;gap:8px;padding:10px 12px;background:#f5f9fd;border:1px solid #d6e4f0;border-radius:4px;margin-bottom:12px}
+.mm-catview-search input{flex:1;height:30px;padding:4px 10px;border:1px solid #c5d3e0;border-radius:3px;font-size:13px;outline:none}
+.mm-catview-search input:focus{border-color:#1976D2;box-shadow:0 0 0 2px rgba(25,118,210,0.15)}
+.mm-catview-count{font-size:12px;color:#666;background:#fff;padding:4px 10px;border:1px solid #d6e4f0;border-radius:3px;white-space:nowrap}
+.mm-catview-table{flex:1;overflow:auto;max-height:60vh}
+.mm-catview-table .mm-table th{position:sticky;top:0;z-index:2}
+.bom-tool-mini{display:inline-block;padding:4px 12px;background:#fff;border:1px solid #1976D2;color:#1976D2;border-radius:3px;font-size:12px;text-decoration:none}
+.bom-tool-mini:hover{background:#E3F2FD}
+.cat-item-link{color:#1976D2;text-decoration:none;font-weight:500}
+.cat-item-link:hover{text-decoration:underline}
+.cat-row{cursor:default}
+.cat-row:hover td{background:#f1f8ff !important}
+tr.cat-row.item-disabled td{color:#999}
+tr.cat-row.item-disabled .cat-item-link{color:#999;text-decoration:line-through}
 </style>
 
 <div class="mm-layout">
@@ -242,11 +260,11 @@ foreach ($treeGroups as $g) { $totalItems += count($g); }
                         $openByDefault = ($SearchFilter != '' || $isCurrentCat);
                     ?>
                     <li class="bom-node top-level<?php echo $openByDefault ? '' : ' collapsed'; ?>" data-cat="<?php echo htmlspecialchars($cat); ?>">
-                        <div class="bom-row" onclick="MmToggleCat(this)">
+                        <div class="bom-row" onclick="MmOpenCat('<?php echo htmlspecialchars(addslashes($cat)); ?>')">
                             <span class="bom-glyphs">
                                 <span class="tree-cell node-cell">
                                     <input type="checkbox">
-                                    <span class="tw"><?php echo $openByDefault ? '-' : '+'; ?></span>
+                                    <span class="tw" onclick="event.stopPropagation(); MmToggleCat(this.parentNode.parentNode.parentNode);"><?php echo $openByDefault ? '-' : '+'; ?></span>
                                 </span>
                             </span>
                             <span class="icon-label">
@@ -290,13 +308,106 @@ foreach ($treeGroups as $g) { $totalItems += count($g); }
 
     <!-- ===================== 右侧主区 ===================== -->
     <div class="mm-right">
-        <?php if ($ItemInfo === null) { ?>
-            <div style="padding:80px 20px;text-align:center;color:#888;">
-                <p style="font-size:18px;margin:0 0 12px 0;color:#1976D2;">📦 请从左侧选择物料以查看详情</p>
-                <p style="font-size:13px;color:#aaa;margin:0;">左侧树按物料分类（item_category1）聚合，右键点击物料可执行维护/修改/上传等操作</p>
-                <p style="font-size:12px;color:#bbb;margin:14px 0 0 0;">提示：上方搜索框可按料号或名称快速定位</p>
+        <?php if ($ItemInfo === null) {
+            if ($CatFilter != '' && isset($treeGroups[$CatFilter])) {
+                // ====== 分类列表视图（点击分类文件夹进入） ======
+                $CategoryItems = $treeGroups[$CatFilter];
+                $TypeMap = array('M' => '原材料', 'B' => '半成品', 'F' => '成品', 'P' => '采购件');
+        ?>
+            <div class="mm-toolbar">
+                <span class="version-tag">📂 分类：<?php echo htmlspecialchars($CatFilter); ?></span>
+                <span class="bom-link" style="color:#666;font-size:12px">共 <b style="color:#1976D2"><?php echo count($CategoryItems); ?></b> 个物料</span>
+                <span style="flex:1"></span>
+                <a class="bom-tool-mini" href="<?php echo $RootPath; ?>/MaterialManage.php">← 返回全部</a>
             </div>
-        <?php } else {
+            <div class="mm-catview-search">
+                <input type="text" id="catFilter" placeholder="过滤当前分类下的料号 / 名称 / 规格…（实时筛选）" />
+                <span class="mm-catview-count" id="catFilterCount">显示 0 / 共 0</span>
+            </div>
+            <div class="mm-catview-table">
+            <table class="mm-table" id="catTable">
+                <thead>
+                <tr>
+                    <th width="40">#</th>
+                    <th width="120">料号</th>
+                    <th>名称</th>
+                    <th>规格型号</th>
+                    <th width="80">类型</th>
+                    <th width="70">用途</th>
+                    <th width="60">单位</th>
+                    <th width="70">状态</th>
+                </tr>
+                </thead>
+                <tbody id="catTableBody">
+                <?php $rowIdx = 1; foreach ($CategoryItems as $it):
+                    $isDisabled = (isset($it['disable_flag']) && $it['disable_flag'] != 'N' && $it['disable_flag'] != 'Y');
+                    $q = strtolower($it['item_no'] . ' ' . $it['item_name'] . ' ' . $it['item_desc']);
+                    $status = ($it['disable_flag'] == 'N' ? '启用' : '停用');
+                    $statusCls = ($it['disable_flag'] == 'N' ? 'mm-status-ok' : 'mm-status-stop');
+                    $tp = isset($TypeMap[$it['item_type']]) ? $TypeMap[$it['item_type']] : $it['item_type'];
+                    $iu = ($it['item_use'] == 'Y' ? '研发' : '生产');
+                ?>
+                <tr data-q="<?php echo htmlspecialchars($q); ?>" class="cat-row<?php echo $isDisabled ? ' item-disabled' : ''; ?>">
+                    <td style="text-align:center"><?php echo $rowIdx++; ?></td>
+                    <td><a class="cat-item-link" href="<?php echo $RootPath; ?>/MaterialManage.php?item_no=<?php echo urlencode($it['item_no']); ?>" data-itemno="<?php echo htmlspecialchars($it['item_no']); ?>" data-itemname="<?php echo htmlspecialchars(addslashes($it['item_name'])); ?>" data-enabled="<?php echo $isDisabled ? 0 : 1; ?>"><?php echo htmlspecialchars($it['item_no']); ?></a></td>
+                    <td><?php echo htmlspecialchars($it['item_name']); ?></td>
+                    <td><?php echo htmlspecialchars($it['item_desc']); ?></td>
+                    <td style="text-align:center"><?php echo htmlspecialchars($tp); ?></td>
+                    <td style="text-align:center"><?php echo htmlspecialchars($iu); ?></td>
+                    <td style="text-align:center"><?php echo htmlspecialchars($it['units']); ?></td>
+                    <td style="text-align:center"><span class="<?php echo $statusCls; ?>"><?php echo $status; ?></span></td>
+                </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+            </div>
+            <script>
+            (function(){
+                var inp = document.getElementById('catFilter');
+                var tbody = document.getElementById('catTableBody');
+                var cntSpan = document.getElementById('catFilterCount');
+                var rows = tbody ? tbody.querySelectorAll('tr.cat-row') : [];
+                var total = rows.length;
+                cntSpan.textContent = '显示 ' + total + ' / 共 ' + total;
+                inp.value = '';
+                inp.addEventListener('input', function(){
+                    var q = this.value.trim().toLowerCase();
+                    var show = 0;
+                    for (var i = 0; i < rows.length; i++) {
+                        var dq = rows[i].getAttribute('data-q') || '';
+                        var match = (q === '' || dq.indexOf(q) !== -1);
+                        rows[i].style.display = match ? '' : 'none';
+                        if (match) show++;
+                    }
+                    cntSpan.textContent = '显示 ' + show + ' / 共 ' + total;
+                });
+                // 行点击进入详情；右键弹菜单（复用 MmShowContext）
+                if (tbody) {
+                    tbody.addEventListener('click', function(e){
+                        var a = e.target.closest('a.cat-item-link');
+                        if (a) return; // 链接自带跳转
+                    });
+                    tbody.addEventListener('contextmenu', function(e){
+                        var tr = e.target.closest('tr.cat-row');
+                        if (!tr) return;
+                        var a = tr.querySelector('a.cat-item-link');
+                        if (!a) return;
+                        var itemNo = a.getAttribute('data-itemno');
+                        var itemName = a.getAttribute('data-itemname');
+                        var enabled = a.getAttribute('data-enabled') == '1' ? 1 : 0;
+                        MmShowContext(e, itemNo, itemName, enabled);
+                    });
+                }
+            })();
+            </script>
+        <?php } else { ?>
+            <div style="padding:80px 20px;text-align:center;color:#888;">
+                <p style="font-size:18px;margin:0 0 12px 0;color:#1976D2;">📦 请从左侧选择物料或分类以查看详情</p>
+                <p style="font-size:13px;color:#aaa;margin:0;">左侧树按物料分类（item_category1）聚合</p>
+                <p style="font-size:12px;color:#bbb;margin:8px 0 0 0;">• 点击物料 → 查看该物料的详情 / BOM / 图档<br>• 点击分类文件夹 → 查看该分类下所有物料<br>• 右键点击物料 → 弹出新建/维护/修改/上传菜单</p>
+            </div>
+        <?php }
+        } else {
             $DisableFlag = isset($ItemInfo['disable_flag']) ? $ItemInfo['disable_flag'] : '';
             $IsActive = ($DisableFlag == 'N'); // N=启用（顺帆约定：非N=启用，N=停用）— 此处保留原状仅展示
             $Status = ($DisableFlag == 'N' ? '启用' : '停用');
@@ -482,6 +593,11 @@ function MmToggleCat(row) {
             if (tw) tw.textContent = '+';
         }
     }
+}
+
+/* 点击分类文件夹行 → 进入分类视图（右侧展示该分类下所有物料） */
+function MmOpenCat(cat) {
+    window.location.href = MM_ROOT + '/MaterialManage.php?cat=' + encodeURIComponent(cat);
 }
 
 /* 全部展开/折叠 */

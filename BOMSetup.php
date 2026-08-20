@@ -30,20 +30,11 @@ function latestHeader($db, $assembly) {
     $c = DB_query("SELECT item_type FROM sf_item_no WHERE item_no='" . esc($db, $assembly) . "'", $db);
     $crow = DB_fetch_array($c);
     if ($crow && $crow['item_type'] === 'M') { $cache[$assembly] = false; return false; }
-    // 优先 is_current=1（默认版本，供未锁定引用跟随）；无标记则按 bom_header_id DESC（最晚创建）
-    if ($hasCurrentCol === null) {
-        $chkCol = DB_query("SHOW COLUMNS FROM bom_headers_all LIKE 'is_current'", $db);
-        $hasCurrentCol = DB_fetch_array($chkCol) ? 1 : 0;
-    }
-    if ($hasCurrentCol) {
-        $sql = "SELECT bom_header_id, version, status, cost_price, approve_by, approve_remark, is_current
-                FROM bom_headers_all WHERE assembly_item_no='" . esc($db, $assembly) . "'
-                ORDER BY is_current DESC, bom_header_id DESC LIMIT 1";
-    } else {
-        $sql = "SELECT bom_header_id, version, status, cost_price, approve_by, approve_remark
-                FROM bom_headers_all WHERE assembly_item_no='" . esc($db, $assembly) . "'
-                ORDER BY bom_header_id DESC LIMIT 1";
-    }
+    // 方案B：is_current 字段已废弃，不再作为默认版本依据；统一按 bom_header_id DESC（最晚创建）取最新版本。
+    // 未锁定引用（component_bom_header_id IS NULL）统一跟随最新创建版本。
+    $sql = "SELECT bom_header_id, version, status, cost_price, approve_by, approve_remark
+            FROM bom_headers_all WHERE assembly_item_no='" . esc($db, $assembly) . "'
+            ORDER BY bom_header_id DESC LIMIT 1";
     $r = DB_query($sql, $db);
     $cache[$assembly] = DB_fetch_array($r);
     return $cache[$assembly];
@@ -419,7 +410,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && $postOp != '') {
                         if (DB_fetch_array($r)) { $err = '该物料已有 BOM（v' . htmlspecialchars($version) . '）！'; }
                         else {
                             $t = time();
-                            DB_query("INSERT INTO bom_headers_all(assembly_item_no,version,status,approve_by,approve_date,approve_remark,creation_date,created_by,last_update_date,last_updated_by) VALUES('" . esc($db, $assembly) . "','" . esc($db, $version) . "','已签核','" . esc($db, $_SESSION['UserID']) . "','" . $t . "','引用物料时自动创建','" . $t . "','" . esc($db, $_SESSION['UserID']) . "','" . $t . "','" . esc($db, $_SESSION['UserID']) . "')", $db);
+                            // 新建 BOM 默认状态为「未审核」（原'已签核'不在合法状态列表内，且语义上新建未审核）
+                            DB_query("INSERT INTO bom_headers_all(assembly_item_no,version,status,approve_by,approve_date,approve_remark,creation_date,created_by,last_update_date,last_updated_by) VALUES('" . esc($db, $assembly) . "','" . esc($db, $version) . "','未审核','','0','引用物料时自动创建','" . $t . "','" . esc($db, $_SESSION['UserID']) . "','" . $t . "','" . esc($db, $_SESSION['UserID']) . "')", $db);
                             $hdr = latestHeader($db, $assembly);
                             if (!$hdr) { $err = '自动创建母件 BOM 头失败！'; }
                         }
@@ -495,7 +487,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && $postOp != '') {
                         if (DB_fetch_array($r)) { $err = '该物料已有 BOM（v' . htmlspecialchars($version) . '）！'; }
                         else {
                             $t0 = time();
-                            DB_query("INSERT INTO bom_headers_all(assembly_item_no,version,status,approve_by,approve_date,approve_remark,creation_date,created_by,last_update_date,last_updated_by) VALUES('" . esc($db, $assembly) . "','" . esc($db, $version) . "','已签核','" . esc($db, $_SESSION['UserID']) . "','" . $t0 . "','新建子BOM时自动创建','" . $t0 . "','" . esc($db, $_SESSION['UserID']) . "','" . $t0 . "','" . esc($db, $_SESSION['UserID']) . "')", $db);
+                            // 新建 BOM 默认状态为「未审核」（原'已签核'不在合法状态列表内，且语义上新建未审核）
+                            DB_query("INSERT INTO bom_headers_all(assembly_item_no,version,status,approve_by,approve_date,approve_remark,creation_date,created_by,last_update_date,last_updated_by) VALUES('" . esc($db, $assembly) . "','" . esc($db, $version) . "','未审核','','0','新建子BOM时自动创建','" . $t0 . "','" . esc($db, $_SESSION['UserID']) . "','" . $t0 . "','" . esc($db, $_SESSION['UserID']) . "')", $db);
                             $hdr = latestHeader($db, $assembly);
                             if (!$hdr) { $err = '自动创建母件 BOM 头失败！'; }
                         }
@@ -583,24 +576,29 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && $postOp != '') {
             }
 
         } elseif ($postOp == 'set_current_version') {
-            // 方案B「设为当前版本」：将选定版本提升为该 BOM 的“当前版本”，
-            // 级联更新【所有】引用该子件的父 BOM 行（component_item = 本 BOM），
-            // 使其“子件版本”绑定统一指向所选版本的 BOM 头。
-            // 这样左侧树（view_hdr 跟随）与父 BOM 层级表的「子件版本」列都将显示新版本，保持一致。
-            // 说明：下拉框切版本仍只做预览（不写库、不级联）；只有点“设为当前版本”按钮才执行本级联写库。
+            // 方案B「设为当前版本」：将选定版本提升为该 BOM 的“当前版本”。
+            // 级联范围（重要）：仅更新【当前上下文所在父 BOM】下引用本子件的行（?parent=），
+            // 其他父 BOM 的引用行独立存储、不受影响；无 parent（直接打开该 BOM 页面）时只切查看、不写库。
+            // 说明：下拉框切版本仍只做预览（不写库、不级联）；层级表"子件版本"列是更精确的行级切换。
             $assembly = isset($_POST['assembly']) ? trim($_POST['assembly']) : '';
             $version  = isset($_POST['version']) ? trim($_POST['version']) : '';
+            $parent   = isset($_POST['parent']) ? trim($_POST['parent']) : '';
             if ($assembly == '' || $version == '') { echo '{"ok":0,"msg":"参数缺失"}'; exit; }
             $hdr = headerByVersion($db, $assembly, $version);
             if (!$hdr) { echo '{"ok":0,"msg":"指定版本不存在"}'; exit; }
             $targetHdrId = (int)$hdr['bom_header_id'];
-            // 级联：所有引用该子件的父行（含此前未绑定/NULL 的行）统一指向当前版本头；
-            // 已指向该版本的行保持不变（避免无谓写库）。
-            DB_query("UPDATE bom_lines_all SET component_bom_header_id='" . $targetHdrId . "',
-                last_update_date='" . time() . "', last_updated_by='" . esc($db, $_SESSION['UserID']) . "'
-                WHERE component_item='" . esc($db, $assembly) . "'
-                  AND (component_bom_header_id IS NULL OR component_bom_header_id != '" . $targetHdrId . "')", $db);
-            DB_Txn_Commit($db);
+            if ($parent !== '') {
+                $t = time(); $uid = $_SESSION['UserID'];
+                // 仅更新该父 BOM（所有 BOM 头版本下）引用本子件的行；其他父 BOM 引用保持不变
+                DB_query("UPDATE bom_lines_all l
+                    JOIN bom_headers_all h ON h.bom_header_id = l.bom_header_id
+                    SET l.component_bom_header_id='" . $targetHdrId . "',
+                        l.last_update_date='" . $t . "', l.last_updated_by='" . esc($db, $uid) . "'
+                    WHERE h.assembly_item_no='" . esc($db, $parent) . "'
+                      AND l.component_item='" . esc($db, $assembly) . "'", $db);
+                DB_Txn_Commit($db);
+            }
+            // 无 parent：仅切查看（前端直接跳转），不级联任何父 BOM
             header('Content-Type: application/json; charset=utf-8');
             echo '{"ok":1}';
             exit;
@@ -2650,17 +2648,22 @@ while ($row = DB_fetch_array($topRes)) { $topAsms[] = $row['assembly_item_no']; 
 
 // 左侧 BOM 结构树：按参考图样式渲染。
 // prefixLines: bool[]，长度=当前深度，表示每一级祖先是否有后续兄弟节点（有则画垂直虚线）
-function renderForest($db, $parentAssembly, $items, $path, $prefixLines = array(), $pathApproved = 0, $parentStatus = '', $viewAsm = '', $viewHdrId = 0) {
+// $viewAsm + $viewHdrId + $viewParentAsm：当前正在查看的 BOM 及其版本，仅在该 BOM 的"那个特定父上下文"下用 view_hdr 覆盖
+// （同名 BOM 出现在树中多个父下时，只有匹配 parent 的那一个节点被覆盖，其他按各自锁定/默认版本显示）
+function renderForest($db, $parentAssembly, $items, $path, $prefixLines = array(), $pathApproved = 0, $parentStatus = '', $viewAsm = '', $viewHdrId = 0, $viewParentAsm = '') {
     $count = count($items);
     $idx = 0;
     foreach ($items as $it) {
         $isLast = (++$idx === $count);
         $item = $it['item'];
         $lineId = isset($it['line_id']) ? $it['line_id'] : '';
-        $lockHdrId = isset($it['lock_hdr']) ? intval($it['lock_hdr']) : 0;
+        $lockHdrId = isset($it['component_bom_header_id']) ? intval($it['component_bom_header_id']) : 0;
         if (in_array($item, $path, true)) continue;
-        // 节点 BOM 头解析优先级：view_hdr(查看版本，递归贯穿子树) > lock_hdr(行绑定) > 最新默认
-        if ($item === $viewAsm && $viewHdrId > 0) {
+        // 节点 BOM 头解析优先级：view_hdr(查看版本，仅在该 BOM 的特定父上下文匹配时) > lock_hdr(行绑定) > 最新默认
+        // 注：同名 BOM 出现在树中多个父下时，view_hdr 只覆盖"当前正在查看的那个特定位置"的节点，
+        //     其他同名节点按各自锁定版本或最新默认显示，避免"点击一个全树一起变"
+        $isInViewScope = ($viewAsm !== '' && $viewParentAsm !== '' && $item === $viewAsm && $parentAssembly === $viewParentAsm);
+        if ($isInViewScope && $viewHdrId > 0) {
             $hdr = headerById($db, $viewHdrId);
             if (!$hdr) $hdr = latestHeader($db, $item);
         } elseif ($lockHdrId > 0) {
@@ -2713,8 +2716,12 @@ function renderForest($db, $parentAssembly, $items, $path, $prefixLines = array(
         echo '</span>';
         echo '</span>';
 
-        // 深色 = 自身 BOM 已审核 或 路径上父级已审核（方案 B：已审核结构整棵深色）
-        $nodeDeep = ($pathApproved || ($hdr && $hdr['status'] == '已审核')) ? 1 : 0;
+        // 审核状态视觉语义（方案 B 修正）：
+        // - 顶层节点（被查看的 BOM 本身）显示自身审核状态；
+        // - 子件节点跟随父 BOM 的审核状态（pathApproved），不再以子件自身 BOM 是否审核为准。
+        //   即：父 BOM 未审核时，即便引用的子 BOM 已审核，在父结构里仍显示为未审核；
+        //       父 BOM 已审核时，其下所有子件（含叶子）整棵显示为已审核深色。
+        $nodeDeep = ($pathApproved || ($isTop && $hdr && $hdr['status'] == '已审核')) ? 1 : 0;
         echo '<span class="icon-label">'
             . itemIcon($type, 'lg', $isTop, $nodeDeep)
             . '<span class="lbl" title="' . htmlspecialchars($label) . '">' . htmlspecialchars($label) . '</span>'
@@ -2724,14 +2731,14 @@ function renderForest($db, $parentAssembly, $items, $path, $prefixLines = array(
         if ($isAsm && !$leaf) {
             $childItems = array();
             foreach ($activeLines as $ln) {
-                $childItems[] = array('item' => $ln['component_item'], 'line_id' => $ln['component_sequence_id'], 'lock_hdr' => $ln['component_bom_header_id'], 'parent_hdr' => $hdr['bom_header_id']);
+                $childItems[] = array('item' => $ln['component_item'], 'line_id' => $ln['component_sequence_id'], 'component_bom_header_id' => $ln['component_bom_header_id'], 'parent_hdr' => $hdr['bom_header_id']);
             }
             if ($childItems) {
                 $childPrefix = $prefixLines;
                 // 若当前节点不是最后一个兄弟，则向下的垂直线需要延续给子树
                 $childPrefix[] = !$isLast;
                 echo '<ul class="bom-sub">';
-                renderForest($db, $item, $childItems, array_merge($path, array($item)), $childPrefix, $nodeDeep, $status, $viewAsm, $viewHdrId);
+                renderForest($db, $item, $childItems, array_merge($path, array($item)), $childPrefix, $nodeDeep, $status, $viewAsm, $viewHdrId, $viewParentAsm);
                 echo '</ul>';
             }
         }
@@ -2845,8 +2852,8 @@ function renderHierarchy($db, $assembly, $level, $hierCode, $path, $parentQty = 
         $totalQty = $parentQty * (float)$ln['component_quantity'];
         $childHdr = resolveChildHeader($db, $ln);
         $hasChild = ($childHdr && count(getActiveLines($db, $childHdr['bom_header_id'])) > 0) ? 1 : 0;
-        // 深色 = 自身 BOM 已审核 或 路径上父级已审核（方案 B：叶子随已审核母件变深）
-        $rowDeep = ($pathApproved || ($childHdr && $childHdr['status'] == '已审核')) ? 1 : 0;
+        // 层级表行深色跟随被查看 BOM（父级）的审核状态传递（pathApproved），不以子件自身 BOM 是否审核为准
+        $rowDeep = $pathApproved ? 1 : 0;
         $key = $childCode;
         // 缩进：每级一个等宽占位，不显示 ├─/│ 等分支字符
         $indentHtml = '';
@@ -3254,7 +3261,10 @@ include('includes/SQL_CommonFunctions.inc');
                                 }
                                 $topItems = array();
                                 foreach ($topAsms as $asm) { $topItems[] = array('item' => $asm, 'line_id' => ''); }
-                                renderForest($db, '', $topItems, array(), array(), 0, '', $viewAsmTree, $viewHdrIdTree);
+                                // 左侧树"查看版本"覆盖：仅作用于用户当前正在查看的那个特定父上下文下的同名节点，
+                                // 避免同名 BOM 在多个父下都被强制显示为点击的版本
+                                $viewParentAsmTree = isset($_GET['parent']) ? $_GET['parent'] : '';
+                                renderForest($db, '', $topItems, array(), array(), 0, '', $viewAsmTree, $viewHdrIdTree, $viewParentAsmTree);
                                 ?>
                             </ul>
                         <?php endif; ?>
@@ -3373,22 +3383,37 @@ $(function(){
     // 版本下拉切换：仅刷新右侧面板（AJAX），不重建左侧树；点击"设为当前版本"后才整页跳转并让左侧树跟随
     $(document).on('change', '#verSelect', function(){
         var v = this.value;
-        var view = new URLSearchParams(location.search).get('view') || '';
+        var sp = new URLSearchParams(location.search);
+        var view = sp.get('view') || '';
         if (!view) return;
+        var parent = sp.get('parent') || '';
         var url = 'BOMSetup.php?view=' + encodeURIComponent(view);
         if (v) url += '&version=' + encodeURIComponent(v);
+        if (parent) url += '&parent=' + encodeURIComponent(parent);
         loadRightPanel(url + '&ajax=1', url);
     });
     $(document).on('click', '#btnViewVersion', function(){
         var v = $('#verSelect').val();
-        var view = new URLSearchParams(location.search).get('view') || '';
+        var urlParams = new URLSearchParams(location.search);
+        var view = urlParams.get('view') || '';
         if (!view) { alert('请先选择物料'); return; }
+        var parent = urlParams.get('parent') || '';
         var url = 'BOMSetup.php?view=' + encodeURIComponent(view);
         if (v) url += '&version=' + encodeURIComponent(v);
-        // 先写库：提升为当前版本，级联更新所有父 BOM 引用该子件的版本绑定
-        $.post('BOMSetup.php', { op:'set_current_version', assembly: view, version: v }, function(){
+        if (parent) url += '&parent=' + encodeURIComponent(parent);
+        // 有父上下文（从某父 BOM 进入）：仅更新该父 BOM 下引用本子件的行，不影响其他父 BOM；
+        // 无父上下文（直接打开该 BOM）：只切查看、不写库。
+        // 注意：必须携带 FormID，否则 session.inc 会拦截 POST 导致写库不生效。
+        if (parent) {
+            $.post('BOMSetup.php', {
+                op:'set_current_version', assembly: view, version: v, parent: parent,
+                FormID: '<?php echo $_SESSION['FormID']; ?>'
+            }, function(){
+                location.href = url;
+            }).fail(function(){ alert('设为当前版本失败，请重试'); });
+        } else {
             location.href = url;
-        }).fail(function(){ alert('设为当前版本失败，请重试'); });
+        }
     });
     // 子件版本切换：点击层级表"子件版本" → 弹窗选择该子件的 BOM 版本（仅影响本行引用）
     $(document).on('click', '#hierTable .ver-bind', function(e){
@@ -3460,8 +3485,12 @@ $(function(){
         });
     }
     function restoreActive(){
-        var asm; try { asm = sessionStorage.getItem('bom_active'); } catch(e){ return; }
-        if (asm) $('#bomTree .bom-node[data-assembly="'+asm+'"]').addClass('active');
+        var asm, par;
+        try { asm = sessionStorage.getItem('bom_active'); par = sessionStorage.getItem('bom_active_parent') || ''; } catch(e){ return; }
+        if (!asm) return;
+        // 同名 BOM 出现在树中多个父下时，按父精确匹配：只点亮"用户点击的那个位置"
+        var sel = '#bomTree .bom-node[data-assembly="'+asm+'"][data-parent-assembly="' + (par ? par : '') + '"]';
+        $(sel).addClass('active');
     }
 
     // 展开/折叠（叶子无子树，不响应）
@@ -3513,25 +3542,30 @@ $(function(){
         var a = node.data('assembly');
         var parent = node.data('parent-assembly') || '';
         try {
+            // 同时记录父 BOM：同名 BOM 在树中多处出现时，restoreActive 用它精确匹配"用户点击的那个位置"
             sessionStorage.setItem('bom_active', a);
+            sessionStorage.setItem('bom_active_parent', parent);
             sessionStorage.setItem('bom_scrollTop', $('#bomLeftBody').scrollTop());
         } catch(e){}
         var viewUrl = 'BOMSetup.php?view=' + encodeURIComponent(a);
         var urlParams = new URLSearchParams(location.search);
         var curView = urlParams.get('view') || '';
         var curVer  = urlParams.get('version') || '';
+        var curParent = urlParams.get('parent') || '';
         var nodeVer = node.data('version') || '';
         if (a === curView && curVer) {
-            // 点击的是当前已选中节点，保留 URL 中正在预览的版本（避免下拉框预览后被点回同一节点时回退）
+            // 点击的是当前已选中节点，保留 URL 中正在预览的版本与父上下文（避免下拉框预览后被点回同一节点时回退）
             viewUrl += '&version=' + encodeURIComponent(curVer);
+            if (curParent) viewUrl += '&parent=' + encodeURIComponent(curParent);
             loadRightPanel(viewUrl + '&ajax=1', viewUrl);
         } else {
             // 切换到其他节点：整页跳转，让左侧树重新渲染，避免旧视图的 view_hdr 覆盖残留在树上
             if (nodeVer) {
                 viewUrl += '&version=' + encodeURIComponent(nodeVer);
             }
-            // 叶子（原材料/包装物）点击时带上其上一级父 BOM，右侧只显示该父件下的单层数据
-            if (node.hasClass('leaf-node') && parent) {
+            // 所有节点（BOM 头/叶子）都携带其上一级父 BOM（若有）：
+            // 供"设为当前版本"精确更新该父 BOM 下的引用行；叶子右侧单层展示也依赖该参数
+            if (parent) {
                 viewUrl += '&parent=' + encodeURIComponent(parent);
             }
             location.href = viewUrl;
