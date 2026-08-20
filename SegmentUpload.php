@@ -1,20 +1,44 @@
-<?php 
+<?php
 header("Content-Type:text/html;charset=utf-8");
 putenv("NLS_LANG=AMERICAN_AMERICA.AL32UTF8");
-set_time_limit(0); 
+set_time_limit(0);
 ob_start();
  date_default_timezone_set ('Asia/Shanghai');
 ob_start();
 include('includes/session.inc');
 $Title = _('料号整批上传');
-$ViewTopic = '料号整批上传';
-$BookMark = '料号整批上传';
-include('includes/header.inc');
+$ViewTopic = _('料号整批上传');
+$BookMark = _('料号整批上传');
+// 物料管理 MaterialManage 弹窗模式：?embed=1 时输出精简 HTML
+$isEmbed = isset($_GET['embed']) && $_GET['embed'] == '1';
+if ($isEmbed) {
+	$Theme = isset($_SESSION['Theme']) ? $_SESSION['Theme'] : 'xenos';
+	echo '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' . htmlspecialchars($Title) . '</title>';
+	echo '<link href="' . $RootPath . '/css/' . $Theme . '/default.css" rel="stylesheet" type="text/css"/>';
+	echo '<link href="' . $RootPath . '/css/bom_style.css" rel="stylesheet" type="text/css"/>';
+	echo '<script src="' . $RootPath . '/javascript/jquery-1.7.2.min.js"></script>';
+	echo '<style>body{padding:14px;margin:0;background:#fafbfc;font-family:Verdana,Arial,sans-serif;font-size:13px}.embed-title{font-size:15px;font-weight:bold;color:#1976D2;border-bottom:2px solid #1976D2;padding-bottom:8px;margin-bottom:14px}</style>';
+	echo '</head><body><div class="embed-title">⇧ 料号整批上传</div>';
+} else {
+	include('includes/header.inc');
+}
 //include('includes/SQL_CommonFunctions.inc');
 include("excel/excel.php"); 
 
-echo '<p class="page_title_text"><img src="' . $RootPath . '/css/' . $Theme . '/images/supplier.png" title="' . _('料号整批上传') .
- '" alt="" />' . ' ' . $Title . '</p>';
+?>
+<link rel="stylesheet" href="<?php echo $RootPath; ?>/css/bom_style.css">
+<?php if (!$isEmbed) { ?>
+<div class="bom-tabs">
+    <a class="bom-tab" href="<?php echo $RootPath; ?>/segment1set.php">料号维护</a>
+    <a class="bom-tab" href="<?php echo $RootPath; ?>/segment1Up.php">料号修改</a>
+    <a class="bom-tab active" href="<?php echo $RootPath; ?>/SegmentUpload.php">料号整批上传</a>
+</div>
+<?php } ?>
+<?php
+if (!$isEmbed) {
+    echo '<p class="page_title_text"><img src="' . $RootPath . '/css/' . $Theme . '/images/supplier.png" title="' . _('料号整批上传') .
+        '" alt="" />' . ' ' . $Title . '</p>';
+}
 
 
 
@@ -107,22 +131,21 @@ foreach($arr as $arry=>$row){
 //echo '上传完成' ;
 //exit;
 unset($_SESSION['Request']);
-echo '<h3>' . _('您已完成 '.$line.' 笔资料上传，请进入确认界面保存资料') . '</h3>';
-
-echo '<a href="' . $RootPath . '/SegmentUpload2.php"><h3>' . _('进行上传资料确认界面') . '</h3>';
+echo '<div class="bom-alert bom-alert-ok"><div class="bom-alert-title">上传完成</div>您已完成 ' . $line . ' 笔资料上传，请进入确认界面保存资料<br><a class="bom-link" href="' . $RootPath . '/SegmentUpload2.php">进行上传资料确认界面</a></div>';
   
 }  
- else  {	echo '<form action="SegmentUpload.php" method="post" enctype="multipart/form-data">';
+ else  {	echo '<div class="bom-card"><div class="bom-card-title">上传文件</div>';
+    echo '<div class="hier-toolbar"><span class="version-tag">料号整批上传</span><a class="export-btn" href="' . $RootPath . '/PO/ItemUploadSample.xls" target="_blank">下载标准格式文件</a></div>';
+    echo '<form action="SegmentUpload.php" method="post" enctype="multipart/form-data">';
     echo '<div class="centre">';
-	   echo '<table><tr><div class="centre"><td><a href="' . $RootPath . '/PO/ItemUploadSample.xls" target="_blank">' . '下载标准格式文件' . '</td></tr></div></table>';
 	echo '<input type="hidden" name="FormID" value="' . $_SESSION['FormID'] . '" />';
 
 	echo '<input type="hidden" name="MAX_FILE_SIZE" value="1000000" />' ._('选择需要上传的文件') . ': <input name="userfile" type="file" />
 		<input type="submit" value="' . _('确认上传') . '" />
         </div>
-		</form>'; 
+		</form></div>'; 
 		}
-include('includes/footer.inc');
+if ($isEmbed) { echo '</body></html>'; } else { include('includes/footer.inc'); }
 
  
 ?>

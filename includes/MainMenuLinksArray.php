@@ -5,23 +5,29 @@
 /* webERP menus with Captions and URLs. */
 $ModuleLink = array(
 'orders',
-'Purchase',  
+'Purchase',
 'INV',
 'BOM',
+'Doc',
+'Tech',
 'WIP',
 'OSP',
 'QM',
-'AP', 
- 'AR', 
- 'SH', 
-'FIN', 
-//'MRP', 
+'AP',
+ 'AR',
+ 'SH',
+'FIN',
+//'MRP',
 'system');
 $ReportList = array(
-'orders' => 'ord', 
-'Purchase' => 'PO',                      
+'orders' => 'ord',
+'Purchase' => 'PO',
 'INV' => 'INV',
 'BOM' => 'BOM',
+'Doc' => 'DOC',
+'Tech' => 'tech',
+'BOM' => 'BOM',
+'Doc' => 'DOC',
 'WIP' => 'WIP', 
 'OSP' => 'OSP',
 'QM' => 'QM',
@@ -35,19 +41,21 @@ $ReportList = array(
 
 /* The headings showing on the tabs accross the main index used also in WWW_Users for defining what should be visible to the user */
 $ModuleList = array(  
-_('销售'), 
-_('采购'), 
+_('销售'),
+_('采购'),
 
 _('仓库'),
 _('BOM'),
+_('图文档'),
+_('工艺'),
 _('生产'),
 _('外协'),
-_('品质'), 
+_('品质'),
 _('应付'),
 _('应收'),
 _('技服'),
 _('月结'),
-// _('MRP'), 
+// _('MRP'),
 _('系统设置'));
 
 $MenuItems['orders']['Transactions']['Caption'] = array(  
@@ -382,39 +390,26 @@ $MenuItems['INV']['Maintenance']['Caption'] = array( _('交易类型设置') );
 
 $MenuItems['INV']['Maintenance']['URL'] = array( '/invclassset.php'	);
 
-$MenuItems['BOM']['Transactions']['Caption'] = array(	  
-_('料号维护'),
-// _('料号审核'),
-_('料号修改'),
-_('料号整批上传'),
-_('BOM建立'),  
-_('BOM修改'),
+$MenuItems['BOM']['Transactions']['Caption'] = array(
+_('物料管理'),
+_('BOM管理'),
 _('BOM审核'),
-_('BOM复制'),
-_('BOM上传'),
 _('SMT料站表维护'),
 _('产品工艺设置') ,
 _('产品工艺修改') ,
 _('产品工艺审核') ,
-_('工艺设置') 
+_('工艺设置')
 );
 
-$MenuItems['BOM']['Transactions']['URL'] = array(	 
-'/segment1set.php',
-// '/segment1Approve.php',
-'/segment1Up.php',
-'/SegmentUpload.php',
-'/BOMSetup.php',  
-'/BOMModify.php',
+$MenuItems['BOM']['Transactions']['URL'] = array(
+'/MaterialManage.php',
+'/BOMSetup.php',
 '/BOMApprove.php',
-
-'/BOMCopy.php',
-'/BOMUpload.php',
 '/BOMSMTZhan.php',
 '/BOMRouteUpdate.php',
 '/BOMRouteModify.php',
 '/BOMRouteApprove.php',
-'/BomOperation.php' 
+'/BomOperation.php'
 );
 
 $MenuItems['BOM']['Reports']['Caption'] = array(	 
@@ -451,7 +446,58 @@ $MenuItems['BOM']['Maintenance']['Caption'] = array( //_('工艺参数维护')
 $MenuItems['BOM']['Maintenance']['URL'] = array( //'/BOMRouteParamenter.php'
 );
 
-$MenuItems['Fina']['Transactions']['Caption'] = array(	
+$MenuItems['Doc']['Transactions']['Caption'] = array(
+_('文档工作区'),
+_('文档模板'),
+_('文件废止区'),
+_('文件回收站')
+);
+
+$MenuItems['Doc']['Transactions']['URL'] = array(
+'/DocPLM.php',
+'/DocPLM.php?mode=template',
+'/DocPLM.php?mode=abolition',
+'/DocPLM.php?mode=recycle'
+);
+
+$MenuItems['Doc']['Reports']['Caption'] = array(
+);
+
+$MenuItems['Doc']['Reports']['URL'] = array(
+);
+
+$MenuItems['Doc']['Maintenance']['Caption'] = array(
+);
+
+$MenuItems['Doc']['Maintenance']['URL'] = array(
+);
+
+// ===== 工艺管理模块（复用老项目表 bom_parameters / bom_routings_all，2026-08-19）=====
+$MenuItems['Tech']['Transactions']['Caption'] = array(
+_('工序字典'),
+_('产品工艺路线'),
+_('产品工艺审核')
+);
+
+$MenuItems['Tech']['Transactions']['URL'] = array(
+'/CraftOp.php',
+'/CraftRouteMaint.php',
+'/CraftRouteApprove.php'
+);
+
+$MenuItems['Tech']['Reports']['Caption'] = array(
+);
+
+$MenuItems['Tech']['Reports']['URL'] = array(
+);
+
+$MenuItems['Tech']['Maintenance']['Caption'] = array(
+);
+
+$MenuItems['Tech']['Maintenance']['URL'] = array(
+);
+
+$MenuItems['Fina']['Transactions']['Caption'] = array(
 _('其它收入录入'),
 _('其它支出录入'),
 _('其它收入/支出主管审核'),

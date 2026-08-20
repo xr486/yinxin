@@ -143,7 +143,7 @@ VALUES
 		'" . rtrim($_POST['item_name'.$i]) . "',
 		'" . $_POST['uom'.$i] . "',	
         '', 
-		'P', 
+		'M', 
 		'0',
 		'0','" . $_POST['sub_code'] . "',
 		'Y',
@@ -208,6 +208,42 @@ VALUES
 <link rel="icon" href="/sherp/favicon.ico"/>
 <meta http-equiv="Content-Type" content="application/html; charset=utf-8"/>
 <link href="/css/xenos/default.css" rel="stylesheet" type="text/css"/>
+<style>
+/* ===== BOM 上传确认页 · xenos 卡片风格覆盖（仅样式，不改业务逻辑） ===== */
+body{background:#f2f4f8;overflow-x:auto}
+.page_title_text{color:#0d47a1;font-size:18px;font-weight:bold;padding:14px 0;border-bottom:2px solid #e3ecf7;margin-bottom:16px}
+#BodyWrapDiv{max-width:1600px;margin:0 auto;background:#fff;border:1px solid #e0e8f0;border-radius:10px;padding:20px 24px;box-shadow:0 2px 8px rgba(30,64,120,.06);overflow-x:auto}
+/* 母件信息区：卡片化 */
+.text-nav{display:flex;flex-wrap:wrap;gap:14px;background:#fafcff;border:1px solid #dbe5f2;border-radius:8px;padding:16px 18px;margin-bottom:14px}
+.text-nav-1,.text-nav-2{display:flex;flex-direction:row;align-items:center;gap:8px;flex:1;min-width:220px}
+.text-nav-1>div,.text-nav-2>div{font-size:13px;color:#37474f;font-weight:600;white-space:nowrap;flex:0 0 auto}
+.text-nav-1.required>div:after,.text-nav-2.required>div:after{content:" *";color:#e53935}
+.text-nav input[type=text]{border:1px solid #ccd7e4;border-radius:5px;padding:7px 10px;font-size:13px;background:#fff;transition:border-color .2s,box-shadow .2s;flex:1;min-width:0;width:auto}
+.text-nav input[type=text]:focus{border-color:#1976D2;box-shadow:0 0 0 3px rgba(25,118,210,.12);outline:none}
+.text-nav .select_img{cursor:pointer;flex:0 0 auto;margin-left:4px;vertical-align:middle}
+/* 明细表格：卡片圆角表头 */
+.text-nav-table{background:#fff;border:1px solid #e0e8f0;border-radius:8px;padding:4px;overflow-x:auto;overflow-y:hidden}
+.text-nav-table table.selection{width:max-content;min-width:100%;white-space:nowrap;border-collapse:separate;border-spacing:0}
+.text-nav-table table.selection th{background:linear-gradient(180deg,#f2f7fd,#e8f0fb);color:#0d47a1;font-size:13px;padding:9px 6px;border-bottom:2px solid #cfe0f3;white-space:nowrap}
+.text-nav-table table.selection td{padding:5px 4px;border-bottom:1px solid #eef2f7;font-size:12px}
+.text-nav-table table.selection tr:hover td{background:#f5f9ff}
+.text-nav-table table.selection input[type=text]{border:1px solid #d8e0e9;border-radius:4px;padding:4px 5px;font-size:12px;background:#fff}
+.text-nav-table table.selection input[type=text]:focus{border-color:#1976D2;outline:none}
+.text-nav-table table.selection td:first-child input[type=text]{width:36px;text-align:center;color:#546e7a}
+/* 说明列：非空即"料号名称不同"等差异提示 → 红色 */
+.text-nav-table table.selection input[name^="remark"]{border-color:#ffcdd2;color:#c62828;background:#fff5f5;font-weight:600}
+/* 按钮：彩色圆角 */
+input[type=submit]{border-radius:6px;cursor:pointer;font-size:14px;transition:opacity .15s,transform .1s}
+input[type=submit]:hover{opacity:.88}
+input[type=submit]:active{transform:translateY(1px)}
+input[type=submit][name="Save"]{background:#27ae60;color:#fff;border:none;padding:10px 46px;font-size:15px;font-weight:600}
+input[type=submit][name="return"],input[type=submit][value="关闭当前页面"]{background:#fff;color:#455a64;border:1px solid #b9c4d0;padding:8px 24px}
+/* 删除行链接 */
+.text-nav-table table.selection a{color:#e53935;font-weight:600;text-decoration:none}
+.text-nav-table table.selection a:hover{text-decoration:underline}
+/* 成功/错误消息更醒目 */
+.msg{display:block;margin:10px 0}
+</style>
 <script type="text/javascript" src ="/shanghai/javascripts/miscfunctions.js"></script>
 <script type="text/javascript" src ="/shanghai/javascripts/wdatepicker.js"></script>
 <script type="text/javascript">var basepath='/shanghai/statics/base/images';</script>
@@ -218,7 +254,7 @@ VALUES
 <script type="text/javascript" src="/shanghai/statics/base/js/cookie.js"></script>
 <script type="text/javascript" src="/shanghai/statics/base/js/jquery.livequery.js"></script>
 <script src="/shanghai/javascript/jquery-1.7.2.min.js"></script>
-<script src="/shanghai/javascript/lhgdialog.min.js?self=true&skin=chrome"></script>
+<script src="/JXC/javascript/lhgdialog.min.js?self=true&skin=chrome"></script>
 <!-- Include all compiled plugins (below), or include individual files as needed -->
 <script src="/javascript/bootstrap.min.js"></script>
 <script type="text/javascript">
@@ -269,7 +305,7 @@ function addsave()
 		<div class="text-nav-1 required">
 		<div>半/成品物料:</div>
 			<input type="text" required="required" name="item_no" id="text_slect_item_no" value="<?=$_POST['item_no']?>" size="60" maxlength="100" onblur="sel()"/>
-					   <image class="select_img" src="img/search.png" id="btn_slect_item_no"/> </td>
+					   <image class="select_img" src="img/search.png" id="btn_slect_item_no" style="cursor:pointer;vertical-align:middle" onclick="openQiPick()"/> </td>
 		</div>
 
 		<div class="text-nav-1 required">
@@ -295,8 +331,8 @@ function addsave()
 		if (1==1) {
 	?>
 		<div class="text-nav-table">
-		<table id="purchase_table" cellpadding="2" class="selection">
-			<tr id="list-top">
+		<table id="purchase_table" cellpadding="2" class="selection" style="border:1px solid #e0e8f0">
+			<tr id="list-top" style="background:#eef4fb">
 				
 				<th>序号</th>
 				<th  width="220"><font color="red">子物料代码</font></th>
@@ -367,7 +403,7 @@ if  (DB_num_rows($result) == 0) {
 		</table>	
 		</div>			
 			<div class="centre">
-	            <input type="submit" name="Save" value="保存"> &nbsp;
+	            <input type="submit" name="Save" value="保存" style="background:#27ae60;color:#fff;border:none;padding:7px 34px;border-radius:3px;cursor:pointer;font-size:14px" /> &nbsp;
 			</div>
 	<?php
 		}
@@ -390,6 +426,7 @@ if  (DB_num_rows($result) == 0) {
 ?>
 <script type="text/javascript">
 $(document).ready(function(){
+try {
 var aaa,uuu;
 $('.tdl1').each(function(){
 	var dataId = $(this).attr('data-id');
@@ -401,7 +438,6 @@ $('.tdl1').each(function(){
 		init:function(){
 			aaa=$('#btn_slect_tidai'+dataId).parent().parent().children('td').eq(0).find('input').val();
 			uuu=$('#btn_slect_tidai'+dataId).parent().parent().children('td').eq(2).find('input').val();
-			console.log(aaa)
 			this.content.document.getElementById('cat').value = aaa;
 			this.content.document.getElementById('gongxu').value = uuu;
 			this.content.document.getElementById('fwValue').value = '<?=$i?>';
@@ -419,7 +455,6 @@ $('.tdl2').each(function(){
 		init:function(){
 			aaa=$('#btn_slect_weizhi'+dataId).parent().parent().children('td').eq(0).find('input').val();
 			uuu=$('#btn_slect_weizhi'+dataId).parent().parent().children('td').eq(2).find('input').val();
-			console.log(aaa)
 			this.content.document.getElementById('cat').value = aaa;
 			this.content.document.getElementById('gongxu').value = uuu;
 			this.content.document.getElementById('fwValue').value = '<?=$i?>';
@@ -449,15 +484,44 @@ $('.divToilet table tr td a').click(function(){
 	});
 <?php }?>
 
-$('#btn_slect_item_no').dialog({
-	title:'选择成品料号',
-	width: '1050px',
-	height: 470,
-	content:'url:BtnSearchNoBomItem.php?fwValue=&cat=buliao',
-	init:function(){
-		this.content.document.getElementById('cat').value = 'buliao';
-		this.content.document.getElementById('fwValue').value = '';
-	}
+$('#btn_slect_item_no').on('click', function(){
+	// 复用 BOMSetup 的"快捷添加物料"弹窗（带分类+多列过滤），限定只显示成品/半成品（F/B）→ &restrict=fb
+	var url = 'BOMSetup.php?op=quick_item&target=text_slect_item_no&nameTarget=text_slect_item_name&restrict=fb&_r=' + Date.now();
+	openQiDialog(url);
+});
+
+} catch(e){ /* lhgdialog 未加载时忽略弹窗初始化错误，不影响其他功能 */ }
+});
+
+// 简易模态框：选择成/半成品料号（不依赖 lhgdialog——此环境 $.dialog 不可用）
+// 放在 ready/try 之外，确保函数始终定义；image 用原生 onclick 调用（不依赖 jQuery ready 绑定）
+function openQiPick(){
+	var url = 'BOMSetup.php?op=quick_item&target=text_slect_item_no&nameTarget=text_slect_item_name&restrict=fb&_r=' + Date.now();
+	openQiDialog(url);
+}
+function openQiDialog(url){
+	if (document.getElementById('qiMask')) return; // 防止重复打开
+	var mask = $('<div id="qiMask" style="position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:99990"></div>');
+	var box = $('<div id="qiBox" style="position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:1400px;max-width:96vw;height:820px;max-height:94vh;background:#fff;border-radius:10px;box-shadow:0 10px 40px rgba(0,0,0,.35);z-index:99991;display:flex;flex-direction:column;overflow:hidden"></div>');
+	var head = $('<div style="padding:10px 16px;background:#f2f7fd;border-bottom:1px solid #dbe5f2;font-weight:bold;color:#0d47a1;display:flex;justify-content:space-between;align-items:center;flex:0 0 auto">'
+		+ '<span>选择成/半成品料号</span>'
+		+ '<button type="button" style="border:1px solid #b9c4d0;background:#fff;border-radius:4px;padding:3px 16px;cursor:pointer">关闭 ✕</button></div>');
+	var frame = $('<iframe id="qiFrame" src="' + url + '" style="flex:1;border:none;width:100%;background:#fff"></iframe>');
+	head.find('button').on('click', closeQiDialog);
+	box.append(head, frame);
+	$('body').append(mask, box);
+}
+function closeQiDialog(){
+	$('#qiMask').remove();
+	$('#qiBox').remove();
+}
+
+$(function(){
+	$('#btn_slect_item_no').on('click', function(){
+		// 复用 BOMSetup 的"快捷添加物料"弹窗（带分类+多列过滤），限定只显示成品/半成品（F/B）→ &restrict=fb
+		var url = 'BOMSetup.php?op=quick_item&target=text_slect_item_no&nameTarget=text_slect_item_name&restrict=fb&_r=' + Date.now();
+		openQiDialog(url);
+	});
 });
 
 //Function to get URL arguments
@@ -473,7 +537,6 @@ function getRequest() {
 	}
 	return theRequest;
 }
-});
 
 function checkall(thisform){
 	for(var i=0;i<thisform.elements.length;i++){

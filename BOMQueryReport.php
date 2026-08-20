@@ -13,6 +13,8 @@ $ViewTopic = '查询当前BOM';
 $BookMark = '查询当前BOM';
 
 include('includes/header.inc');
+echo '<link rel="stylesheet" href="' . $RootPath . '/css/bom_style.css">';
+include('includes/BOMReportTabs.php');
 include('includes/SQL_CommonFunctions.inc');
 
 unset($result);
@@ -146,6 +148,8 @@ if (isset($_POST['Search']) and isset($result) OR isset($_POST['Go']) OR isset($
                 <input type="submit" name="Next" value="' . _('下一页') . '" />';
         echo '</div>';
     }
+    echo '<div class="bom-card"><div class="bom-card-title">查询结果</div>';
+    echo '<div class="hier-toolbar"><span class="version-tag">当前BOM查询结果</span><a class="export-btn" href="' . $RootPath . '/BOMQueryReportExcel.php?item_no=' . urlencode($_POST['item_no']) . '&item_name=' . urlencode($_POST['item_name']) . '&item_desc=' . urlencode($_POST['item_desc']) . '&item_category1=' . urlencode($_POST['item_category1']) . '&FromDate=' . urlencode($_POST['FromDate']) . '&ToDate=' . urlencode($_POST['ToDate']) . '">导出Excel</a></div>';
     echo '			  <div class="text-nav-table">
                     <table cellpadding="2" class="selection" >';
 
@@ -193,12 +197,8 @@ if (isset($_POST['Search']) and isset($result) OR isset($_POST['Go']) OR isset($
             $RowIndex++;
             //end of page full new headings if
         } //end loop through vendors
-        echo '</table></div>';
+        echo '</table></div></div>';
         echo '<input type="hidden" name="JustSelectedAvendor" value="Yes" />';
-		echo '<div>
-        <a href="' . $RootPath . '/BOMQueryReportExcel.php?item_no=' .$_POST['item_no'] .
-        '&item_name=' .$_POST['item_name'] .'&item_desc=' .$_POST['item_desc'] .'&item_category1=' .$_POST['item_category1'] .'&FromDate=' .$_POST['FromDate'] .'&ToDate=' .$_POST['ToDate'] .' ">' .'资料导出Excel表' . '</a>
-    </div>';   
     }
  
     if (isset($ListPageMax) AND $ListPageMax > 1) {

@@ -47,8 +47,7 @@ if (isset($_POST['UpdateBom'])) {
 	//echo $_POST['bom_header_id'];
 	 
 	 $sql="update   bom_headers_all
-	 set version='" . $_POST['version'] . "' ,
-	 status='待签核' 
+	 set version='" . $_POST['version'] . "'
 	 where  bom_header_id='" . $_POST['bom_header_id'] . "' ";
 	 //echo $sql;
 	  $result = DB_query($sql,$db);
@@ -135,11 +134,7 @@ if (isset($_POST['Save'])) {
                         '" .$_SESSION['UserID'] . "') ";
             $result = DB_query($sql,$db);
 
-			$sql2="update   bom_headers_all
-			set status='待签核'  
-			where  bom_header_id='" . $_POST['bom_header_id'] . "' ";
-			//echo $sql;
-			 $result2 = DB_query($sql2,$db);
+			// 注：编辑 BOM 不再修改审核状态（status 只能由 BOM 审核功能修改）
 
 				
 				}
@@ -279,12 +274,8 @@ if (isset($_POST['Submit'])) {
 				//echo $linesql;
               $Result = DB_query($linesql, $db); 
 			  
-
-			  $sql2="update   bom_headers_all
-			set status='待签核'  
-			where  bom_header_id='" . $_POST['bom_header_id'] . "' ";
-			//echo $sql;
-			 $result2 = DB_query($sql2,$db);
+			  
+			  // 注：编辑 BOM 不再修改审核状态（status 只能由 BOM 审核功能修改）
 			  }
               
            }
@@ -351,8 +342,8 @@ echo '<table width="100%" border="1" cellpadding="0" cellspacing="0">
 }
 
 echo '<br /> <div class="centre">
-	                <input type="submit" name="DeleteAll" value="删除BOM"/>
-	                <input type="submit" name="UpdateBom" value="修改保存"/>
+	                <input type="submit" name="DeleteAll" value="删除BOM" style="background:#e74c3c;color:#fff;border:none;padding:7px 26px;border-radius:3px;cursor:pointer;font-size:13px" onclick="return confirm(\'确认删除该 BOM 及其所有子件？此操作不可恢复！\');"/>
+	                <input type="submit" name="UpdateBom" value="修改保存" style="background:#1976D2;color:#fff;border:none;padding:7px 26px;border-radius:3px;cursor:pointer;font-size:13px"/>
 					
 					</div>';
 echo '<table class="selection">';
@@ -381,9 +372,9 @@ echo ' <input type="hidden" class="text"  name="assembly_item_no" value="' . $_S
 
   
 
-echo '<div style="overflow:scroll">
+echo '<div style="overflow:auto;border:1px solid #e0e8f0;border-radius:6px">
 <table class="selection">
-	<tr>
+	<tr style="background:#eef4fb">
 		<th>' . _('序号') . '</th> 
 		 
 		<th   width=190>' . _('料号') . '</th>

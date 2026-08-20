@@ -5,7 +5,19 @@ $Title = _('料号维护');
 $ViewTopic = '料号维护';
 $BookMark = '料号维护';
 
-include ('includes/header.inc');
+// 物料管理 MaterialManage 弹窗模式：?embed=1 时输出精简 HTML
+$isEmbed = isset($_GET['embed']) && $_GET['embed'] == '1';
+if ($isEmbed) {
+	$Theme = isset($_SESSION['Theme']) ? $_SESSION['Theme'] : 'xenos';
+	echo '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' . htmlspecialchars($Title) . '</title>';
+	echo '<link href="' . $RootPath . '/css/' . $Theme . '/default.css" rel="stylesheet" type="text/css"/>';
+	echo '<link href="' . $RootPath . '/css/bom_style.css" rel="stylesheet" type="text/css"/>';
+	echo '<script src="' . $RootPath . '/javascript/jquery-1.7.2.min.js"></script>';
+	echo '<style>body{padding:14px;margin:0;background:#fafbfc;font-family:Verdana,Arial,sans-serif;font-size:13px}.embed-title{font-size:15px;font-weight:bold;color:#1976D2;border-bottom:2px solid #1976D2;padding-bottom:8px;margin-bottom:14px}table.selection{width:100%;table-layout:fixed;border-collapse:collapse}table.selection td{padding:4px 6px;font-size:12px;word-break:break-all;vertical-align:middle}table.selection td:first-child{width:auto;white-space:nowrap}table.selection input[type=text],table.selection select,table.selection textarea{max-width:100%;box-sizing:border-box}table.selection input[size]{width:auto}</style>';
+	echo '</head><body><div class="embed-title">✏ 料号维护</div>';
+} else {
+	include ('includes/header.inc');
+}
 include ('includes/SQL_CommonFunctions.inc');
 
 if (isset($_GET['ItemID'])) {
@@ -96,7 +108,7 @@ if (isset($_POST['Deletecustomer'])) {
 
 
 		echo '<br /><div class="centre"><a href="' . $RootPath . '/segment1set.php">' . _('查询料号') . '</a></div>';
-		include ('includes/footer.inc');
+		if ($isEmbed) { echo '</body></html>'; } else { include ('includes/footer.inc'); }
 		unset($_SESSION['customer_code']);
 		exit;
 	} else {
@@ -326,11 +338,9 @@ while ($v = DB_fetch_array($result)) {
 
 }
 ?>
-<div class="centre"><a href="<?= $RootPath ?>/segment1set.php">返回查找料号</a></div>
-<p class="page_title_text"><img src="<?php echo $RootPath; ?>/css/<?php echo $Theme; ?>//images/maintenance.png"
-		title="料号维护" alt="料号维护">料号维护</p>
+<div class="centre"><a href="<?= $RootPath ?>/SelectItemNo.php">点击选择料号</a></div>
 <form action="<?php echo htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES, 'UTF-8'); ?>" method="POST"
-	enctype="multipart/form-data">
+enctype="multipart/form-data">
 	<div>
 		<input type="hidden" name="FormID" value="<?php echo $_SESSION['FormID'];
 
@@ -346,7 +356,7 @@ while ($v = DB_fetch_array($result)) {
 						value="<?= $_POST['ItemNo'] ?>" required="required"><span style="color:red">*</span></td>
 
 				<td bgcolor="#87CEFA">料号名称：</td>
-				<td colspan="3"><input type="text" size="70" name="item_name" value="<?= $_POST['item_name'] ?>"
+				<td colspan="3"><input type="text" size="30" name="item_name" value="<?= $_POST['item_name'] ?>"
 						required="required"><span style="color:red">*</span></td>
 
 			</tr>
@@ -670,7 +680,7 @@ while ($v = DB_fetch_array($result)) {
 				?>
 			
 				<td bgcolor="#87CEFA">备注：</td>
-								<td colspan="3"><input  size="70"  type="text" name="item_remark" value="<?= $_POST['item_remark'] ?>"></td>
+								<td colspan="3"><input  size="30"  type="text" name="item_remark" value="<?= $_POST['item_remark'] ?>"></td>
 								</tr>
 								<tr>
 
@@ -828,5 +838,5 @@ if (DB_num_rows($result2) == 0) {
 
 
 <?php
-include ('includes/footer.inc');
+if ($isEmbed) { echo '</body></html>'; } else { include ('includes/footer.inc'); }
 ?>

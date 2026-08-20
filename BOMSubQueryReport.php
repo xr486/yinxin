@@ -13,6 +13,8 @@ $ViewTopic = '查询BOM及替代料';
 $BookMark = '查询BOM及替代料';
 
 include('includes/header.inc');
+echo '<link rel="stylesheet" href="' . $RootPath . '/css/bom_style.css">';
+include('includes/BOMReportTabs.php');
 include('includes/SQL_CommonFunctions.inc');
 
 unset($result);
@@ -138,6 +140,8 @@ if (isset($_POST['Search']) and isset($result) OR isset($_POST['Go']) OR isset($
                 <input type="submit" name="Next" value="' . _('下一页') . '" />';
         echo '</div>';
     }
+    echo '<div class="bom-card"><div class="bom-card-title">查询结果</div>';
+    echo '<div class="hier-toolbar"><span class="version-tag">BOM及替代料查询结果</span></div>';
     echo '			  <div class="text-nav-table">
                     <table cellpadding="2" class="selection" >';
 
@@ -182,7 +186,7 @@ if (isset($_POST['Search']) and isset($result) OR isset($_POST['Go']) OR isset($
             $RowIndex++;
             //end of page full new headings if
         } //end loop through vendors
-        echo '</table></div>';
+        echo '</table></div></div>';
         echo '<input type="hidden" name="JustSelectedAvendor" value="Yes" />';
     }
 

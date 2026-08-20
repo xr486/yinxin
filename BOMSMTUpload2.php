@@ -184,7 +184,7 @@ $('.divToilet table tr td a').click(function(){
 <?php for($i=1;$i<=50;$i++){?>
 	$('#btn_slect_buliao<?=$i?>').dialog({
 		title:'选择子料号',
-		width: '900px',
+		width: '90  0px',
 		height: 470,
 		content:'url:SearchBOMItem.php?fwValue=<?=$i?>&cat=buliao',
 		init:function(){

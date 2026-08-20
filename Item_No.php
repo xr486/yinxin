@@ -5,6 +5,8 @@ $Title = _('料号查询');
 $ViewTopic = '料号查询';
 $BookMark = '料号查询';
 include('includes/header.inc');
+echo '<link rel="stylesheet" href="' . $RootPath . '/css/bom_style.css">';
+include('includes/BOMReportTabs.php');
 include('includes/SQL_CommonFunctions.inc');
 
 unset($result);
@@ -173,7 +175,13 @@ echo '<div class="text-nav-1"><div>' . _('仓库') . ':</div>';
     
                        
 
-            <br /><div style="overflow:scroll">
+            <div class="bom-card">
+            <div class="bom-card-title">查询结果</div>
+            <div class="hier-toolbar">
+                <span class="version-tag">料号查询结果</span>
+                <a class="export-btn" href="<?php echo $RootPath; ?>/segment1setExcel.php?item_no=<?php echo urlencode($_POST['ItemNo']); ?>&item_name=<?php echo urlencode($_POST['item_name']); ?>&item_desc=<?php echo urlencode($_POST['item_desc']); ?>&item_category1=<?php echo urlencode($_POST['item_category1']); ?>&locName=<?php echo urlencode($_POST['locName']); ?>">导出Excel</a>
+            </div>
+            <div style="overflow:auto">
             <table cellpadding="2" class="selection">
                 <tr>
                     <th class="ascending"   >料号</th>
@@ -231,13 +239,8 @@ echo '<div class="text-nav-1"><div>' . _('仓库') . ':</div>';
                         $RowIndex++;
                     }
                     ?>
-                </table></div>
+                </table></div></div>
                 <?php
-						echo '<div>
-        <a href="' . $RootPath . '/segment1setExcel.php?item_no=' .$_POST['ItemNo'] .
-        '&item_name=' .$_POST['item_name'] .'&item_desc=' .$_POST['item_desc'] .'&item_category1=' .$_POST['item_category1'] .'&locName=' .$_POST['locName'] .' ">' .'资料导出Excel表' . '</a>
-    </div>';
-
             }
             if (isset($ListPageMax) AND $ListPageMax > 1) {
                 ?>

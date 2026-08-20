@@ -61,12 +61,16 @@ if (isset($_POST['Search']) OR isset($_POST['Go']) OR isset($_POST['Next']) OR i
 
     
 
-<p class="page_title_text"><img src="<?php echo $RootPath; ?>/css/<?php echo $Theme; ?>//images/magnifier.png" title="料号维护" alt="料号维护">料号维护</p>
+<link rel="stylesheet" href="<?php echo $RootPath; ?>/css/bom_style.css">
+<div class="bom-tabs">
+    <a class="bom-tab active" href="<?php echo $RootPath; ?>/segment1set.php">料号维护</a>
+    <a class="bom-tab" href="<?php echo $RootPath; ?>/segment1Up.php">料号修改</a>
+    <a class="bom-tab" href="<?php echo $RootPath; ?>/SegmentUpload.php">料号整批上传</a>
+</div>
 <form action="<?php echo htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES, 'UTF-8'); ?>" method ="POST">
     <div>
         <input type="hidden" name="FormID" value = "<?php echo $_SESSION['FormID']; ?>">
-        <table cellpadding="3" class="selection">
-
+        <div class="bom-card bom-query-card">
         <div class="text-nav">	 
 					<div class="text-nav-1 ">
 						<div>
@@ -87,14 +91,12 @@ if (isset($_POST['Search']) OR isset($_POST['Go']) OR isset($_POST['Next']) OR i
 						 <div class="text-nav-1 "> <div> 产品类别： </div>
 							<input type="text" name="item_category1" value="<?=$_POST['item_category1'] ?>">
 						</div>
-
-                         
-							
- 
-        </div>   
-        </table>
-        <div class="centre"><input type="submit" name="Search" value="查询">&nbsp;&nbsp;
-		<input type="submit" name="add_new" value="新增料号"></div>
+                        <div class="bom-nav-btns">
+                            <input type="submit" name="Search" value="查询" class="bom-btn-primary">
+                            <input type="submit" name="add_new" value="新增料号" class="bom-btn-default">
+                        </div>
+        </div>
+        </div><!-- /bom-card -->
 
         <?php
         if (isset($_POST['Search']) and isset($result) OR isset($_POST['Go']) OR isset($_POST['Next']) OR isset($_POST['Previous'])) {
@@ -118,12 +120,12 @@ if (isset($_POST['Search']) OR isset($_POST['Go']) OR isset($_POST['Next']) OR i
             
         
 
-            <?php
-            if ($ListPageMax > 1) {
-                ?>
-                <br />
-
-                <div class="centre">&nbsp;&nbsp;第&nbsp;<?= $_POST['PageOffset'] ?>&nbsp;页，共&nbsp;<?= $ListPageMax ?>&nbsp;页&nbsp;&nbsp; 跳转至页: 
+            <div class="bom-card bom-result-card">
+            <div class="hier-toolbar">
+                <span class="version-tag">料号查询结果</span>
+                <a class="export-btn" href="<?php echo $RootPath; ?>/segment1setExcel.php?item_no=<?php echo urlencode($_POST['ItemNo']); ?>&item_name=<?php echo urlencode($_POST['item_name']); ?>&item_desc=<?php echo urlencode($_POST['item_desc']); ?>&item_category1=<?php echo urlencode($_POST['item_category1']); ?>">导出Excel</a>
+                <?php if ($ListPageMax > 1) { ?>
+                <div class="bom-page-bar">&nbsp;&nbsp;第&nbsp;<?= $_POST['PageOffset'] ?>&nbsp;页，共&nbsp;<?= $ListPageMax ?>&nbsp;页&nbsp;&nbsp; 跳转至页:
                     <select name="PageOffset1">
                         <?php
                         $ListPage = 1;
@@ -137,18 +139,14 @@ if (isset($_POST['Search']) OR isset($_POST['Go']) OR isset($_POST['Next']) OR i
                         }
                         ?>
                     </select>
-
                     <input type="submit" name="Go1" value="跳转" />
                     <input type="submit" name="Previous" value="上一页" />
                     <input type="submit" name="Next" value="下一页" />
-
                 </div>
-    <?php } ?>
-    
-                       
-
-            <br /><div style="overflow:scroll">
-            <table cellpadding="2" class="selection">
+                <?php } ?>
+            </div>
+            <div style="overflow:auto">
+            <table cellpadding="2" class="selection bom-table">
                 <tr>
                     <th class="ascending"   >料号</th>
               
@@ -196,19 +194,14 @@ if (isset($_POST['Search']) OR isset($_POST['Go']) OR isset($_POST['Next']) OR i
                         $RowIndex++;
                     }
                     ?>
-                </table></div>
+                </table></div></div>
                 <?php
-						echo '<div>
-        <a href="' . $RootPath . '/segment1setExcel.php?item_no=' .$_POST['ItemNo'] .
-        '&item_name=' .$_POST['item_name'] .'&item_desc=' .$_POST['item_desc'] .'&item_category1=' .$_POST['item_category1'] .' ">' .'资料导出Excel表' . '</a>
-    </div>';
-
+            } else {
+                echo '<div class="bom-alert bom-alert-ok" style="max-width:none;margin:12px 0"><div class="bom-alert-title">暂无数据</div>当前查询条件未匹配到任何料号，请调整条件后重试。</div>';
             }
             if (isset($ListPageMax) AND $ListPageMax > 1) {
                 ?>
-                <br />
-
-                <div class="centre">&nbsp;&nbsp;第&nbsp;<?= $_POST['PageOffset'] ?>&nbsp;页，共&nbsp;<?= $ListPageMax ?>&nbsp;页&nbsp;&nbsp; 跳转至页: 
+                <div class="bom-page-bar centre">&nbsp;&nbsp;第&nbsp;<?= $_POST['PageOffset'] ?>&nbsp;页，共&nbsp;<?= $ListPageMax ?>&nbsp;页&nbsp;&nbsp; 跳转至页:
                     <select name="PageOffset2">
                         <?php
                         $ListPage = 1;
@@ -222,16 +215,10 @@ if (isset($_POST['Search']) OR isset($_POST['Go']) OR isset($_POST['Next']) OR i
                         }
                         ?>
                     </select>
-
                     <input type="submit" name="Go1" value="跳转" />
                     <input type="submit" name="Previous" value="上一页" />
                     <input type="submit" name="Next" value="下一页" />
-                    
-      
-
                 </div>
-                
-    
     <?php }
 } ?>
 

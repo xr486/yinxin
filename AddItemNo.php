@@ -5,7 +5,20 @@ include ('includes/session.inc');
 $Title = _('料号建立');
 $ViewTopic = '料号建立';
 $BookMark = '料号建立';
-include ('includes/header.inc');
+
+// 物料管理 MaterialManage 弹窗模式：?embed=1 时输出精简 HTML（不调用 webERP 全局 header/footer）
+$isEmbed = isset($_GET['embed']) && $_GET['embed'] == '1';
+if ($isEmbed) {
+	$Theme = isset($_SESSION['Theme']) ? $_SESSION['Theme'] : 'xenos';
+	echo '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' . htmlspecialchars($Title) . '</title>';
+	echo '<link href="' . $RootPath . '/css/' . $Theme . '/default.css" rel="stylesheet" type="text/css"/>';
+	echo '<link href="' . $RootPath . '/css/bom_style.css" rel="stylesheet" type="text/css"/>';
+	echo '<script src="' . $RootPath . '/javascript/jquery-1.7.2.min.js"></script>';
+	echo '<style>body{padding:14px;margin:0;background:#fafbfc;font-family:Verdana,Arial,sans-serif;font-size:13px}.embed-title{font-size:15px;font-weight:bold;color:#1976D2;border-bottom:2px solid #1976D2;padding-bottom:8px;margin-bottom:14px}</style>';
+	echo '</head><body><div class="embed-title">📦 料号建立</div>';
+} else {
+	include ('includes/header.inc');
+}
 include ('includes/SQL_CommonFunctions.inc');
 
 $uploadflag = 1;
@@ -881,5 +894,5 @@ if (radio.value === 'Y') {
 </html>
 
 <?
-include ('includes/footer.inc');
+if ($isEmbed) { echo '</body></html>'; } else { if ($isEmbed) { echo '</body></html>'; } else { include ('includes/footer.inc'); } }
 ?>

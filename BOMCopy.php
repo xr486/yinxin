@@ -1,464 +1,120 @@
 <?php
+/* ============================================================
+ * BOM复制（二次优化版）：参照 BOMSetup.php 界面风格
+ * 将源 BOM（模板料号+版本）的完整结构（头/行/替代件）复制到目标料号
+ * ============================================================ */
 include('includes/session.inc');
-$Title = _('BOM复制');
-$ViewTopic= 'BOM复制';
+$Title = 'BOM复制';
+$ViewTopic = 'BOM复制';
 $BookMark = 'BOM复制';
 include('includes/header.inc');
 include('includes/SQL_CommonFunctions.inc');
-unset($result);
-	if (isset($_POST['Save'])) {
 
-		$errorflag = 0;
-
- 
-
-		if ($_POST['item_no']=='') {
-
-						$errorflag = 1;
-
-						prnMsg('未填写源BOM料号，请填写！',error);
-
-						}
-
-          if ($_POST['item_no2']=='') {
-
-						$errorflag = 1;
-
-						prnMsg('未填写目标料号，请填写！',error);
-
-						}
-
-
-
-		 if ($_POST['item_no']==$_POST['item_no2'.$i]) {
-
-							$errorflag = 1;
-
-							prnMsg($value.'子料号与母料相同,请修改！',error);
-
-						}
-
-
-
-		if ($errorflag == 0) {
-
-		  DB_Txn_Begin($db);
-
-			$time = time(); 
-
-			$sql = "insert into bom_headers_all (version,assembly_item_no,creation_date,created_by,last_update_date,last_updated_by)values
-			('".$_POST['version']."','".$_POST['item_no2']."','".$time."','".$_SESSION['UserID']."','".$time."','".$_SESSION['UserID']."')";
- 
-			$result = DB_query($sql,$db);
-
-			$sql22 = "select bom_header_id from bom_headers_all 
-			where  assembly_item_no = '".$_POST['item_no2']."'
-			and version = '".$_POST['version']."'"; 
-			$result22 = DB_query($sql22,$db);
-			$myrow22 = DB_fetch_array($result22);
-             $bom_header_id=$myrow22['bom_header_id'];			 
-			
-
-			        $sql = "insert into bom_lines_all(assembly_item_no,bom_header_id,item_num,operation_seq_num,component_item,component_quantity,weizhi,sunhao_rate,component_remarks, effectivity_date,creation_date,created_by,last_update_date,last_updated_by)
-
-							 SELECT '".$_POST['item_no2']."','".$bom_header_id."',
-
-							item_num,operation_seq_num,component_item,component_quantity,weizhi,sunhao_rate,component_remarks,
-
-							'".$time."' AS effectivity_date,
-
-							'".$time."' AS creation_date,
-
-							'".$_SESSION['UserID']."' AS created_by,
-
-							'".$time."' AS last_update_date,
-
-							'".$_SESSION['UserID']."' AS last_updated_by
-
-					FROM bom_lines_all a
-
-					WHERE  (a.disable_date>=".time()." or a.disable_date is null or a.disable_date=0)
-
-					and bom_header_id='".$_POST['bom_header_id']."';"; 
-
-						 
-
-                  $result = DB_query($sql,$db);
-
-
-
-				  $sql = "insert into bom_substitutes_all(component_sequence_id,item_num,substitute_item ,substitute_item_quantity,substitute_remarks ,creation_date,created_by,last_update_date,last_updated_by)
-
-							 SELECT c.component_sequence_id,olds.item_num ,olds.substitute_item ,olds.substitute_item_quantity,olds.substitute_remarks ,
-
-
-							'".$time."' AS creation_date,
-
-							'".$_SESSION['UserID']."' AS created_by,
-
-							'".$time."' AS last_update_date,
-
-							'".$_SESSION['UserID']."' AS last_updated_by
-
-					FROM bom_substitutes_all olds,bom_lines_all oldb,bom_lines_all c 
-					WHERE  oldb.assembly_item_no='".$_POST['item_no']."' 
-					and oldb.bom_header_id='".$_POST['bom_header_id']."' 
-					and c.assembly_item_no='".$_POST['item_no2']."'
-					and c.bom_header_id='".$bom_header_id."' 
-					and oldb.operation_seq_num =c.operation_seq_num 
-					and oldb.component_item =c.component_item 
-					and oldb.item_num=c.item_num
-					and oldb.component_item =c.component_item 
-					and oldb.component_sequence_id=olds.component_sequence_id
-					and olds.status='生效'  ";  
-
-                  $result = DB_query($sql,$db);
-
-				 
-
-			
-
- 
-
-			
-
-			DB_Txn_Commit($db);
-            
-			  header("Location: SussCreate.php?OrderNum=".$bom_header_id."&type=BOMCopy");
-			prnMsg('BOM'.$_POST['item_no2'].'复制成功！',success);
-
-
-
-
-		}
-
-	}
-
-
-
- ?>
-
- 
-
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-
-<html xmlns="http://www.w3.org/1999/xhtml">
-
-<head>
-
-<title>BOM复制</title>
-
-<link rel="shortcut icon" href="/JXC/favicon.ico"/>
-
-<link rel="icon" href="/JXC/favicon.ico"/>
-
-<meta http-equiv="Content-Type" content="application/html; charset=utf-8"/>
-
-<link href="/css/xenos/default.css" rel="stylesheet" type="text/css"/>
-
-<script type="text/javascript" src ="/JXC/javascripts/miscfunctions.js"></script>
-
-<script type="text/javascript" src ="/JXC/javascripts/wdatepicker.js"></script>
-
-<script type="text/javascript">var basepath='/JXC/statics/base/images';</script>
-
-<script type="text/javascript" src="/JXC/statics/base/js/metvar.js"></script>
-
-<script type="text/javascript" src="/JXC/statics/base/js/jQuery1.7.2.js"></script>
-
-<script type="text/javascript" src="/JXC/statics/base/js/uploadify/jquery.uploadify.v2.1.4.min.js"></script>
-
-<script type="text/javascript" src="/JXC/statics/base/js/iframes.js"></script>
-
-<script type="text/javascript" src="/JXC/statics/base/js/cookie.js"></script>
-
-<script type="text/javascript" src="/JXC/statics/base/js/jquery.livequery.js"></script>
-
-<script src="/JXC/javascript/jquery-1.7.2.min.js"></script>
-
-<script src="/JXC/javascript/lhgdialog.min.js?self=true&skin=chrome"></script>
-
-<script src="/javascript/bootstrap.min.js"></script>
-
-
-
-<script type="text/javascript">
-
-/*ajax执行*/
-
-var lang = 'cn';
-
-var metimgurl='/JXC/statics/base/images/';
-
-var depth='';
-
-$(document).ready(function(){
-
-	ifreme_methei();
-
-});
-
-</script>
-
-<script type="text/javascript">
-
-function metreturn(url){
-
-	if(url){
-
-		location.href=url;
-
-	}else if($.browser.msie){
-
-		history.go(-1);
-
-	}else{
-
-		history.go(-1);
-
-	}
-
-} 
-
-
-
-function addsave() 
-
-{
-
- 
-
-	var v = $('#idcount').val();
-
-    $("#purchase_table_"+v).css("display","");
-
-	var c = parseInt(v) + 1;
-
-	$('#idcount').val(c);     
-
+$err = '';
+$srcNo = isset($_POST['src_item_no']) ? trim($_POST['src_item_no']) : '';
+$srcVersion = isset($_POST['src_version']) ? trim($_POST['src_version']) : '';
+$dstNo = isset($_POST['dst_item_no']) ? trim($_POST['dst_item_no']) : '';
+$dstVersion = isset($_POST['dst_version']) ? trim($_POST['dst_version']) : '1';
+
+if (isset($_POST['Save'])) {
+    DB_Txn_Begin($db);
+    if ($srcNo == '') { $err = '请填写/选择源 BOM 料号！'; }
+    elseif ($dstNo == '') { $err = '请填写/选择目标料号！'; }
+    elseif ($srcNo == $dstNo) { $err = '源料号与目标料号不能相同！'; }
+    elseif ($dstVersion == '') { $err = '请填写目标版本！'; }
+    if ($err == '') {
+        // 源 BOM 头
+        $srcHdr = latestHeader($db, $srcNo);
+        if (!$srcHdr) { $err = '源料号 ' . htmlspecialchars($srcNo) . ' 没有 BOM 结构，无法复制！'; }
+        else {
+            $mi = DB_query("SELECT item_no FROM sf_item_no WHERE item_no='" . esc($db, $dstNo) . "'", $db);
+            if (!DB_fetch_array($mi)) { $err = '目标料号 ' . htmlspecialchars($dstNo) . ' 不存在，请先创建物料主数据！'; }
+            else {
+                $r = DB_query("SELECT bom_header_id FROM bom_headers_all WHERE assembly_item_no='" . esc($db, $dstNo) . "' AND version='" . esc($db, $dstVersion) . "'", $db);
+                if (DB_fetch_array($r)) { $err = '目标料号已存在同版本 BOM（' . htmlspecialchars($dstNo) . ' / v' . htmlspecialchars($dstVersion) . '），请更换版本号！'; }
+                else {
+                    // 循环引用校验：源 BOM 中不能包含目标料号
+                    $r = DB_query("SELECT 1 FROM bom_lines_all WHERE assembly_item_no='" . esc($db, $srcNo) . "' AND component_item='" . esc($db, $dstNo) . "' AND disable_date=0", $db);
+                    if (DB_fetch_array($r)) { $err = '目标料号已是源 BOM 的子件，复制会形成循环引用！'; }
+                }
+            }
+        }
+    }
+    if ($err == '') {
+        $t = time();
+        $uid = $_SESSION['UserID'];
+        // 1) 目标 BOM 头
+        DB_query("INSERT INTO bom_headers_all(assembly_item_no,version,status,approve_by,approve_date,approve_remark,creation_date,created_by,last_update_date,last_updated_by)
+            VALUES('" . esc($db, $dstNo) . "','" . esc($db, $dstVersion) . "','未审核','" . esc($db, $uid) . "','" . $t . "','BOM复制','" . $t . "','" . esc($db, $uid) . "','" . $t . "','" . esc($db, $uid) . "')", $db);
+        $dstHdrId = latestHeader($db, $dstNo);
+        // 2) 复制 BOM 行（源 → 目标）
+        $r = DB_query("SELECT bom_header_id FROM bom_headers_all WHERE assembly_item_no='" . esc($db, $dstNo) . "' AND version='" . esc($db, $dstVersion) . "'", $db);
+        $row = DB_fetch_array($r);
+        $dstBomHeaderId = $row['bom_header_id'];
+        DB_query("INSERT INTO bom_lines_all(assembly_item_no,bom_header_id,item_num,operation_seq_num,component_item,component_quantity,weizhi,sunhao_rate,component_remarks,effectivity_date,creation_date,created_by,last_update_date,last_updated_by)
+            SELECT '" . esc($db, $dstNo) . "','" . esc($db, $dstBomHeaderId) . "',
+            item_num,operation_seq_num,component_item,component_quantity,weizhi,sunhao_rate,component_remarks,
+            '" . $t . "','" . $t . "','" . esc($db, $uid) . "','" . $t . "','" . esc($db, $uid) . "'
+            FROM bom_lines_all WHERE bom_header_id='" . esc($db, $srcHdr['bom_header_id']) . "' AND disable_date=0", $db);
+        // 3) 复制替代件（按 序号+子件 匹配新行）
+        DB_query("INSERT INTO bom_substitutes_all(component_sequence_id,item_num,substitute_item,substitute_item_quantity,substitute_remarks,creation_date,created_by,last_update_date,last_updated_by)
+            SELECT c.component_sequence_id, olds.item_num, olds.substitute_item, olds.substitute_item_quantity, olds.substitute_remarks,
+            '" . $t . "','" . esc($db, $uid) . "','" . $t . "','" . esc($db, $uid) . "'
+            FROM bom_substitutes_all olds
+            JOIN bom_lines_all oldb ON olds.component_sequence_id = oldb.component_sequence_id
+            JOIN bom_lines_all c ON c.assembly_item_no='" . esc($db, $dstNo) . "' AND c.bom_header_id='" . esc($db, $dstBomHeaderId) . "'
+                AND oldb.item_num = c.item_num AND oldb.operation_seq_num = c.operation_seq_num
+                AND oldb.component_item = c.component_item
+            WHERE oldb.bom_header_id='" . esc($db, $srcHdr['bom_header_id']) . "' AND olds.status='生效'", $db);
+        DB_Txn_Commit($db);
+        prnMsg('BOM ' . htmlspecialchars($dstNo) . '（v' . htmlspecialchars($dstVersion) . '）复制成功！', 'success');
+        $err = '';
+        $srcNo = $dstNo = '';
+        $srcVersion = '';
+        $dstVersion = '1';
+    } else {
+        DB_Txn_Rollback($db);
+        prnMsg($err, 'error');
+    }
 }
 
-
-
- </script>
-
-</head>
-
-<body>
-
- 
-
-<div id="CanvasDiv">
-
-	<div id="BodyDiv">
-
-		<div id="BodyWrapDiv">
-
-			<p class="page_title_text"><img src="<?php echo $RootPath; ?>/css/<?php echo $Theme; ?>//images/transactions.png" title="BOM复制" alt="BOM复制">BOM复制</p>
-
-			<form action="<?php echo htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES, 'UTF-8'); ?>" method ="POST"><input type="hidden" name="time" 
-
-
-
-value="<?=$time?>">
-
-				<div>
-
-				<input type="hidden" name="FormID" value = "<?php echo $_SESSION['FormID']; ?>">
-
-				<table class="selection">
-<div class="text-nav">
-	<div class="text-nav-1">
-	<div>选择模板料号：</div>  
-
-	<input type="text" readonly="readonly" required="required" name="item_no" id="text_slect_item_no" value="<?=$_POST['item_no']?>" size="50" maxlength="100"/>
-
-	<image class="select_img" src="img/search.png" id="btn_slect_item_no1"/></div>
-
-
-	<div class="text-nav-2">
-	<div>模板料号名称：</div>
-
-	<input readonly="readonly" type="text" name="item_name" id="text_slect_item_name" value="<?=$_POST['item_name']?>" size="60" maxlength="100"/></div>
-
-	<div class="text-nav-2 ">
-	<div>模板规格型号：</div>
-
-	<input readonly="readonly" type="text" name="item_desc" id="text_slect_item_desc" value="<?=$_POST['item_desc']?>" size="60" maxlength="150"/></div>
-<div class="text-nav-1 ">
-	<div>模板版本：</div>
-
-	<input readonly="readonly" type="text" name="version_from" id="version" value="<?=$_POST['version_from']?>" size="60" maxlength="150"/></div>
-
-
-	<div class="text-nav-1">
-	<div>选择目标料号：</div>  
-
-	<input type="text" readonly="readonly" required="required" name="item_no2" id="text_slect_item_no2" value="<?=$_POST['item_no2']?>" size="50" maxlength="100"/>
-					   <image class="select_img" src="img/search.png" id="btn_slect_item_no2"/></div>
-
-	<div class="text-nav-2 ">
-	<div>目标料号名称：</div>
-
-	<input readonly="readonly" type="text" name="item_name2" id="text_slect_item_name2" value="<?=$_POST['item_name2']?>" size="60" maxlength="150"/></div>
-
-	<div class="text-nav-2 ">
-	<div>目标规格型号：</div>
-
-	<input readonly="readonly" type="text" name="item_desc2" id="text_slect_item_desc2" value="<?=$_POST['item_desc2']?>" size="60" maxlength="150"/></div>
-   <div class="text-nav-1 "> <div>版本：</div>
-
-	<input  type="text" name="version" id="version" value="<?=$_POST['version']?>" size="10" maxlength="10"/>
-	<input  type="hidden" name="bom_header_id" id="bom_header_id" value="<?=$_POST['bom_header_id']?>" size="10" maxlength="10"/></div>
-
-          </div>
-
-	</table>
-
-	<div class="centre">
-
-		<input type="submit" name="Save" value="复制">
-
-	</div>
-
-					<input type="hidden" name="idcount" id='idcount' value="11"/>
-
-					<input type="hidden" name="JustSelectedACustomer" value="Yes"/>
-
-				</div>
-
-			</form>
-
-		</div>
-
-	</div>
-
-	
-
-	<div id="FooterDiv">
-
-		<div id="FooterWrapDiv">
-
-		 	 
-
-		</div>
-
-	</div>
-
-</div>
-
-<script type="text/javascript">
-
-    $(document).ready(function(){
-
-
-
-        $('.divToilet table tr td a').click(function(){
-
-            $(this).parent('td').toggleClass('highlight');
-
-            if(!($(this).parent('td').hasClass('highlight'))) {
-
-                $(this).next().val('0');
-
-            }else {
-
-                $(this).next().val('1');
-
-            }
-
-        });
-
-      
-
-
-           $('#btn_slect_item_no2').dialog({
-
-            title:'选择目标成半品料号',
-
-            width: '950px',
-
-            height: 470,
-
-            content:'url:BtnSearchNoBomItem2.php?fwValue=&cat=buliao',
-
-            init:function(){
-
-			    this.content.document.getElementById('cat').value = 'buliao';
-
-                this.content.document.getElementById('fwValue').value = '';
-
-            }
-
-        });
-
-         $('#btn_slect_item_no1').dialog({
-
-            title:'选择源成半品料号',
-
-            width: '950px',
-
-            height: 470,
-
-            content:'url:BtnSearchNoBomItem1.php?fwValue=&cat=buliao',
-
-            init:function(){
-
-			    this.content.document.getElementById('cat').value = 'buliao';
-
-                this.content.document.getElementById('fwValue').value = '';
-
-            }
-
-        });
-
-
-
-        //Function to get URL arguments
-
-        function getRequest() {
-
-            var url = location.search; //获取url中"?"符后的字串
-
-            var theRequest = new Object();
-
-            if (url.indexOf("?") != -1) {
-
-                var str = url.substr(1);
-
-                strs = str.split("&");
-
-                for(var i = 0; i < strs.length; i ++) {
-
-                    theRequest[strs[i].split("=")[0]]=(strs[i].split("=")[1]);
-
-                }
-
-            }
-
-            return theRequest;
-
-        }
-
-          
-
- 
-
-    });
-
-</script>
-
-</body>
-
-
-
-</html>
-
-<?
-
+// 物料选择弹窗 URL（复用系统 BtnSearchNoBomItem 选择器）
+echo '<div class="bom-layout" style="padding:16px">';
+echo '<form method="post" action="' . htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES, 'UTF-8') . '">';
+echo '<input type="hidden" name="FormID" value="' . $_SESSION['FormID'] . '">';
+echo '<div class="bom-left-head" style="margin-bottom:10px"><span>BOM复制</span></div>';
+echo '<table class="selection">';
+echo '<tr><td style="width:120px">源 BOM 料号*</td><td>
+    <input type="text" name="src_item_no" id="srcItemNo" value="' . htmlspecialchars($srcNo) . '" size="25" placeholder="输入或选择源 BOM 料号">
+    <button type="button" id="btnPickSrc" style="padding:2px 10px;margin-left:6px">选择</button></td></tr>';
+echo '<tr><td>源版本</td><td><input type="text" name="src_version" id="srcVersion" value="' . htmlspecialchars($srcVersion) . '" size="10" placeholder="留空=最新版本"></td></tr>';
+echo '<tr><td>目标料号*</td><td>
+    <input type="text" name="dst_item_no" id="dstItemNo" value="' . htmlspecialchars($dstNo) . '" size="25" placeholder="输入或选择目标料号">
+    <button type="button" id="btnPickDst" style="padding:2px 10px;margin-left:6px">选择</button></td></tr>';
+echo '<tr><td>目标版本*</td><td><input type="text" name="dst_version" value="' . htmlspecialchars($dstVersion) . '" size="10"></td></tr>';
+echo '<tr><td colspan="2" class="centre"><input type="submit" name="Save" value="复制BOM" style="padding:6px 30px"></td></tr>';
+echo '</table>';
+echo '</form>';
+echo '<div style="margin-top:14px;padding:10px;background:#eef4fb;border:1px solid #cfe0f3;border-radius:4px;font-size:13px;color:#444">';
+echo '说明：将源 BOM 的完整结构（BOM 头、全部子件行、替代件）复制到目标料号下，生成 v' . htmlspecialchars($dstVersion) . ' 的新 BOM。';
+echo '复制后目标 BOM 状态为<b>未审核</b>，可在 BOM 审核中审核。';
+echo '</div>';
+echo '</div>';
+
+echo '<script>
+$(function(){
+    function pickItem(inputId){
+        $.dialog({title:"选择物料", width:760, height:500,
+            content:"url:BtnSearchNoBomItem2.php?fwValue=&cat=buliao&_r=" + Date.now(),
+            init:function(){}, ok:function(){
+                var ifr = this.iframe.contentDocument;
+                var code = ifr ? $(ifr).find("input[name=\'item_no\']").val() || ifr.querySelector(".selected_item_no") : "";
+                if (code) { $("#" + inputId).val(code); }
+                return true;
+            }});
+    }
+    $("#btnPickSrc").on("click", function(){ pickItem("srcItemNo"); });
+    $("#btnPickDst").on("click", function(){ pickItem("dstItemNo"); });
+});
+</script>';
 include('includes/footer.inc');
-
-?>
-
-
-
