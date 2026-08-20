@@ -28,6 +28,72 @@ $autoOpen = isset($_GET['auto_open']) ? intval($_GET['auto_open']) : 0; // 搜�
 $CatFilter = isset($_GET['cat']) ? trim($_GET['cat']) : ''; // 当前选中的分类（点击左侧分类文件夹）
 
 /* ============================================================
+ * 1.5 批量操作处理器（删除 / 归档 / 反归档）
+ * 入参 ?act=batch_delete|archive|unarchive&nos=xxx,yyy&csrf=xxx
+ * 完成后重定向到原页面（保留过滤参数）
+ * ============================================================ */
+$BatchAct = isset($_GET['act']) ? $_GET['act'] : '';
+$BatchNos = isset($_GET['nos']) ? trim($_GET['nos']) : '';
+$BatchCsrf = isset($_GET['csrf']) ? $_GET['csrf'] : '';
+$BatchCsrfExpected = md5(session_id() . $_SESSION['UserID']);
+if (in_array($BatchAct, array('batch_delete','batch_archive','batch_unarchive')) && $BatchNos != '') {
+    if ($BatchCsrf !== $BatchCsrfExpected) {
+        echo '<script>alert("安全校验失败，请刷新页面重试");history.back();</script>';
+        exit;
+    }
+    // 保留过滤参数，移除 act/nos/csrf
+    $backParam = $_GET;
+    unset($backParam['act'], $backParam['nos'], $backParam['csrf']);
+    $backUrl = $RootPath . '/MaterialManage.php' . (empty($backParam) ? '' : '?' . http_build_query($backParam));
+
+    $nosArr = array_values(array_filter(array_map('trim', explode(',', $BatchNos)), function($x){ return preg_match('/^[A-Za-z0-9_.\-]+$/', $x); }));
+    if (count($nosArr) == 0) {
+        echo '<script>alert("无有效料号");window.location="' . htmlspecialchars($backUrl, ENT_QUOTES) . '";</script>';
+        exit;
+    }
+    $nosEscaped = array_map(function($x){ return "'" . DB_escape_string($x) . "'"; }, $nosArr);
+    $nosIn = implode(',', $nosEscaped);
+
+    $messages = array();
+    if ($BatchAct === 'batch_delete') {
+        // 安全校验：该物料是否被任何 BOM 引用（既查作为父头，也查作为子件引用）
+        $sqlRef = "(SELECT DISTINCT assembly_item_no AS no FROM bom_headers_all WHERE assembly_item_no IN ($nosIn))
+                   UNION
+                   (SELECT DISTINCT component AS no FROM bom_lines_all WHERE component IN ($nosIn))";
+        $resRef = DB_query($sqlRef, $db);
+        $refNos = array();
+        while ($r = DB_fetch_array($resRef)) $refNos[] = $r['no'];
+        if (count($refNos) > 0) {
+            $messages[] = '以下物料已被 BOM 引用，未删除：' . implode(', ', $refNos);
+        }
+        $delArr = array_values(array_diff($nosArr, $refNos));
+        if (count($delArr) > 0) {
+            $delEscaped = array_map(function($x){ return "'" . DB_escape_string($x) . "'"; }, $delArr);
+            $delIn = implode(',', $delEscaped);
+            // 级联删除：子件引用 → 替代料 → 工艺路由 → 图档 → BOM 头 → 物料主数据
+            DB_query("DELETE FROM bom_substitutes_all WHERE assembly IN ($delIn) OR component IN (SELECT component FROM bom_lines_all WHERE assembly IN ($delIn))", $db);
+            DB_query("DELETE FROM bom_lines_all WHERE assembly IN ($delIn) OR component IN ($delIn)", $db);
+            DB_query("DELETE FROM bom_headers_all WHERE assembly_item_no IN ($delIn)", $db);
+            DB_query("DELETE FROM bom_routings_all WHERE assembly_item_no IN ($delIn)", $db);
+            DB_query("DELETE FROM sf_item_no_file WHERE item_no IN ($delIn)", $db);
+            DB_query("DELETE FROM sf_item_upload WHERE item_no IN ($delIn)", $db);
+            DB_query("DELETE FROM sf_item_no WHERE item_no IN ($delIn)", $db);
+            $messages[] = '已成功删除 ' . count($delArr) . ' 个物料';
+        }
+    } else {
+        // batch_archive / batch_unarchive
+        $newFlag = ($BatchAct === 'batch_archive') ? 'N' : 'Y'; // 归档=停用(N)，反归档=启用(Y)
+        $opName = ($BatchAct === 'batch_archive') ? '归档' : '反归档';
+        DB_query("UPDATE sf_item_no SET disable_flag='" . $newFlag . "', last_update_date=" . time() . ", last_updated_by='" . DB_escape_string($_SESSION['UserID']) . "' WHERE item_no IN ($nosIn)", $db);
+        $messages[] = '已' . $opName . ' ' . count($nosArr) . ' 个物料';
+    }
+
+    $msgText = implode('；', $messages);
+    echo '<script>alert("' . htmlspecialchars($msgText, ENT_QUOTES) . '");window.location="' . htmlspecialchars($backUrl, ENT_QUOTES) . '";</script>';
+    exit;
+}
+
+/* ============================================================
  * 2. 查当前选中物料 + BOM + 图档
  * ============================================================ */
 $ItemInfo = null;
@@ -101,6 +167,52 @@ if ($ItemInfo) {
 
 $totalItems = 0;
 foreach ($treeGroups as $g) { $totalItems += count($g); }
+
+/* ============================================================
+ * 3.5 列表视图查询（带分页 + 多过滤）
+ * ============================================================ */
+$ListKeyword = isset($_GET['q2']) ? trim($_GET['q2']) : '';
+$ListItemNo = isset($_GET['li_item_no']) ? trim($_GET['li_item_no']) : '';
+$ListItemName = isset($_GET['li_item_name']) ? trim($_GET['li_item_name']) : '';
+$ListItemType = isset($_GET['li_item_type']) ? trim($_GET['li_item_type']) : '';
+$PageSize = isset($_GET['ps']) ? max(5, intval($_GET['ps'])) : 20;
+$PageNo = isset($_GET['pn']) ? max(1, intval($_GET['pn'])) : 1;
+
+// 拼 where
+$listWhere = ' WHERE 1=1';
+if ($CatFilter != '') {
+    $listWhere .= " AND i.item_category1='" . DB_escape_string($CatFilter) . "'";
+}
+if ($ListKeyword != '') {
+    $k = DB_escape_string(str_replace(array('%','_'), array('\\%','\\_'), $ListKeyword));
+    $listWhere .= " AND (i.item_no LIKE '%" . $k . "%' OR i.item_name LIKE '%" . $k . "%' OR i.item_desc LIKE '%" . $k . "%')";
+}
+if ($ListItemNo != '') {
+    $listWhere .= " AND i.item_no LIKE '%" . DB_escape_string($ListItemNo) . "%'";
+}
+if ($ListItemName != '') {
+    $listWhere .= " AND i.item_name LIKE '%" . DB_escape_string($ListItemName) . "%'";
+}
+if ($ListItemType != '') {
+    $listWhere .= " AND i.item_type='" . DB_escape_string($ListItemType) . "'";
+}
+
+$sqlCount = "SELECT COUNT(*) FROM sf_item_no i" . $listWhere;
+$resCount = DB_query($sqlCount, $db);
+$rowCount = DB_fetch_array($resCount);
+$ListTotal = intval($rowCount[0]);
+$ListPageCount = ($ListTotal > 0) ? ceil($ListTotal / $PageSize) : 1;
+if ($PageNo > $ListPageCount) $PageNo = $ListPageCount;
+$ListOffset = ($PageNo - 1) * $PageSize;
+
+$sqlList = "SELECT i.item_id, i.item_no, i.item_name, i.item_desc, i.item_type, i.item_use,
+                   i.units, i.disable_flag, i.item_category1, i.sub_code, i.creation_date,
+                   i.created_by, i.item_remark
+            FROM sf_item_no i" . $listWhere . "
+            ORDER BY i.item_no LIMIT " . $ListOffset . "," . $PageSize;
+$resList = DB_query($sqlList, $db);
+$ListRows = array();
+while ($r = DB_fetch_array($resList)) { $ListRows[] = $r; }
 ?>
 <link href="<?php echo $RootPath; ?>/css/bom_style.css" rel="stylesheet" type="text/css"/>
 <script src="<?php echo $RootPath; ?>/javascript/jquery-1.7.2.min.js"></script>
@@ -225,6 +337,67 @@ foreach ($treeGroups as $g) { $totalItems += count($g); }
 .cat-row:hover td{background:#f1f8ff !important}
 tr.cat-row.item-disabled td{color:#999}
 tr.cat-row.item-disabled .cat-item-link{color:#999;text-decoration:line-through}
+/* ====== 列表视图（顶部查询条 + 三行按钮 + 表格 + 操作列 + 分页） ====== */
+.mm-query-form{display:flex;align-items:center;gap:6px;padding:10px 12px;background:#f5f9fd;border:1px solid #d6e4f0;border-radius:4px;margin-bottom:10px;flex-wrap:wrap}
+.mm-qlabel{font-size:12px;color:#555;white-space:nowrap}
+.mm-qinput{height:28px;padding:3px 8px;border:1px solid #c5d3e0;border-radius:3px;font-size:13px;outline:none;width:130px;background:#fff}
+.mm-qinput-wide{width:180px}
+.mm-qinput:focus,.mm-qselect:focus{border-color:#1976D2;box-shadow:0 0 0 2px rgba(25,118,210,0.15)}
+.mm-qselect{height:28px;padding:3px 6px;border:1px solid #c5d3e0;border-radius:3px;font-size:13px;background:#fff;outline:none}
+.mm-qbtn{height:28px;padding:0 14px;background:#fff;border:1px solid #c5d3e0;color:#555;border-radius:3px;cursor:pointer;font-size:13px;transition:all .15s}
+.mm-qbtn:hover{background:#f0f0f0}
+.mm-qbtn-primary{background:#1976D2;color:#fff;border-color:#1976D2}
+.mm-qbtn-primary:hover{background:#1565C0;border-color:#1565C0}
+.mm-cat-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:#e3f2fd;border:1px solid #90caf9;border-radius:12px;color:#1565C0;font-size:12px;margin-left:6px}
+.mm-cat-chip a{color:#1565C0;text-decoration:none;font-weight:bold;font-size:13px;padding:0 3px}
+.mm-cat-chip a:hover{color:#0d47a1}
+.mm-tool-rows{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
+.mm-tool-row{display:flex;flex-wrap:wrap;gap:6px}
+.mm-tbtn{display:inline-flex;align-items:center;gap:3px;height:28px;padding:0 14px;border:1px solid transparent;border-radius:3px;font-size:13px;cursor:pointer;transition:all .15s;font-family:inherit;white-space:nowrap}
+.mm-tbtn:disabled{cursor:not-allowed;opacity:0.5}
+.mm-tbtn-view{background:#1976D2;color:#fff;border-color:#1976D2}
+.mm-tbtn-view:hover:not(:disabled){background:#1565C0;border-color:#1565C0}
+.mm-tbtn-add{background:#43a047;color:#fff;border-color:#43a047}
+.mm-tbtn-add:hover:not(:disabled){background:#388e3c;border-color:#388e3c}
+.mm-tbtn-edit{background:#FB8C00;color:#fff;border-color:#FB8C00}
+.mm-tbtn-edit:hover:not(:disabled){background:#ef6c00;border-color:#ef6c00}
+.mm-tbtn-del{background:#e53935;color:#fff;border-color:#e53935}
+.mm-tbtn-del:hover:not(:disabled){background:#c62828;border-color:#c62828}
+.mm-tbtn-arc{background:#fff;color:#5e35b1;border-color:#5e35b1}
+.mm-tbtn-arc:hover:not(:disabled){background:#ede7f6}
+.mm-tbtn-unarc{background:#fff;color:#1976D2;border-color:#1976D2}
+.mm-tbtn-unarc:hover:not(:disabled){background:#e3f2fd}
+.mm-tbtn-disabled{background:#fafafa;color:#999;border-color:#e0e0e0}
+.mm-table-wrap{flex:1;overflow:auto;max-height:62vh}
+.mm-cell-center{text-align:center}
+.mm-cell-icon{font-size:16px}
+.mm-cell-time{font-size:11px;color:#666}
+.mm-cell-ops{text-align:center;white-space:nowrap}
+.mm-empty-cell{padding:40px;text-align:center;color:#999;font-size:13px}
+.row-act{display:inline-block;width:24px;height:24px;line-height:24px;text-align:center;border-radius:3px;text-decoration:none;font-size:14px;color:#fff;margin:0 1px;transition:all .15s}
+.row-act-view{background:#1976D2}
+.row-act-view:hover{background:#1565C0}
+.row-act-edit{background:#FB8C00}
+.row-act-edit:hover{background:#ef6c00}
+.row-act-del{background:#e53935}
+.row-act-del:hover{background:#c62828}
+.row-act-arc{background:#5e35b1}
+.row-act-arc:hover{background:#4527a0}
+.row-act-unarc{background:#1976D2}
+.row-act-unarc:hover{background:#1565C0}
+.mm-pagination{display:flex;align-items:center;justify-content:flex-end;gap:6px;padding:10px 4px;font-size:13px;color:#555}
+.mm-page-info{color:#555}
+.mm-page-info b{color:#1976D2;padding:0 3px}
+.mm-page-cur{padding:3px 10px;background:#1976D2;color:#fff;border-radius:3px;font-weight:bold;margin:0 6px}
+.mm-page-btn{display:inline-block;padding:3px 10px;background:#fff;border:1px solid #c5d3e0;border-radius:3px;color:#1976D2;text-decoration:none;transition:all .15s}
+.mm-page-btn:hover{background:#e3f2fd;border-color:#1976D2}
+.mm-page-disabled{background:#fafafa;color:#bbb;cursor:not-allowed;border-color:#e0e0e0}
+.mm-page-disabled:hover{background:#fafafa;border-color:#e0e0e0}
+#mmListTable .cat-item-link{color:#1976D2;text-decoration:none;font-weight:500;cursor:pointer}
+#mmListTable .cat-item-link:hover{text-decoration:underline}
+#mmListTable tr.item-disabled td{color:#999}
+#mmListTable tr.item-disabled .cat-item-link{color:#999;text-decoration:line-through}
+#mmListTable input[type=checkbox]{cursor:pointer;vertical-align:middle}
 </style>
 
 <div class="mm-layout">
@@ -257,10 +430,10 @@ tr.cat-row.item-disabled .cat-item-link{color:#999;text-decoration:line-through}
                 <ul class="bom-tree" id="mmTree">
                     <?php foreach ($treeGroups as $cat => $items) {
                         $isCurrentCat = ($CurrentCat != '' && $CurrentCat == $cat);
-                        $openByDefault = ($SearchFilter != '' || $isCurrentCat);
+                        $openByDefault = ($SearchFilter != '' || $isCurrentCat || $CatFilter == $cat);
                     ?>
-                    <li class="bom-node top-level<?php echo $openByDefault ? '' : ' collapsed'; ?>" data-cat="<?php echo htmlspecialchars($cat); ?>">
-                        <div class="bom-row" onclick="MmOpenCat('<?php echo htmlspecialchars(addslashes($cat)); ?>')">
+                    <li class="bom-node top-level<?php echo $openByDefault ? '' : ' collapsed'; ?><?php echo $CatFilter == $cat ? ' current-cat' : ''; ?>" data-cat="<?php echo htmlspecialchars($cat); ?>">
+                        <div class="bom-row" onclick="MmFilterCat('<?php echo htmlspecialchars(addslashes($cat)); ?>')">
                             <span class="bom-glyphs">
                                 <span class="tree-cell node-cell">
                                     <input type="checkbox">
@@ -306,264 +479,141 @@ tr.cat-row.item-disabled .cat-item-link{color:#999;text-decoration:line-through}
         </div>
     </div>
 
-    <!-- ===================== 右侧主区 ===================== -->
+    <!-- ===================== 右侧主区：统一列表视图（物料↔BOM↔图档↔工艺 4 向互动） ===================== -->
     <div class="mm-right">
-        <?php if ($ItemInfo === null) {
-            if ($CatFilter != '' && isset($treeGroups[$CatFilter])) {
-                // ====== 分类列表视图（点击分类文件夹进入） ======
-                $CategoryItems = $treeGroups[$CatFilter];
-                $TypeMap = array('M' => '原材料', 'B' => '半成品', 'F' => '成品', 'P' => '采购件');
-        ?>
-            <div class="mm-toolbar">
-                <span class="version-tag">📂 分类：<?php echo htmlspecialchars($CatFilter); ?></span>
-                <span class="bom-link" style="color:#666;font-size:12px">共 <b style="color:#1976D2"><?php echo count($CategoryItems); ?></b> 个物料</span>
-                <span style="flex:1"></span>
-                <a class="bom-tool-mini" href="<?php echo $RootPath; ?>/MaterialManage.php">← 返回全部</a>
+        <!-- 顶部查询条 -->
+        <form method="GET" action="<?php echo $RootPath; ?>/MaterialManage.php" class="mm-query-form" id="mmQueryForm">
+            <?php if ($CatFilter != '') { ?>
+                <input type="hidden" name="cat" value="<?php echo htmlspecialchars($CatFilter); ?>">
+            <?php } ?>
+            <span class="mm-qlabel">🔍 模糊搜索</span>
+            <input type="text" name="q2" value="<?php echo htmlspecialchars($ListKeyword); ?>" placeholder="料号 / 名称 / 规格" class="mm-qinput mm-qinput-wide">
+            <span class="mm-qlabel">物料编码</span>
+            <input type="text" name="li_item_no" value="<?php echo htmlspecialchars($ListItemNo); ?>" class="mm-qinput">
+            <span class="mm-qlabel">物料名称</span>
+            <input type="text" name="li_item_name" value="<?php echo htmlspecialchars($ListItemName); ?>" class="mm-qinput">
+            <span class="mm-qlabel">物料类型</span>
+            <select name="li_item_type" class="mm-qselect">
+                <option value="">全部</option>
+                <option value="M" <?php echo $ListItemType=='M'?'selected':''; ?>>原材料</option>
+                <option value="B" <?php echo $ListItemType=='B'?'selected':''; ?>>半成品</option>
+                <option value="F" <?php echo $ListItemType=='F'?'selected':''; ?>>成品</option>
+                <option value="P" <?php echo $ListItemType=='P'?'selected':''; ?>>采购件</option>
+            </select>
+            <button type="submit" class="mm-qbtn mm-qbtn-primary">查询</button>
+            <button type="button" class="mm-qbtn" onclick="MmResetQuery()">↻ 重置</button>
+            <?php if ($CatFilter != '') { ?>
+                <span class="mm-cat-chip">📂 <?php echo htmlspecialchars($CatFilter); ?> <a href="<?php echo $RootPath; ?>/MaterialManage.php" title="清除分类过滤">×</a></span>
+            <?php } ?>
+        </form>
+
+        <!-- 三行工具栏 -->
+        <div class="mm-tool-rows">
+            <div class="mm-tool-row">
+                <button class="mm-tbtn mm-tbtn-view"   type="button" onclick="MmBtnView()">👁 查看</button>
+                <button class="mm-tbtn mm-tbtn-add"   type="button" onclick="MmBtnAdd()">➕ 新增</button>
+                <button class="mm-tbtn mm-tbtn-edit"  type="button" onclick="MmBtnEdit()">✏ 编辑</button>
+                <button class="mm-tbtn mm-tbtn-del"   type="button" onclick="MmBtnDel()">× 删除</button>
+                <button class="mm-tbtn mm-tbtn-arc"   type="button" onclick="MmBtnArchive()">↪ 归档</button>
+                <button class="mm-tbtn mm-tbtn-unarc" type="button" onclick="MmBtnUnarchive()">↩ 反归档</button>
             </div>
-            <div class="mm-catview-search">
-                <input type="text" id="catFilter" placeholder="过滤当前分类下的料号 / 名称 / 规格…（实时筛选）" />
-                <span class="mm-catview-count" id="catFilterCount">显示 0 / 共 0</span>
+            <div class="mm-tool-row">
+                <button class="mm-tbtn mm-tbtn-disabled" disabled title="敬请期待">📋 复制</button>
+                <button class="mm-tbtn mm-tbtn-disabled" disabled title="敬请期待">📥 导入物料</button>
+                <button class="mm-tbtn mm-tbtn-disabled" disabled title="敬请期待">📤 导出物料</button>
+                <button class="mm-tbtn mm-tbtn-disabled" disabled title="敬请期待">📥 导入工价</button>
+                <button class="mm-tbtn mm-tbtn-disabled" disabled title="敬请期待">📤 导出工艺</button>
+                <button class="mm-tbtn mm-tbtn-disabled" disabled title="敬请期待">📥 导入工艺模板</button>
+                <button class="mm-tbtn mm-tbtn-disabled" disabled title="敬请期待">📥 导入物料工艺序</button>
             </div>
-            <div class="mm-catview-table">
-            <table class="mm-table" id="catTable">
-                <thead>
-                <tr>
-                    <th width="40">#</th>
-                    <th width="120">料号</th>
-                    <th>名称</th>
-                    <th>规格型号</th>
-                    <th width="80">类型</th>
-                    <th width="70">用途</th>
-                    <th width="60">单位</th>
-                    <th width="70">状态</th>
-                </tr>
-                </thead>
-                <tbody id="catTableBody">
-                <?php $rowIdx = 1; foreach ($CategoryItems as $it):
-                    $isDisabled = (isset($it['disable_flag']) && $it['disable_flag'] != 'N' && $it['disable_flag'] != 'Y');
-                    $q = strtolower($it['item_no'] . ' ' . $it['item_name'] . ' ' . $it['item_desc']);
-                    $status = ($it['disable_flag'] == 'N' ? '启用' : '停用');
-                    $statusCls = ($it['disable_flag'] == 'N' ? 'mm-status-ok' : 'mm-status-stop');
+            <div class="mm-tool-row">
+                <button class="mm-tbtn mm-tbtn-disabled" disabled title="敬请期待">⚙ 自定义列</button>
+                <button class="mm-tbtn mm-tbtn-disabled" disabled title="敬请期待">✏ 批量修改</button>
+                <button class="mm-tbtn mm-tbtn-disabled" disabled title="敬请期待">📁 转移目录</button>
+                <button class="mm-tbtn mm-tbtn-disabled" disabled title="敬请期待">🔄 同步到ERP</button>
+                <button class="mm-tbtn mm-tbtn-disabled" disabled title="敬请期待">🔄 同步到生产物料</button>
+            </div>
+        </div>
+
+        <!-- 数据表格 -->
+        <div class="mm-table-wrap">
+        <table class="mm-table" id="mmListTable">
+            <thead>
+            <tr>
+                <th width="30"><input type="checkbox" id="mmSelAll"></th>
+                <th width="30">图标</th>
+                <th width="120">物料编码</th>
+                <th>物料名称</th>
+                <th width="70">物料类型</th>
+                <th width="120">备注</th>
+                <th width="80">创建人</th>
+                <th>型号</th>
+                <th width="60">材料</th>
+                <th width="130">创建时间</th>
+                <th width="220">操作</th>
+            </tr>
+            </thead>
+            <tbody>
+            <?php if (count($ListRows) == 0) { ?>
+                <tr><td colspan="11" class="mm-empty-cell">暂无数据，请调整查询条件</td></tr>
+            <?php } else {
+                $TypeMap = array('M'=>'原材料','B'=>'半成品','F'=>'成品','P'=>'采购件');
+                foreach ($ListRows as $it):
+                    $isDisabled = (isset($it['disable_flag']) && $it['disable_flag'] == 'N');
                     $tp = isset($TypeMap[$it['item_type']]) ? $TypeMap[$it['item_type']] : $it['item_type'];
-                    $iu = ($it['item_use'] == 'Y' ? '研发' : '生产');
-                ?>
-                <tr data-q="<?php echo htmlspecialchars($q); ?>" class="cat-row<?php echo $isDisabled ? ' item-disabled' : ''; ?>">
-                    <td style="text-align:center"><?php echo $rowIdx++; ?></td>
-                    <td><a class="cat-item-link" href="<?php echo $RootPath; ?>/MaterialManage.php?item_no=<?php echo urlencode($it['item_no']); ?>" data-itemno="<?php echo htmlspecialchars($it['item_no']); ?>" data-itemname="<?php echo htmlspecialchars(addslashes($it['item_name'])); ?>" data-enabled="<?php echo $isDisabled ? 0 : 1; ?>"><?php echo htmlspecialchars($it['item_no']); ?></a></td>
-                    <td><?php echo htmlspecialchars($it['item_name']); ?></td>
-                    <td><?php echo htmlspecialchars($it['item_desc']); ?></td>
-                    <td style="text-align:center"><?php echo htmlspecialchars($tp); ?></td>
-                    <td style="text-align:center"><?php echo htmlspecialchars($iu); ?></td>
-                    <td style="text-align:center"><?php echo htmlspecialchars($it['units']); ?></td>
-                    <td style="text-align:center"><span class="<?php echo $statusCls; ?>"><?php echo $status; ?></span></td>
-                </tr>
-                <?php endforeach; ?>
-                </tbody>
-            </table>
-            </div>
-            <script>
-            (function(){
-                var inp = document.getElementById('catFilter');
-                var tbody = document.getElementById('catTableBody');
-                var cntSpan = document.getElementById('catFilterCount');
-                var rows = tbody ? tbody.querySelectorAll('tr.cat-row') : [];
-                var total = rows.length;
-                cntSpan.textContent = '显示 ' + total + ' / 共 ' + total;
-                inp.value = '';
-                inp.addEventListener('input', function(){
-                    var q = this.value.trim().toLowerCase();
-                    var show = 0;
-                    for (var i = 0; i < rows.length; i++) {
-                        var dq = rows[i].getAttribute('data-q') || '';
-                        var match = (q === '' || dq.indexOf(q) !== -1);
-                        rows[i].style.display = match ? '' : 'none';
-                        if (match) show++;
-                    }
-                    cntSpan.textContent = '显示 ' + show + ' / 共 ' + total;
-                });
-                // 行点击进入详情；右键弹菜单（复用 MmShowContext）
-                if (tbody) {
-                    tbody.addEventListener('click', function(e){
-                        var a = e.target.closest('a.cat-item-link');
-                        if (a) return; // 链接自带跳转
-                    });
-                    tbody.addEventListener('contextmenu', function(e){
-                        var tr = e.target.closest('tr.cat-row');
-                        if (!tr) return;
-                        var a = tr.querySelector('a.cat-item-link');
-                        if (!a) return;
-                        var itemNo = a.getAttribute('data-itemno');
-                        var itemName = a.getAttribute('data-itemname');
-                        var enabled = a.getAttribute('data-enabled') == '1' ? 1 : 0;
-                        MmShowContext(e, itemNo, itemName, enabled);
-                    });
-                }
-            })();
-            </script>
-        <?php } else { ?>
-            <div style="padding:80px 20px;text-align:center;color:#888;">
-                <p style="font-size:18px;margin:0 0 12px 0;color:#1976D2;">📦 请从左侧选择物料或分类以查看详情</p>
-                <p style="font-size:13px;color:#aaa;margin:0;">左侧树按物料分类（item_category1）聚合</p>
-                <p style="font-size:12px;color:#bbb;margin:8px 0 0 0;">• 点击物料 → 查看该物料的详情 / BOM / 图档<br>• 点击分类文件夹 → 查看该分类下所有物料<br>• 右键点击物料 → 弹出新建/维护/修改/上传菜单</p>
-            </div>
-        <?php }
-        } else {
-            $DisableFlag = isset($ItemInfo['disable_flag']) ? $ItemInfo['disable_flag'] : '';
-            $IsActive = ($DisableFlag == 'N'); // N=启用（顺帆约定：非N=启用，N=停用）— 此处保留原状仅展示
-            $Status = ($DisableFlag == 'N' ? '启用' : '停用');
-            $StatusClass = ($DisableFlag == 'N' ? 'mm-status-ok' : 'mm-status-stop');
-            $ItemType = isset($ItemInfo['item_type']) ? $ItemInfo['item_type'] : '';
-            $ItemTypeName = array('M' => '原材料', 'B' => '半成品', 'F' => '成品', 'P' => '采购件');
-            $TypeDisp = isset($ItemTypeName[$ItemType]) ? $ItemTypeName[$ItemType] : $ItemType;
-            $ItemUse = isset($ItemInfo['item_use']) ? $ItemInfo['item_use'] : '';
-            $ItemUseName = ($ItemUse == 'Y' ? '研发' : '生产');
-            $ActiveTab = isset($_GET['tab']) ? intval($_GET['tab']) : 1;
-            if ($ActiveTab < 1 || $ActiveTab > 3) $ActiveTab = 1;
+                    $createTime = !empty($it['creation_date']) ? date('Y-m-d H:i', $it['creation_date']) : '—';
+            ?>
+            <tr data-itemno="<?php echo htmlspecialchars($it['item_no']); ?>" data-itemname="<?php echo htmlspecialchars($it['item_name']); ?>" data-disabled="<?php echo $isDisabled ? 1 : 0; ?>" class="<?php echo $isDisabled ? 'item-disabled' : ''; ?>">
+                <td><input type="checkbox" class="mm-row-cb" value="<?php echo htmlspecialchars($it['item_no']); ?>"></td>
+                <td class="mm-cell-center mm-cell-icon">📦</td>
+                <td><a class="cat-item-link" href="javascript:void(0)" onclick="MmOpenView('<?php echo htmlspecialchars(addslashes($it['item_no'])); ?>')"><?php echo htmlspecialchars($it['item_no']); ?></a></td>
+                <td><?php echo htmlspecialchars($it['item_name']); ?></td>
+                <td class="mm-cell-center"><?php echo htmlspecialchars($tp); ?></td>
+                <td><?php echo htmlspecialchars($it['item_remark']); ?></td>
+                <td class="mm-cell-center"><?php echo htmlspecialchars($it['created_by']); ?></td>
+                <td><?php echo htmlspecialchars($it['item_desc']); ?></td>
+                <td class="mm-cell-center">—</td>
+                <td class="mm-cell-center mm-cell-time"><?php echo $createTime; ?></td>
+                <td class="mm-cell-ops">
+                    <a class="row-act row-act-view"   href="javascript:void(0)" onclick="MmOpenView('<?php echo htmlspecialchars(addslashes($it['item_no'])); ?>')" title="查看">👁</a>
+                    <a class="row-act row-act-edit"  href="javascript:void(0)" onclick="MmRowEdit('<?php echo htmlspecialchars(addslashes($it['item_no'])); ?>')" title="编辑">✏</a>
+                    <a class="row-act row-act-del"   href="javascript:void(0)" onclick="MmRowDel('<?php echo htmlspecialchars(addslashes($it['item_no'])); ?>')" title="删除">×</a>
+                    <?php if ($isDisabled) { ?>
+                        <a class="row-act row-act-unarc" href="javascript:void(0)" onclick="MmRowUnarchive('<?php echo htmlspecialchars(addslashes($it['item_no'])); ?>')" title="反归档">↩</a>
+                    <?php } else { ?>
+                        <a class="row-act row-act-arc"   href="javascript:void(0)" onclick="MmRowArchive('<?php echo htmlspecialchars(addslashes($it['item_no'])); ?>')" title="归档">↪</a>
+                    <?php } ?>
+                </td>
+            </tr>
+            <?php endforeach; } ?>
+            </tbody>
+        </table>
+        </div>
+
+        <!-- 分页 -->
+        <?php
+        $pageParamBase = $_GET;
+        unset($pageParamBase['pn']);
+        $pageUrlBase = $RootPath . '/MaterialManage.php?' . http_build_query($pageParamBase) . '&pn=';
         ?>
-            <!-- 工具栏：DocFileCenter 风格白底彩边小方块按钮 -->
-            <div class="mm-toolbar">
-                <button class="mm-tool-btn mm-tool-btn-blue" type="button" onclick="MmOpenEditDialog('<?php echo htmlspecialchars(addslashes($ItemNo)); ?>')">✏ 修改物料</button>
-                <button class="mm-tool-btn mm-tool-btn-green" type="button" onclick="window.open('<?php echo $RootPath; ?>/SegmentUpload.php?embed=1', '_blank')">⇧ 整批上传</button>
-                <span class="mm-toolbar-stat">当前物料：<b><?php echo htmlspecialchars($ItemInfo['item_no']); ?></b> / <?php echo htmlspecialchars($ItemInfo['item_name']); ?></span>
-            </div>
-
-            <!-- Tab 切换：基本信息 / BOM / 图档 -->
-            <div class="mm-tabs">
-                <div class="mm-tab<?php echo $ActiveTab == 1 ? ' active' : ''; ?>" onclick="MmSwitchTab(1)">📋 基本信息</div>
-                <div class="mm-tab<?php echo $ActiveTab == 2 ? ' active' : ''; ?>" onclick="MmSwitchTab(2)">📐 BOM 结构 <span class="ct">（<?php echo count($itemBoms); ?>）</span></div>
-                <div class="mm-tab<?php echo $ActiveTab == 3 ? ' active' : ''; ?>" onclick="MmSwitchTab(3)">📎 图档 <span class="ct">（<?php echo count($itemFiles); ?>）</span></div>
-                <?php if ($ActiveTab == 1) { ?>
-                <div class="mm-tabs-extra">
-                    <button class="mm-col-btn" type="button" onclick="MmToggleColMenu(event)">⚙ 字段</button>
-                    <div class="mm-col-menu" id="mmColMenu">
-                        <div class="mm-col-menu-head">显示字段（勾选显示）</div>
-                        <label class="mm-col-opt"><input class="mm-col-cb" type="checkbox" checked data-col="item_no"> 料号编码</label>
-                        <label class="mm-col-opt"><input class="mm-col-cb" type="checkbox" checked data-col="item_name"> 料号名称</label>
-                        <label class="mm-col-opt"><input class="mm-col-cb" type="checkbox" checked data-col="item_id"> 内部ID</label>
-                        <label class="mm-col-opt"><input class="mm-col-cb" type="checkbox" checked data-col="item_desc"> 规格型号</label>
-                        <label class="mm-col-opt"><input class="mm-col-cb" type="checkbox" checked data-col="item_category1"> 物料分类</label>
-                        <label class="mm-col-opt"><input class="mm-col-cb" type="checkbox" checked data-col="item_type"> 物料类型</label>
-                        <label class="mm-col-opt"><input class="mm-col-cb" type="checkbox" checked data-col="status"> 状态</label>
-                        <label class="mm-col-opt"><input class="mm-col-cb" type="checkbox" checked data-col="item_use"> 用途</label>
-                        <label class="mm-col-opt"><input class="mm-col-cb" type="checkbox" checked data-col="units"> 单位</label>
-                        <label class="mm-col-opt"><input class="mm-col-cb" type="checkbox" checked data-col="safe_qty"> 安全库存</label>
-                        <label class="mm-col-opt"><input class="mm-col-cb" type="checkbox" checked data-col="unit_price"> 单价</label>
-                        <label class="mm-col-opt"><input class="mm-col-cb" type="checkbox" checked data-col="sub_code"> 仓库</label>
-                        <label class="mm-col-opt"><input class="mm-col-cb" type="checkbox" checked data-col="sub_locator"> 库位</label>
-                        <label class="mm-col-opt"><input class="mm-col-cb" type="checkbox" checked data-col="created_by"> 创建人</label>
-                        <label class="mm-col-opt"><input class="mm-col-cb" type="checkbox" checked data-col="last_updated_by"> 最后更新</label>
-                        <label class="mm-col-opt"><input class="mm-col-cb" type="checkbox" checked data-col="creation_date"> 创建时间</label>
-                        <label class="mm-col-opt"><input class="mm-col-cb" type="checkbox" checked data-col="last_update_date"> 最后更新时间</label>
-                        <div class="mm-col-menu-foot">
-                            <a href="javascript:void(0)" onclick="MmColAll(true)">全选</a>
-                            <a href="javascript:void(0)" onclick="MmColAll(false)">全不选</a>
-                            <a href="javascript:void(0)" onclick="MmColReset()">重置</a>
-                        </div>
-                    </div>
-                </div>
-                <?php } ?>
-            </div>
-
-            <!-- Tab 1: 基本信息（全部字段单排横排，仿 BOMSetup 表头一行/值一行） -->
-            <div class="mm-tabs-panel<?php echo $ActiveTab == 1 ? ' active' : ''; ?>" data-tab="1">
-                <div class="mm-table-scroll">
-                <table class="mm-table mm-table-row">
-                    <tr>
-                        <th data-col="item_no">料号编码</th>
-                        <th data-col="item_name">料号名称</th>
-                        <th data-col="item_id">内部ID</th>
-                        <th data-col="item_desc">规格型号</th>
-                        <th data-col="item_category1">物料分类</th>
-                        <th data-col="item_type">物料类型</th>
-                        <th data-col="status">状态</th>
-                        <th data-col="item_use">用途</th>
-                        <th data-col="units">单位</th>
-                        <th data-col="safe_qty">安全库存</th>
-                        <th data-col="unit_price">单价</th>
-                        <th data-col="sub_code">仓库</th>
-                        <th data-col="sub_locator">库位</th>
-                        <th data-col="created_by">创建人</th>
-                        <th data-col="last_updated_by">最后更新</th>
-                        <th data-col="creation_date">创建时间</th>
-                        <th data-col="last_update_date">最后更新时间</th>
-                    </tr>
-                    <tr>
-                        <td data-col="item_no"><b><?php echo htmlspecialchars($ItemInfo['item_no']); ?></b></td>
-                        <td data-col="item_name"><?php echo htmlspecialchars($ItemInfo['item_name']); ?></td>
-                        <td data-col="item_id"><?php echo $ItemInfo['item_id']; ?></td>
-                        <td data-col="item_desc"><?php echo htmlspecialchars($ItemInfo['item_desc']); ?></td>
-                        <td data-col="item_category1"><?php echo htmlspecialchars($ItemInfo['item_category1']); ?></td>
-                        <td data-col="item_type"><?php echo htmlspecialchars($TypeDisp); ?>（<?php echo $ItemType; ?>）</td>
-                        <td data-col="status"><span class="<?php echo $StatusClass; ?>"><?php echo $Status; ?></span></td>
-                        <td data-col="item_use"><?php echo htmlspecialchars($ItemUseName); ?>（<?php echo $ItemUse; ?>）</td>
-                        <td data-col="units"><?php echo htmlspecialchars($ItemInfo['units']); ?></td>
-                        <td data-col="safe_qty"><?php echo htmlspecialchars($ItemInfo['safe_qty']); ?></td>
-                        <td data-col="unit_price">¥<?php echo number_format(floatval($ItemInfo['unit_price']), 2); ?></td>
-                        <td data-col="sub_code"><?php echo htmlspecialchars($ItemInfo['sub_code']); ?></td>
-                        <td data-col="sub_locator"><?php echo htmlspecialchars($ItemInfo['sub_locator']); ?></td>
-                        <td data-col="created_by"><?php echo htmlspecialchars($ItemInfo['created_by']); ?></td>
-                        <td data-col="last_updated_by"><?php echo htmlspecialchars($ItemInfo['last_updated_by']); ?></td>
-                        <td data-col="creation_date"><?php echo !empty($ItemInfo['creation_date']) ? date('Y-m-d H:i:s', $ItemInfo['creation_date']) : '—'; ?></td>
-                        <td data-col="last_update_date"><?php echo !empty($ItemInfo['last_update_date']) ? date('Y-m-d H:i:s', $ItemInfo['last_update_date']) : '—'; ?></td>
-                    </tr>
-                </table>
-                </div>
-            </div>
-
-            <!-- Tab 2: BOM 结构 -->
-            <div class="mm-tabs-panel<?php echo $ActiveTab == 2 ? ' active' : ''; ?>" data-tab="2">
-                <?php if (count($itemBoms) == 0) { ?>
-                    <div class="mm-empty">该物料暂无 BOM 头（如需建 BOM，请前往 BOM 管理）</div>
-                <?php } else { ?>
-                <table class="mm-table">
-                    <tr>
-                        <th width="80">版本</th>
-                        <th width="100">状态</th>
-                        <th width="100">是否当前</th>
-                        <th width="160">创建时间</th>
-                        <th>操作</th>
-                    </tr>
-                    <?php foreach ($itemBoms as $bh): ?>
-                    <tr>
-                        <td>v<?php echo $bh['version']; ?></td>
-                        <td><?php echo htmlspecialchars($bh['status']); ?></td>
-                        <td><?php echo ($bh['is_current'] ? '✓ 当前' : '—'); ?></td>
-                        <td><?php echo $bh['creation_date'] ? date('Y-m-d H:i:s', $bh['creation_date']) : '—'; ?></td>
-                        <td><a class="bom-link" href="<?php echo $RootPath; ?>/BOMSetup.php?item_no=<?php echo urlencode($ItemNo); ?>" target="_blank">查看/编辑 BOM →</a></td>
-                    </tr>
-                    <?php endforeach; ?>
-                </table>
-                <?php } ?>
-            </div>
-
-            <!-- Tab 3: 图档 -->
-            <div class="mm-tabs-panel<?php echo $ActiveTab == 3 ? ' active' : ''; ?>" data-tab="3">
-                <?php if (count($itemFiles) == 0) { ?>
-                    <div class="mm-empty">该物料暂无图档（如需上传，请前往图文档中心）</div>
-                <?php } else { ?>
-                <table class="mm-table">
-                    <tr>
-                        <th width="40">#</th>
-                        <th>文件名称</th>
-                        <th width="100">上传人</th>
-                        <th width="160">上传时间</th>
-                    </tr>
-                    <?php $i = 1; foreach ($itemFiles as $f): ?>
-                    <tr>
-                        <td><?php echo $i++; ?></td>
-                        <td style="text-align:left"><?php echo htmlspecialchars($f['file_name']); ?> <span style="color:#888;font-size:11px">（<?php echo basename($f['file_patch']); ?>）</span></td>
-                        <td><?php echo htmlspecialchars($f['created_by']); ?></td>
-                        <td><?php echo date('Y-m-d H:i:s', $f['creation_date']); ?></td>
-                    </tr>
-                    <?php endforeach; ?>
-                </table>
-                <?php } ?>
-            </div>
-        <?php } ?>
+        <div class="mm-pagination">
+            <span class="mm-page-info">共 <b><?php echo $ListTotal; ?></b> 条 / 每页
+                <select onchange="MmChangePageSize(this.value)">
+                    <option value="20" <?php echo $PageSize==20?'selected':''; ?>>20</option>
+                    <option value="50" <?php echo $PageSize==50?'selected':''; ?>>50</option>
+                    <option value="100" <?php echo $PageSize==100?'selected':''; ?>>100</option>
+                </select>
+                条</span>
+            <a class="mm-page-btn<?php echo $PageNo<=1?' mm-page-disabled':''; ?>" href="<?php echo $PageNo<=1?'#':htmlspecialchars($pageUrlBase.'1'); ?>">首页</a>
+            <a class="mm-page-btn<?php echo $PageNo<=1?' mm-page-disabled':''; ?>" href="<?php echo $PageNo<=1?'#':htmlspecialchars($pageUrlBase.($PageNo-1)); ?>">上一页</a>
+            <span class="mm-page-cur">第 <?php echo $PageNo; ?> / <?php echo $ListPageCount; ?> 页</span>
+            <a class="mm-page-btn<?php echo $PageNo>=$ListPageCount?' mm-page-disabled':''; ?>" href="<?php echo $PageNo>=$ListPageCount?'#':htmlspecialchars($pageUrlBase.($PageNo+1)); ?>">下一页</a>
+            <a class="mm-page-btn<?php echo $PageNo>=$ListPageCount?' mm-page-disabled':''; ?>" href="<?php echo $PageNo>=$ListPageCount?'#':htmlspecialchars($pageUrlBase.$ListPageCount); ?>">末页</a>
+        </div>
     </div>
 </div>
 
-<!-- ===================== 右键菜单 ===================== -->
+
 <div id="ctxMenu">
     <div data-act="add">➕ 新增料号</div>
     <div data-act="edit">✏ 料号修改</div>
@@ -576,6 +626,7 @@ tr.cat-row.item-disabled .cat-item-link{color:#999;text-decoration:line-through}
 <script type="text/javascript">
 var MM_ROOT = '<?php echo $RootPath; ?>';
 var MM_CUR_ITEM = '<?php echo htmlspecialchars(addslashes($ItemNo), ENT_QUOTES); ?>';
+var MM_CSRF = '<?php echo md5(session_id() . $_SESSION['UserID']); ?>';
 
 /* 切换分类展开/折叠 */
 function MmToggleCat(row) {
@@ -595,9 +646,15 @@ function MmToggleCat(row) {
     }
 }
 
-/* 点击分类文件夹行 → 进入分类视图（右侧展示该分类下所有物料） */
-function MmOpenCat(cat) {
-    window.location.href = MM_ROOT + '/MaterialManage.php?cat=' + encodeURIComponent(cat);
+/* 点击分类文件夹行 → 切换该分类作为列表过滤条件（再次点击取消过滤） */
+function MmFilterCat(cat) {
+    var cur = '';
+    try { cur = decodeURIComponent((new URLSearchParams(window.location.search)).get('cat') || ''); } catch(e) {}
+    if (cur === cat) {
+        window.location.href = MM_ROOT + '/MaterialManage.php';
+    } else {
+        window.location.href = MM_ROOT + '/MaterialManage.php?cat=' + encodeURIComponent(cat);
+    }
 }
 
 /* 全部展开/折叠 */
@@ -790,6 +847,148 @@ document.addEventListener('click', function(e) {
         menu.classList.remove('show');
     }
 });
+
+/* ============================================================
+ * 列表视图：6 个按钮 + 行操作 + 全选 + 分页 + 弹窗
+ * ============================================================ */
+
+/* 取所有勾选的行（返回 [{item_no, item_name, disabled}, ...]） */
+function MmGetSelectedRows() {
+    var rows = [];
+    var cbs = document.querySelectorAll('#mmListTable .mm-row-cb:checked');
+    for (var i = 0; i < cbs.length; i++) {
+        var tr = cbs[i].closest('tr');
+        rows.push({
+            item_no: cbs[i].value,
+            item_name: tr ? (tr.getAttribute('data-itemname') || '') : '',
+            disabled: tr ? (tr.getAttribute('data-disabled') == '1') : false
+        });
+    }
+    return rows;
+}
+
+/* 把当前选中的 item_no 列表拼成 URL 参数 */
+function MmJoinItemNos(rows) {
+    var arr = [];
+    for (var i = 0; i < rows.length; i++) arr.push(rows[i].item_no);
+    return arr.join(',');
+}
+
+/* 全选/反选 */
+document.addEventListener('change', function(e) {
+    if (e.target && e.target.id === 'mmSelAll') {
+        var checked = e.target.checked;
+        var cbs = document.querySelectorAll('#mmListTable .mm-row-cb');
+        for (var i = 0; i < cbs.length; i++) cbs[i].checked = checked;
+    }
+});
+
+/* 重置查询条件 */
+function MmResetQuery() {
+    var cat = '';
+    try { cat = decodeURIComponent((new URLSearchParams(window.location.search)).get('cat') || ''); } catch(e) {}
+    window.location.href = MM_ROOT + '/MaterialManage.php' + (cat ? '?cat=' + encodeURIComponent(cat) : '');
+}
+
+/* 修改每页条数 */
+function MmChangePageSize(ps) {
+    var url = new URL(window.location.href);
+    url.searchParams.set('ps', ps);
+    url.searchParams.delete('pn');
+    window.location.href = url.toString();
+}
+
+/* ====== 6 个第一行按钮 ====== */
+
+/* 查看：选中若干行则打开第一个；提示选择 */
+function MmBtnView() {
+    var rows = MmGetSelectedRows();
+    if (rows.length === 0) { alert('请先勾选要查看的物料（操作列左侧复选框）'); return; }
+    MmOpenView(rows[0].item_no);
+}
+
+/* 新增 */
+function MmBtnAdd() {
+    $.dialog({
+        title: '料号建立',
+        width: 920, height: 640,
+        content: 'url:' + MM_ROOT + '/AddItemNo.php?embed=1',
+        lock: true, max: false, min: false, resize: false, drag: false,
+        close: function() { window.location.reload(); }
+    });
+}
+
+/* 编辑：选中若干行则编辑第一个 */
+function MmBtnEdit() {
+    var rows = MmGetSelectedRows();
+    if (rows.length === 0) { alert('请先勾选要编辑的物料'); return; }
+    if (rows.length > 1) { alert('一次只能编辑一个物料，已选中 ' + rows.length + ' 个，请只勾选 1 个'); return; }
+    MmRowEdit(rows[0].item_no);
+}
+
+/* 删除（批量） */
+function MmBtnDel() {
+    var rows = MmGetSelectedRows();
+    if (rows.length === 0) { alert('请先勾选要删除的物料'); return; }
+    if (!confirm('确定要删除选中的 ' + rows.length + ' 个物料吗？\n\n注意：被 BOM 引用的物料不允许删除（安全校验会自动跳过）。')) return;
+    var nos = MmJoinItemNos(rows);
+    window.location.href = MM_ROOT + '/MaterialManage.php?act=batch_delete&nos=' + encodeURIComponent(nos) + '&csrf=' + encodeURIComponent(MM_CSRF);
+}
+
+/* 归档（批量） */
+function MmBtnArchive() {
+    var rows = MmGetSelectedRows();
+    if (rows.length === 0) { alert('请先勾选要归档的物料'); return; }
+    if (!confirm('确定要将选中的 ' + rows.length + ' 个物料「归档」（停用）吗？')) return;
+    var nos = MmJoinItemNos(rows);
+    window.location.href = MM_ROOT + '/MaterialManage.php?act=batch_archive&nos=' + encodeURIComponent(nos) + '&csrf=' + encodeURIComponent(MM_CSRF);
+}
+
+/* 反归档（批量） */
+function MmBtnUnarchive() {
+    var rows = MmGetSelectedRows();
+    if (rows.length === 0) { alert('请先勾选要反归档的物料'); return; }
+    if (!confirm('确定要将选中的 ' + rows.length + ' 个物料「反归档」（恢复启用）吗？')) return;
+    var nos = MmJoinItemNos(rows);
+    window.location.href = MM_ROOT + '/MaterialManage.php?act=batch_unarchive&nos=' + encodeURIComponent(nos) + '&csrf=' + encodeURIComponent(MM_CSRF);
+}
+
+/* ====== 行操作（操作列图标） ====== */
+
+function MmOpenView(itemNo) {
+    $.dialog({
+        title: '物料详情：' + itemNo,
+        width: 1080, height: 720,
+        content: 'url:' + MM_ROOT + '/MaterialDetail.php?item_no=' + encodeURIComponent(itemNo) + '&embed=1',
+        lock: true, max: false, min: false, resize: false, drag: false,
+        close: function() { window.location.reload(); }
+    });
+}
+
+function MmRowEdit(itemNo) {
+    $.dialog({
+        title: '料号修改：' + itemNo,
+        width: 920, height: 640,
+        content: 'url:' + MM_ROOT + '/UpdateItemNo.php?ItemID=' + encodeURIComponent(itemNo) + '&embed=1',
+        lock: true, max: false, min: false, resize: false, drag: false,
+        close: function() { window.location.reload(); }
+    });
+}
+
+function MmRowDel(itemNo) {
+    if (!confirm('确定要删除物料 "' + itemNo + '" 吗？\n\n注意：被 BOM 引用的物料不允许删除。')) return;
+    window.location.href = MM_ROOT + '/MaterialManage.php?act=batch_delete&nos=' + encodeURIComponent(itemNo) + '&csrf=' + encodeURIComponent(MM_CSRF);
+}
+
+function MmRowArchive(itemNo) {
+    if (!confirm('确定要归档物料 "' + itemNo + '" 吗？')) return;
+    window.location.href = MM_ROOT + '/MaterialManage.php?act=batch_archive&nos=' + encodeURIComponent(itemNo) + '&csrf=' + encodeURIComponent(MM_CSRF);
+}
+
+function MmRowUnarchive(itemNo) {
+    if (!confirm('确定要反归档物料 "' + itemNo + '" 吗？')) return;
+    window.location.href = MM_ROOT + '/MaterialManage.php?act=batch_unarchive&nos=' + encodeURIComponent(itemNo) + '&csrf=' + encodeURIComponent(MM_CSRF);
+}
 </script>
 
 <?php include('includes/footer.inc'); ?>
