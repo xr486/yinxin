@@ -1,0 +1,116 @@
+<?php
+//  首先引入XLSXWriter包
+
+putenv("NLS_LANG=AMERICAN_AMERICA.AL32UTF8");
+ob_start();
+include('includes/session2.inc');
+include('includes/SQL_CommonFunctions.inc');
+unset($result);
+ 
+if (isset($_GET['customer_name'])) {
+    $customer_name = $_GET['customer_name'];
+} else if (isset($_POST['customer_name'])) {
+    $customer_name = $_POST['customer_name'];
+}
+if (isset($_GET['customer_code'])) {
+    $customer_code = $_GET['customer_code'];
+} else if (isset($_POST['customer_code'])) {
+    $customer_code = $_POST['customer_code'];
+}
+if (isset($_GET['delivery_num'])) {
+    $delivery_num = $_GET['delivery_num'];
+} else if (isset($_POST['delivery_num'])) {
+    $delivery_num = $_POST['delivery_num'];
+}
+if (isset($_GET['FromDate'])) {
+    $FromDate = $_GET['FromDate'];
+} else if (isset($_POST['FromDate'])) {
+    $FromDate = $_POST['FromDate'];
+}
+if (isset($_GET['ToDate'])) {
+    $ToDate = $_GET['ToDate'];
+} else if (isset($_POST['ToDate'])) {
+    $ToDate = $_POST['ToDate'];
+}
+
+$sql ="SELECT  c.customer_code,
+	c.customer_name,
+	a.delivery_num, 
+	a.tracking_number,
+	a.trackingcompany,
+	a.creation_date,
+	a.narrative,
+	a.created_by,a.delivery_date
+FROM so_delivery_headers_all a,customers c
+WHERE a.customer_code = c.customer_code and a.status <> '拒绝'  " ;
+
+
+    if(isset($customer_name) and $customer_name != ''){
+        $sql = $sql." and c.customer_name ".LIKE." '%".$customer_name."%' ";
+    }
+    if(isset($customer_code) and $customer_code != ''){
+        $sql = $sql." and a.customer_code ".LIKE." '%".$customer_code."%' ";
+    }
+    if(isset($delivery_num) and $delivery_num != ''){
+        $sql = $sql." and a.delivery_num ".LIKE." '%".$delivery_num."%' ";
+    }
+	if(isset($FromDate) and $FromDate != ''){
+        $sql = $sql." and a.delivery_date >=".strtotime($FromDate)." ";
+    }
+    if(isset($ToDate) and $ToDate != ''){
+        $sql = $sql." and a.delivery_date <=".strtotime($ToDate)." ";
+    }
+    $sql = $sql." order by a.delivery_num ,a.creation_date desc";
+
+    $result_num = DB_query($sql,$db);
+//oci_execute($par);
+include_once("xlsxwriter.class.php");
+$date=date('YmdHis');
+//ini_set('display_errors', 0);
+//ini_set('log_errors', 1);
+error_reporting(E_ALL & ~E_NOTICE);
+
+$filename = "出货单".$date.".xlsx";
+header('Content-disposition: attachment; filename="'.XLSXWriter::sanitize_filename($filename).'"');
+header("Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+header('Content-Transfer-Encoding: binary');
+header('Cache-Control: must-revalidate');
+header('Pragma: public');
+$rows2 = array( 
+  array('出货单明细'),
+);
+
+$rows = array( 
+  array('客户代码','客户名称','出货单号码','出货日期','出货人','建单日期'),
+); 
+ 
+$writer = new XLSXWriter();
+$writer->setAuthor('Shunfansoft'); 
+
+//$writer->writeSheetHeader('Sheet1', $header);
+ foreach($rows2 as $row2)
+	$writer->writeSheetRow('Sheet1', $row2);
+foreach($rows as $row)
+	$writer->writeSheetRow('Sheet1', $row);
+
+	while ($v = DB_fetch_array($result_num)) {
+
+		 /* if ($v['status'] == 'INPROCESS') {
+                $v_status = '待签核';
+            } elseif ($v['status'] == 'APPROVED') {
+                $v_status = '已签核';
+            } elseif ($v['status'] == 'REJECTED') {
+                $v_status = '已拒签';
+            } else {
+                $v_status = '已取消';
+            } */
+
+     $writer->writeSheetRow('Sheet1', array($v['customer_code'],$v['customer_name'],$v['delivery_num'],
+        date('Y-m-d', $v['delivery_date']),$v['created_by'],date('Y-m-d h:i:s', $v['creation_date'])));
+	 }
+    
+$writer->writeToStdOut();
+//$writer->writeToFile('example.xlsx');
+//echo $writer->writeToString();
+exit(0);
+?>

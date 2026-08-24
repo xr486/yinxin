@@ -1,0 +1,604 @@
+<?php
+
+ob_start();
+/* $Id: customers.php 6338 2013-09-28 05:10:46Z daintree $ */
+
+include('includes/session.inc');
+
+$Title = _('新客户建立');
+/* webERP manual links before header.inc */
+$ViewTopic = '新客户建立';
+$BookMark = '新客户建立';
+include('includes/header.inc');
+include('includes/SQL_CommonFunctions.inc');
+include('includes/CountriesArray.php');
+require_once 'upload.class.php';
+echo '<p class="page_title_text">
+		<img src="' . $RootPath . '/css/' . $Theme . '/images/customer.png" title="' . _('新客户建立') .
+    '" alt="" />' . ' ' . _('新客户建立') . '
+	</p>';
+
+
+if (isset($Errors)) {
+    unset($Errors);
+}
+$Errors = array();
+
+if (isset($_POST['AddCustomer'])) {
+
+    //initialise no input errors assumed initially before we test
+    $InputError = 0;
+    $i = 1;
+    $_POST['customer_code'] = mb_strtoupper($_POST['customer_code']);
+    $sql2 = "SELECT COUNT(customer_code) FROM customers WHERE customer_code='" . $_POST['customer_code'] . "'";
+    $result2 = DB_query($sql2, $db);
+    $myrow2 = DB_fetch_row($result2);
+    //echo 'AAA';
+    if ($myrow2[0] > 0 and isset($_POST['AddCustomer']) and $InputError <> 1) {
+        // echo 'BBB';
+        $InputError = 1;
+        prnMsg(_('客户代码系统已存在'), 'error');
+        $Errors[$i] = 'customer_code';
+        $i++;
+    }
+  
+
+    $sql = "SELECT COUNT(customer_name) FROM customers WHERE customer_name='" . $_POST['customer_name'] . "'";
+    $result = DB_query($sql, $db);
+    $myrow = DB_fetch_row($result);
+    if ($myrow[0] > 0 and isset($_POST['AddCustomer']) and $InputError <> 1) {
+        $InputError = 1;
+        prnMsg(_('客户名称系统已存在'), 'error');
+        $Errors[$i] = 'customer_name';
+        $i++;
+    } elseif (mb_strlen($_POST['customer_name']) > 30 or mb_strlen($_POST['customer_name']) == 0) {
+        $InputError = 1;
+        prnMsg(_('客户名称不超过30个字且不能为空！'), 'error');
+        $Errors[$i] = 'customer_name';
+        $i++;
+    } elseif ($_SESSION['customer_code'] == 0 and mb_strlen($_POST['customer_code']) == 0) {
+        $InputError = 1;
+        prnMsg(_('客户代码不能为空！'), 'error');
+        $Errors[$i] = 'customer_code';
+        $i++;
+    } elseif (mb_strlen($_POST['effective_date']) == 0) {
+        $InputError = 1;
+        prnMsg(_('生效日期不能为空！'), 'error');
+        $Errors[$i] = 'effective_date';
+        $i++;
+    }/* elseif (!is_numeric(filter_number_format($_POST['CreditLimit']))) {
+        $InputError = 1;
+        prnMsg(_('The credit limit must be numeric'), 'error');
+        $Errors[$i] = 'CreditLimit';
+        $i++;
+    }*/
+
+    //没有错误，则执行如下
+    //当是 update 则执行update 若是add 的时候，执行insert
+    if ($InputError != 1) {
+
+        $SQL_ClientSince = FormatDateForSQL($_POST['ClientSince']);
+
+        if (isset($_POST['AddCustomer'])) { //it is a new  Customer
+            $v_date = strtotime(Date('Y-m-d H:i:s'));
+
+            //CreditLimit,  '" . $_POST['CreditLimit'] . "',
+
+            $sql = "INSERT INTO customers (
+							customer_code,
+							customer_name,
+                            customers_status,
+                            term_name,
+							zhuce_address,
+							customer_address,
+							customer_contacts,
+							contacts_phone,customer_type,
+							contacts_mail,
+							employee_num,
+							invoice_address,
+							bank_name,
+							bank_account,paixu,
+							effective_date,						
+							created_by,
+							creation_date,
+							last_updated_by,
+								contacts_fax,
+								
+								taxpayerid,  
+                                tax_name,tax_flag,
+									postcode,
+								currency_code,
+								enable_flag,
+								
+								last_update_date,							
+							Currcode)
+				VALUES ('" . $_POST['customer_code'] . "',
+                       
+						'" . $_POST['customer_name'] . "',
+                        '待签核',
+                          '" . $_POST['term_name'] . "',
+						'" . $_POST['zhuce_address'] . "',
+						'" . $_POST['customer_address'] . "',
+						'" . $_POST['customer_contacts'] . "',                       
+						'" . $_POST['contacts_phone'] . "','" . $_POST['customer_type'] . "',
+						'" . $_POST['contacts_mail'] . "',
+                         '" . $_POST['requireemployee'] . "',
+						'" . $_POST['invoice_address'] . "',
+						'" . $_POST['bank_name'] . "',
+						'" . $_POST['bank_account'] . "','" . $_POST['paixu'] . "',
+						'" . strtotime($_POST['effective_date']) . "',						
+						'" . $_SESSION['UserID'] . "',
+						'" . $v_date . "',
+						'" . $_SESSION['UserID'] . "',
+					    '" . $_POST['contacts_fax'] . "',
+						'" . $_POST['taxpayerid'] . "',  
+                       	'" . $_POST['tax_name'] . "','" . $_POST['tax_flag'] . "',
+                        '" . $_POST['postcode'] . "',
+						 '" . $_POST['currencycode'] . "',
+                        'Y',
+						'" . $v_date . "',						
+						'" . $_POST['Currcode'] . "'
+					)";
+
+
+            $OrderNum = $_POST['customer_code'];
+            $customer_type = $_POST['customer_type'];
+
+           
+            $result = DB_query($sql, $db, $ErrMsg);
+            prnMsg(_('客户新建成功'), 'success');
+            header("Location: SussCustomer.php?OrderNum=".$OrderNum.'&customer_type='.$customer_type);
+           
+    
+           
+        
+        
+            unset($_POST['customer_code']);
+            unset($_POST['customer_name']);
+            unset($_POST['term_name']);
+            unset($_POST['customer_address']);
+            unset($_POST['customer_contacts']);
+            unset($_POST['invoice_address']);
+            unset($_POST['requireemployee']);
+
+            unset($_POST['bank_name']);
+            unset($_POST['bank_account']);
+            unset($_POST['contacts_phone']);
+            unset($_POST['contacts_mail']);
+            unset($_POST['effective_date']);
+            unset($_POST['disable_date']);
+            unset($_POST['contacts_fax']);
+            unset($_POST['taxpayerid']);
+            unset($_POST['tax_name']);
+            unset($_POST['postcode']);
+            //unset($_POST['CreditLimit']);
+            echo '<br />';
+        }
+
+    } else {
+        prnMsg(_('新增客户失败！'), 'error');
+    }
+
+}
+
+?>
+<?php
+if (isset($_GET['New'])) {
+    if (isset($_POST['customer_code'])) {
+        $customer_code = $_POST['customer_code'];
+    } elseif (isset($_GET['customer_code'])) {
+        $customer_code = $_GET['customer_code'];
+    }
+
+    if (isset($_POST['postcode'])) {
+        $Packaging = $_POST['postcode'];
+    } elseif (isset($_GET['postcode'])) {
+        $Packaging = $_GET['postcode'];
+    }
+
+
+    if (isset($_POST['Packaging'])) {
+        $Packaging = $_POST['Packaging'];
+    } elseif (isset($_GET['Packaging'])) {
+        $Packaging = $_GET['Packaging'];
+    }
+    if (isset($_POST['spare_parts'])) {
+        $spare_parts = $_POST['spare_parts'];
+    } elseif (isset($_GET['spare_parts'])) {
+        $spare_parts = $_GET['spare_parts'];
+    }
+    if (isset($_POST['lcm'])) {
+        $lcm = $_POST['lcm'];
+    } elseif (isset($_GET['lcm'])) {
+        $lcm = $_GET['lcm'];
+    }
+    if (isset($_POST['transportation'])) {
+        $transportation = $_POST['transportation'];
+    } elseif (isset($_GET['transportation'])) {
+        $transportation = $_GET['transportation'];
+    }
+    if (isset($_POST['test_ciiterion'])) {
+        $test_ciiterion = $_POST['test_ciiterion'];
+    } elseif (isset($_GET['test_ciiterion'])) {
+        $test_ciiterion = $_GET['test_ciiterion'];
+    }
+    if (isset($_POST['iad'])) {
+        $iad = $_POST['iad'];
+    } elseif (isset($_GET['iad'])) {
+        $iad = $_GET['iad'];
+    }
+    if (isset($_POST['payments'])) {
+        $payments = $_POST['payments'];
+    } elseif (isset($_GET['payments'])) {
+        $payments = $_GET['payments'];
+    }
+    if (isset($_POST['Edit'])) {
+        $Edit = $_POST['Edit'];
+    } elseif (isset($_GET['Edit'])) {
+        $Edit = $_GET['Edit'];
+    } else {
+        $Edit = '';
+    }
+
+    if (isset($_POST['Add'])) {
+        $Add = $_POST['Add'];
+    } elseif (isset($_GET['Add'])) {
+        $Add = $_GET['Add'];
+    }
+?>
+    <?php
+    if (!isset($_GET['delete'])) {
+    ?>
+        <?php
+        if (!isset($_POST['effective_date'])) {
+            $_POST['effective_date'] = Date("Y-m-d");
+        }
+        /* if (!isset($_POST['CreditLimit'])) {
+        $_POST['CreditLimit'] = 10000;
+    }*/
+        if (!isset($_POST['Currcode'])) {
+            $_POST['Currcode'] = '中国';
+        }
+        ?>
+        <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+        <html xmlns="http://www.w3.org/1999/xhtml">
+
+        <head>
+            <title>客户维护</title>
+            <link rel="shortcut icon" href="/JXC/favicon.ico" />
+            <link rel="icon" href="/JXC/favicon.ico" />
+            <meta http-equiv="Content-Type" content="application/html; charset=utf-8" />
+            <link href="/css/xenos/default.css" rel="stylesheet" type="text/css" />
+            <script type="text/javascript" src="/JXC/javascripts/miscfunctions.js"></script>
+            <script type="text/javascript" src="/JXC/javascripts/wdatepicker.js"></script>
+            <script type="text/javascript">
+                var basepath = '/JXC/statics/base/images';
+            </script>
+            <script type="text/javascript" src="/JXC/statics/base/js/metvar.js"></script>
+            <script type="text/javascript" src="/JXC/statics/base/js/jQuery1.7.2.js"></script>
+            <script type="text/javascript" src="/JXC/statics/base/js/uploadify/jquery.uploadify.v2.1.4.min.js"></script>
+            <script type="text/javascript" src="/JXC/statics/base/js/iframes.js"></script>
+            <script type="text/javascript" src="/JXC/statics/base/js/cookie.js"></script>
+            <script type="text/javascript" src="/JXC/statics/base/js/jquery.livequery.js"></script>
+
+
+
+            <script src="/JXC/javascript/jquery-1.7.2.min.js"></script>
+            <script src="/JXC/javascript/lhgdialog.min.js?self=true&skin=chrome"></script>
+            <!-- Include all compiled plugins (below), or include individual files as needed -->
+            <script src="/javascript/bootstrap.min.js"></script>
+
+            <script type="text/javascript">
+                /*ajax执行*/
+                var lang = 'cn';
+                var metimgurl = '/JXC/statics/base/images/';
+                var depth = '';
+                $(document).ready(function() {
+                    ifreme_methei();
+                });
+            </script>
+            <script type="text/javascript">
+                function metreturn(url) {
+                    if (url) {
+                        location.href = url;
+                    } else if ($.browser.msie) {
+                        history.go(-1);
+                    } else {
+                        history.go(-1);
+                    }
+                }
+
+                function addsave() {
+
+                    var v = $('#idcount').val();
+                    $("#purchase_table_" + v).css("display", "");
+                    var c = parseInt(v) + 1;
+                    $('#idcount').val(c);
+                }
+            </script>
+           
+        </head>
+
+        <body>
+            <div id="CanvasDiv">
+                <div id="BodyDiv">
+                    <div id="BodyWrapDiv">
+                        <form method="post" action="<?php echo  htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES, 'UTF-8'); ?>">
+                            <div>
+                                <input type="hidden" name="FormID" value="<?= $_SESSION['FormID'] ?>" />
+                                <table class="selection">
+
+                                    <div class="text-nav">
+                                    
+                                        <div class="text-nav-1 required">
+                                            <div >客户简称:</div>
+                                            <input ' . (in_array(' customer_code', $Errors) ? 'class="inputerror"' : '' ) . ' type="text" name="customer_code" required="required"  autofocus="autofocus"  value="<?= $_POST['customer_code'] ?>" placeholder="地区(市)+客户名称核心词，如苏州翊新" size="16" maxlength="40" /> 
+                                        </div>
+                                        <div class="text-nav-1 ">
+                                            <div >业务员工号：</div>
+                                            <?php
+
+											if (  $_POST['requireemployee']=='' ) {
+                                              $_POST['requireemployee']=$_SESSION['UserID'];
+                                            }
+											
+
+                                            $sql3 = "SELECT employee_num,employee_name FROM hr_employees  ORDER by employee_num";
+										  
+                                            $result13 = DB_query($sql3, $db);
+                                            echo '<select name="requireemployee"  id="text_slect_employee_num">';
+												echo $_POST['requireemployee'];
+												
+                                            while ($v = DB_fetch_array($result13)) {
+											
+												if ( $v['employee_num']==$_POST['requireemployee'] ) {
+
+                                                  echo '<option value="' . $v['employee_num'] . '" selected="selected">' . $v['employee_num'] . $v['employee_name'] .
+                                                    '</option>';
+												}
+
+                                               else {
+												  
+												   echo '<option value="' . $v['employee_num'] .    '">' . $v['employee_num'] . $v['employee_name'] .
+                                                    '</option>';
+											   }
+											     
+                                            }
+                                            echo '</select> ';
+											 
+                                            ?>	
+										
+                                        </div>
+                                        <div class="text-nav-2  required">
+                                            <div >客户全称：</div>
+                                            <input ' . (in_array('customer_name', $Errors) ? 'class="inputerror"' : '' ) . ' type="text"  required="required" name="customer_name"  autofocus="autofocus"   value="<?= $_POST['customer_name'] ?>" placeholder="必须填写全称" size="45" maxlength="80" />
+                                        </div>
+                                        <div class="text-nav-1 ">
+                                            <div >付款条件</div>
+                                            <?php
+                                            $sql = "SELECT term_name FROM term_set  ORDER by term_name";
+                                            $result1 = DB_query($sql, $db);
+                                            echo '<select name="term_name">';
+                                            while ($Salesmanrow = DB_fetch_array($result1)) {
+                                                echo '<option value="' . $Salesmanrow['term_name'] . '">' . $Salesmanrow['term_name'] .
+                                                    '</option>';
+                                            }
+                                            echo '</select> ';
+                                            ?>	
+                                        </div>
+                                        <div class="text-nav-1 required">
+                                            <div >联系人</div>
+				                            <input ' . (in_array('customer_contacts', $Errors) ? 'class="inputerror"' : '' ) . ' type="text" name="customer_contacts" required="required"  size="26" maxlength="40" value="<?= $_POST['customer_contacts'] ?>" />
+			                             </div>
+                                        <div class="text-nav-1 required">
+                                            <div >联系电话</div>
+				                            <input ' . (in_array('contacts_phone', $Errors) ? 'class="inputerror"' : '' ) . ' type="text" name="contacts_phone" required="required" size="26" maxlength="40"   value="<?= $_POST['contacts_phone'] ?>" />
+			                            </div>
+                                        <div class="text-nav-1 required">
+                                            <div >电子邮件</div>
+                                            <input ' . (in_array('contacts_mail', $Errors) ? 'class="inputerror"' : '' ) . ' type="text" name="contacts_mail" required="required" size="26" maxlength="40" value="<?= $_POST['contacts_mail'] ?>" placeholder="' . _('e.g. user@domain.com') . '" />
+                                        </div>
+                                        <div class="text-nav-1 required">
+                                            <div >传真</div>
+                                            <input ' . (in_array('contacts_fax', $Errors) ? 'class="inputerror"' : '' ) . ' type="text"  required="required" name="contacts_fax" size="26" maxlength="40" value="<?= $_POST['contacts_fax'] ?>" />
+                                        </div>
+                                        <div class="text-nav-1 required">
+                                            <div >邮编</div>
+				                            <input ' . (in_array('postcode', $Errors) ? 'class="inputerror"' : '' ) . ' type="text"  required="required" name="postcode"  size="26" maxlength="60" value="<?= $_POST['postcode'] ?>" />
+											</div>
+					   
+                                        
+                                            <?php
+                                            echo ' <div class="text-nav-1 required "><div >币别</div>';
+                                            $sql = "SELECT currabrev,currency FROM currencies  ORDER by currency_id";
+                                            $result1 = DB_query($sql, $db);
+                                            echo '<select name="currencycode">';
+                                            while ($Salesmanrow = DB_fetch_array($result1)) {
+                                                echo '<option value="' . $Salesmanrow['currabrev'] . '">' . $Salesmanrow['currency'] .
+                                                    '</option>';
+                                            }
+                                            echo '</select> </div>';
+                                            ?>	
+                                            <div class="text-nav-1 required"><div>客户分类</div>
+                    <select name="customer_type"  id="">
+                    <?php
+                    $sql ="select type_id,customer_type from  customer_type  ";
+                    $result = DB_query($sql, $db);
+                    while ($v = DB_fetch_array($result)) {
+                        if ($v['customer_type'] == $_POST['customer_type']) {
+                            ?>
+                                <option value="<?= $v['customer_type'] ?>" selected="selected"><?= $v['customer_type'] ?></option>
+                            <?php } else { ?>
+                                <option value="<?= $v['customer_type'] ?>"><?= $v['customer_type'] ?></option>
+                            <?php
+                            }
+                        }
+                        ?>
+                    </select>
+                                    </div>	
+                                        <div class="text-nav-1 required">
+                                            <div style="width: 200px;">纳税人识别号</div>
+				                            <input ' . (in_array('taxpayerid', $Errors) ? 'class="inputerror"' : '' ) . ' type="text" name="taxpayerid" size="50" required="required" maxlength="40" value="<?= $_POST['taxpayerid'] ?>" /></td>
+                                        </div>
+                                        <div class="text-nav-1 ">
+                                            <div >税率</div>
+                                            <select name="tax_name" id="">
+                                                <?php
+                                                $sql = "select tax_name from tax_set order by tax_id";
+                                                $result = DB_query($sql, $db);
+                                                while ($v = DB_fetch_array($result)) {
+                                                    if ($v['tax_name'] == $_POST['tax_name']) {
+                                                ?>
+                                                    <option value="<?= $v['tax_name'] ?>" selected="selected"><?= $v['tax_name'] ?></option>
+                                                <?php } else { ?>
+                                                <option value="<?= $v['tax_name'] ?>"><?= $v['tax_name'] ?></option>
+                                                <?php        }
+                                                }
+                                                ?>
+                                            </select>
+                                             
+                                        </div>
+										<div class="text-nav-1 "><div >是否含税</div>
+                                            <select name="tax_flag" id="">
+                                                <?php
+                                                $sql = "select type_code,type_name from sys_type ";
+                                                $result = DB_query($sql, $db);
+                                                while ($v = DB_fetch_array($result)) {
+                                                    if ($v['type_code'] == $_POST['tax_flag']) {
+                                                ?>
+                                                    <option value="<?= $v['type_code'] ?>" selected="selected"><?= $v['type_name'] ?></option>
+                                                <?php } else { ?>
+                                                <option value="<?= $v['type_code'] ?>"><?= $v['type_name'] ?></option>
+                                                <?php        }
+                                                }
+                                                ?>
+                                            </select>
+                                             
+                                        </div>
+                                        <div class="text-nav-2 required">
+                                            <div >注册地址</div>
+                                            <input ' . (in_array('zhuce_address', $Errors) ? 'class="inputerror"' : '' ) . ' type="text" name="zhuce_address" required="required"  size="50" maxlength="60"  value="<?= $_POST['zhuce_address'] ?>" />
+                                        </div>
+                                        <div class="text-nav-2 required">
+                                            <div >收货地址</div>
+                                            <input ' . (in_array('customer_address', $Errors) ? 'class="inputerror"' : '' ) . ' type="text" name="customer_address" required="required"  size="50" maxlength="60"  value="<?= $_POST['customer_address'] ?>" />
+                                        </div>
+                                        <div class="text-nav-2 required">
+                                            <div >发票地址</div>
+                                            <input ' . (in_array('invoice_address', $Errors) ? 'class="inputerror"' : '' ) . ' type="text" name="invoice_address" required="required"  size="50" maxlength="60" value="<?= $_POST['invoice_address'] ?>" />
+                                        </div>
+                                        <div class="text-nav-2 required">
+                                            <div >银行名称</div>
+                                            <input ' . (in_array('bank_name', $Errors) ? 'class="inputerror"' : '' ) . ' type="text" name="bank_name" required="required"  size="50" maxlength="60" value="<?= $_POST['bank_name'] ?>" />
+                                        </div>
+                                        <div class="text-nav-2 required">
+                                            <div >银行账号</div>
+                                            <input ' . (in_array('bank_account', $Errors) ? 'class="inputerror"' : '' ) . ' type="text" name="bank_account" required="required"  size="32" maxlength="60" value="<?= $_POST['bank_account'] ?>" />
+                                        </div>    
+                                        <div class="text-nav-1 " style="display: none;">
+                                            <div  >生效日期</div>
+                                            <input type="text" onfocus="WdatePicker()"  alt="' . $_SESSION['DefaultDateFormat'] . '" name="effective_date"   size="10" maxlength="10" title="' . _('effective_date .') . '" value="<?= $_POST['effective_date'] ?>" />
+                                        </div>
+							
+                                    </div>
+ 
+
+                                </table>
+                                <div>
+	<input type="hidden" name="FormID" value = "<?php echo $_SESSION['FormID']; ?>">
+<br>
+
+</div>
+                                </td>
+                                </tr>
+                                </table>
+
+
+                                <div class="centre">
+                                    <input type="submit" name="AddCustomer" value="新增" />&nbsp;
+                                    <input type="Reset" name="Reset" value="清空" />&nbsp;
+                                    <input type="submit" name="return" value="返回" />
+                                </div>
+
+
+                            </div>
+
+                        </form>
+                        
+                <?php
+            }
+        }
+                ?>
+                    </div>
+                </div>
+            </div>
+            <script type="text/javascript">
+                $(document).ready(function() {
+
+                        $(' .divToilet table tr td a').click(function() {
+                            $(this).parent('td').toggleClass('highlight');
+                            if (!($(this).parent('td').hasClass('highlight'))) {
+                                $(this).next().val('0');
+                            } else {
+                                $(this).next().val('1');
+                            }
+                        });
+                        <?php for ($i = 1; $i <= 50; $i++) { ?> $('#btn_slect_buliao<?= $i ?>').dialog({
+                                title: '选择料号',
+                                width: '830px',
+                                height: 470,
+                                content: 'url:SearchAllItem.php?fwValue=<?= $i ?>&cat=<?= $_POST['insubinventory'] ?>',
+                                init: function() {
+                                    this.content.document.getElementById('cat').value = 'buliao';
+                                    this.content.document.getElementById('fwValue').value = '<?= $i ?>';
+                                }
+                            });
+                        <?php } ?> $('#btn_slect_term_name').dialog({
+                            title: '选择付款条件',
+                            width: '550px',
+                            height: 470,
+                            content: 'url:BtnSearchterm.php?fwValue=&cat=buliao',
+                            init: function() {
+                                this.content.document.getElementById('cat').value = 'buliao';
+                                this.content.document.getElementById('fwValue').value = '';
+                            }
+                        });
+                        $('#btn_slect_employee').dialog({
+                            title: '选择员工',
+                            width: '550px',
+                            height: 470,
+                            content: 'url:BtnSearchemployee.php?fwValue=&cat=buliao',
+                            init: function() {
+                                this.content.document.getElementById('cat').value = 'buliao';
+                                this.content.document.getElementById('fwValue').value = '';
+                            }
+                        });
+                        $('#btn_slect_insubinventory').dialog({
+                            title: '选择调入仓库',
+                            width: '550px',
+                            height: 470,
+                            content: 'url:BtnSearchinsubinventory.php?fwValue=&cat=<?= $_POST['outsubinventory'] ?>',
+                            init: function() {
+                                this.content.document.getElementById('cat').value = 'buliao';
+                                this.content.document.getElementById('fwValue').value = '';
+                            }
+                        }); //Function to get URL arguments function getRequest() { var url=location.search; //获取url中"?"符后的字串 var theRequest=new Object(); if (url.indexOf("?") !=-1) { var str=url.substr(1); strs=str.split("&"); for(var i=0; i < strs.length; i ++) { theRequest[strs[i].split("=")[0]]=(strs[i].split("=")[1]);
+                    }
+                }
+                return theRequest;
+                }
+
+
+                });
+            </script>
+        </body>
+
+        </html>
+        <?php
+        if (isset($_POST['return'])) {
+            header('Location: SearchCustomer.php');
+        }
+        ?>
+        <?php
+        include('includes/footer.inc');
+        ?>

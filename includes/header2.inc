@@ -1,0 +1,73 @@
+<?php
+/* $Id: header.inc 6310 2013-08-29 10:42:50Z daintree $ */
+
+	// Titles and screen header
+	// Needs the file config.php loaded where the variables are defined for
+	//  $RootPath
+	//  $Title - should be defined in the page this file is included with
+	if (!isset($RootPath)){
+		$RootPath = dirname(htmlspecialchars($_SERVER['PHP_SELF']));
+		if ($RootPath == '/' OR $RootPath == "\\") {
+			$RootPath = '';
+		}
+	}
+
+	$ViewTopic = isset($ViewTopic)?'?ViewTopic=' . $ViewTopic : '';
+	$BookMark = isset($BookMark)? '#' . $BookMark : '';
+	$StrictXHTML=False;
+
+	if (!headers_sent()){
+		if ($StrictXHTML) {
+			header('Content-type: application/xhtml+xml; charset=utf-8');
+		} else {
+			header('Content-type: text/html; charset=utf-8');
+		}
+	}
+	if($Title == _('Copy a BOM to New Item Code')){//solve the cannot modify heaer information in CopyBOM.php scritps
+		ob_start();
+	}
+	echo '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+			"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">';
+
+	echo '<html xmlns="http://www.w3.org/1999/xhtml"><head><title>' . $Title . '</title>';
+	echo '<link rel="shortcut icon" href="'. $RootPath.'/favicon.ico" />';
+	echo '<link rel="icon" href="' . $RootPath.'/favicon.ico" />';
+	if ($StrictXHTML) {
+		echo '<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=utf-8" />';
+	} else {
+		echo '<meta http-equiv="Content-Type" content="application/html; charset=utf-8" />';
+	}
+	echo '<link href="' . $RootPath . '/css/'. $_SESSION['Theme'] .'/default.css" rel="stylesheet" type="text/css" />';
+	echo '<script type="text/javascript" src = "'.$RootPath.'/javascripts/MiscFunctions.js"></script>';
+	echo '</head>';
+	echo '<body>';
+	echo '<input type="hidden" name="Lang" id="Lang" value="'.$Lang.'" />';
+
+    echo '<div id="CanvasDiv">';
+	echo '<div id="HeaderDiv">';
+	echo '<div id="HeaderWrapDiv">';
+
+
+	if (isset($Title)) {
+
+
+		echo '<div id="AppInfoDiv">'; //===HJ===
+		 
+			echo '<div id="AppInfoModuleDiv">';
+				// Make the title text a class, can be set to display:none is some themes
+				echo $Title;
+			echo '</div>';
+		echo '</div>'; // AppInfoDiv
+
+
+		echo '<div id="QuickMenuDiv"><ul>';
+
+		 
+		echo '</ul></div>'; // QuickMenuDiv
+	}
+	echo '</div>'; // HeaderWrapDiv
+	echo '</div>'; // Headerdiv
+	echo '<div id="BodyDiv">';
+	echo '<div id="BodyWrapDiv">';
+
+?>

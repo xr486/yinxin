@@ -1,0 +1,220 @@
+<?php
+
+/* $Id: vendors.php 6338 2013-09-28 05:10:46Z daintree $ */
+ob_start();
+include('includes/session.inc');
+if (isset($_GET['identifier'])) {
+    $_POST['identifier'] = $_GET['identifier'];
+}
+
+if (!isset($_POST['identifier'])) {
+    $identifier = date('U');
+} else {
+    $identifier = $_POST['identifier'];
+}
+if (isset($_GET['searchitem_no'])) {
+    $searchitem_no = $_GET['searchitem_no'];
+} else {
+    $searchitem_no = '';
+}
+$Title = _('BOM明细');
+$ViewTopic = 'BOM明细';
+$BookMark = 'BOM明细';
+include('includes/header.inc');
+include('includes/SQL_CommonFunctions.inc'); 
+
+
+
+
+echo '<p class="page_title_text">
+		<img src="' . $RootPath . '/css/' . $Theme . '/images/customer.png" title="' . _('BOM明细') .
+ '" alt="" />' . ' ' . _('BOM明细') . '
+	</p>';
+if (isset($searchitem_no) and $searchitem_no != '') {
+    //CreditLimit,
+
+	$sql = "SELECT a.version,b.item_no,b.item_name,b.item_desc,item_category1,b.gongyi,b.units
+	FROM  sf_item_no b,bom_headers_all a
+WHERE	b.item_no=a.assembly_item_no and a.bom_header_id ='" .$searchitem_no."'";
+ 
+$result = DB_query($sql, $db); 
+while ($myrow = DB_fetch_array($result)) {
+echo '<table width="100%" border="1" cellpadding="0" cellspacing="0"> 
+<div class="text-nav">
+        <div class="text-nav-1"><div>母件料号:</div ><input type="text" readonly="readonly" value="' . $myrow['item_no'] . '" /></div>
+        <div class="text-nav-2"><div>料号名称:</div ><input type="text" readonly="readonly" value="' . $myrow['item_name'] . '" /></div>
+        <div class="text-nav-2"><div>规格型号:</div ><input type="text" readonly="readonly" value="' . $myrow['item_desc'] . '" /></div>
+        <div class="text-nav-1"><div>版本:</div ><input type="text" readonly="readonly" value="' . $myrow['version'] . '" /></div>
+        <div class="text-nav-1"><div>单位:</div ><input type="text" readonly="readonly" value="' . $myrow['units'] . '" /></div>
+        <div class="text-nav-1"><div>分类:</div ><input type="text" readonly="readonly" value="' . $myrow['item_category1'] . '" /></div>
+</div>
+   </table>';
+
+    
+	}
+    
+        $sql2 = "SELECT b.component_sequence_id,b.assembly_item_no,b.weizhi,b.operation_seq_num,b.component_quantity,b.sunhao_rate,a.item_no,b.effectivity_date,
+	b.disable_date, component_remarks,a.units,change_notice,item_num,item_name,item_desc ,(select  operation_code from 
+	bom_routings_all c 
+		where b.assembly_item_no=c.assembly_item_no
+		and b.operation_seq_num=c.operation_seq_num ) operation_code,(select count(*) 
+		from bom_substitutes_all bsa where b.component_sequence_id=bsa.component_sequence_id ) sub_count,(select price from po_lines_all bb where bb.stockid=a.item_no and  po_line_id in (select  max(cc.po_line_id) from po_headers_all c,po_lines_all cc where cc.stockid=a.item_no and c.po_num=cc.po_num and c.status='已签核' )) price 
+FROM bom_lines_all b,sf_item_no a
+        where a.item_no = b.component_item and b.disable_date=0  
+		and b.bom_header_id = '" .$searchitem_no."'";
+		//echo $sql2 ;
+        $result2 = DB_query($sql2, $db);
+        if (DB_num_rows($result2) == 0) {
+            unset($result2);
+            prnMsg(_('没有找到BOM明细，请重新登录查询！'), 'info');
+        } else {
+            echo '<form method="post" action="' . htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES, 'UTF-8') . '"><input type="hidden" name = "identifier" value ="' . $identifier . '">';
+            echo '<div>';
+            echo '<input type="hidden" name="FormID" value="' . $_SESSION['FormID'] . '" />';
+            echo '<div class="text-nav-table"><table class="selection" align="center" >';
+            $tableheader = '<tr><th width =50 >' . '阶层' . '</th>
+	                             <th width =50 >' . '序号' . '</th> 
+	                             <th width =50 >' . '制程' . '</th> 
+                                        <th  width =140>' . '料号' . '</th>
+                                        <th  width =40>' . '替代料' . '</th>
+										<th  width =200>' . '料号名称' . '</th>
+										<th  width =200>' . '规格型号' . '</th>
+										<th width =100 >' . '用量' . '</th>  
+                                        <th width =50 >' . '单位' . '</th>   
+                                        <th width =50 >' . '位置' . '</th>  
+                                       <th width =160 >' . '生效时间' . '</th>
+                                       <th width =160 >' . '失效时间' . '</th> 	 
+									   <th width =120 >' . '备注' . '</th>
+										<th width =100 >' . '价格' . '</th> 
+										<th width =100 >' . '金额' . '</th> 
+                                                                              
+
+                                       
+				</tr>';
+            echo $tableheader;
+            $RowCounter = 1;
+            $k = 0; //row colour counter
+            while ($myrow = DB_fetch_array($result2)) {
+                if ($k == 1) {
+                    echo '<tr class="EvenTableRows">';
+                    $k = 0;
+                } else {
+                    echo '<tr class="EvenTableRows">';
+                    $k++;
+                }
+				
+				$disable_date='';
+				if   ($myrow['disable_date']!='' and $myrow['disable_date']!=0 ) {
+				  $disable_date=date('Y-m-d H:i:s', $myrow['disable_date']);
+				}
+
+ 
+                echo ' <td >1</td>
+		              <td >' . $myrow['item_num'] . '</td> 
+		              <td >' . $myrow['operation_seq_num'] . '</td> 
+                      <td>' . $myrow['item_no'] . '</td>';
+					if  ($myrow['sub_count']>0) {
+						echo '<td><a href="' . $RootPath . '/SearchBOMDetail3.php?component_sequence_id=' . $myrow['component_sequence_id'] .  '" target="_blank">' . $myrow['sub_count'] . ' </td>';
+					}  else {
+					  echo '<td> </td>';
+					}
+					 echo '  
+					  <td>' . $myrow['item_name'] . '</td>
+					  <td>' . $myrow['item_desc'] . '</td>
+                       <td class="number">' .$myrow['component_quantity'] . '</td> 
+                      <td>' . $myrow['units'] . '</td> 
+                      <td>' . $myrow['weizhi'] . '</td> 
+					   <td>' . date('Y-m-d H:i:s', $myrow['effectivity_date']) . '</td>
+					   <td>' .$disable_date . '</td> 				   
+					  <td>' . $myrow['component_remarks']  . '</td>  
+					  <td>' . $myrow['price']  . '</td>  
+					  <td>' . ($myrow['price'] * $myrow['component_quantity']) . '</td>
+               </tr>';
+
+			  //   DisplayBOMItems( $myrow['item_no'],2,$db);
+
+
+                $RowCounter++;
+                If ($RowCounter == 500) {
+                    $RowCounter = 1;
+                    echo $tableheader;
+                }
+            }
+            echo '</table></div>';
+
+
+        }
+echo '<div>
+        <a href="' . $RootPath . '/BOMCostReportExcel.php?item_no=' .$searchitem_no .' ">' .'资料导出Excel表' . '</a>
+    </div>';
+
+      
+    echo '</div>
+          </form>';
+}
+
+function DisplayBOMItems( $Component,$Level, $db ) {
+ 
+		$sql4 = "SELECT a.component_item,a.item_num,
+						b.item_name itemdescription, b.item_desc itemspec,a.weizhi, 
+						a.component_quantity,
+						a.effectivity_date,
+						a.disable_date,a.operation_seq_num,a.component_remarks,
+						b.units,(select operation_code
+						from bom_routings_all c 
+						where c.assembly_item_no=a.assembly_item_no and c.operation_seq_num=a.operation_seq_num ) as operation_code,  (select price from po_lines_all bb where bb.stockid=b.item_no and  po_line_id in (select  max(cc.po_line_id) from po_headers_all c,po_lines_all cc where cc.stockid=b.item_no and c.po_num=cc.po_num and c.status='已签核' )) price 
+
+				FROM bom_lines_all a, sf_item_no b
+				where a.component_item=b.item_no  
+				AND a.assembly_item_no = '".$Component."'  and a.disable_date=0 
+				order by a.component_item,a.item_num ";
+  
+	 
+		$result4 = DB_query($sql4,$db);
+
+		//echo $TableHeader;
+		$RowCounter =0;
+
+		while ($myrow=DB_fetch_array($result4)) {
+
+			$Level1 = str_repeat('-&nbsp;',$Level-1).$Level;
+			 
+
+			  if ($myrow['disable_date']>1) {
+			     $disable_date=  date('Y-m-d',$myrow['disable_date']) ;}
+			 else  
+				 {$disable_date='';}
+
+			  echo '  <td >' . $Level1 . '</td>
+		              <td >' . $myrow['item_num'] . '</td> 
+		              <td >' . $myrow['operation_seq_num'] . '</td> 
+                      <td>' . $myrow['component_item'] . '</td>';
+					if  ($myrow['sub_count']>0) {
+						echo '<td><a href="' . $RootPath . '/SearchBOMDetail3.php?component_sequence_id=' . $myrow['component_sequence_id'] .  '" target="_blank">' . $myrow['sub_count'] . ' </td>';
+					}  else {
+					  echo '<td> </td>';
+					}
+					 echo '  
+					  <td>' . $myrow['itemdescription'] . '</td>
+					  <td>' . $myrow['itemspec'] . '</td>
+                       <td class="number">' .$myrow['component_quantity'] . '</td> 
+                      <td>' . $myrow['units'] . '</td> 
+                      <td>' . $myrow['weizhi'] . '</td>
+					   <td>' . date('Y-m-d H:i:s', $myrow['effectivity_date']) . '</td>
+					   <td>' .$disable_date . '</td> 				   
+					  <td>' . $myrow['component_remarks']  . '</td>   
+					  <td>' . $myrow['price']  . '</td>   
+					  <td>' . ($myrow['component_quantity']*$myrow['price'])  . '</td>
+               </tr>';
+			   DisplayBOMItems( $myrow['item_no'],$Level+1,$db);
+ 
+
+		} //END WHILE LIST LOOP
+} //end of function DisplayBOMItems
+
+if (isset($_POST['return'])) {
+    echo 'AAAAAAAAAA';
+    echo '<script>window.close();</script>'; 
+}
+include('includes/footer.inc');
+?>

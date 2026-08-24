@@ -1,0 +1,282 @@
+<?php 
+	include('includes/session.inc');
+	$Title = _('工序指导书');
+	$ViewTopic= '工序指导书';
+	$BookMark = '工序指导书';
+	include('includes/header.inc');
+	include('includes/SQL_CommonFunctions.inc');
+ require_once 'upload2.class.php';
+
+// echo '<br /><div class="centre"><a href="' . $RootPath . '/AddItemNo.php?New=Y">' . _('继续创建工序指导书') . '</a></div>';
+
+ if ( isset($_GET['route_id'])) {
+
+$_SESSION['route_id' . $identifier]=$_GET['route_id'];
+
+$sql2 = "SELECT 
+	 	a.file_patch,a.creation_date,a.created_by,a.file_name,a.itemid,a.item_no,a.route_id,b.item_id
+FROM bom_routing_all_file a,sf_item_no b
+        where  a.item_no=b.item_no and  a.route_id = '" . $_SESSION['route_id' . $identifier] . "'";
+// echo $sql2;
+$result2 = DB_query($sql2, $db);
+ }
+ if (isset($_GET['assembly_item_no']) ) {
+	 $sql3 = "SELECT  b.item_no,b.item_id
+FROM  sf_item_no b
+        where   b.item_id = '" . $_GET['assembly_item_no'] . "'";
+     
+    $result3 = DB_query($sql3, $db);
+	$myrow3 = DB_fetch_array($result3);
+	$_SESSION['item_no' . $identifier]=$myrow3['item_no'];
+
+    $_SESSION['OrderNum' . $identifier]=$_GET['assembly_item_no'];
+}
+
+
+ if (isset($_GET['file_11patch']) ) {
+   $_SESSION['OrderNum' . $identifier]=$_GET['OrderNum'];
+   $_SESSION['route_id' . $identifier]=$_GET['route_id'];
+ if (file_exists($_GET['file_11patch'])) {
+	$status=unlink($_GET['file_11patch']);    
+
+if($status){  
+   
+	  $sql3 = "delete FROM bom_routing_all_file where  itemid = '" . $_GET['itemid'] . "'";
+ 
+$result3 = DB_query($sql3, $db);
+	  echo "文件被成功删除";    
+
+}else{  
+
+	  echo "文件删除失败!";    
+
+}  
+} else {
+	  echo "未找到文件!";    
+}  
+}
+ 
+if (DB_num_rows($result2) == 0) {
+	unset($result2);
+	
+} else {
+	echo '<p class="page_title_text">
+		<img src="' . $RootPath . '/css/' . $Theme . '/images/customer.png" title="' . _('产品文件信息') .
+		'" alt="" />' . ' ' .$_SESSION['item_no' . $identifier]. _('产品文件信息') . '
+	</p>';
+	echo '<form method="post" action="' . htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES, 'UTF-8') . '"><input type="hidden" name = "identifier" value ="' . $identifier . '">';
+	echo '<div>';
+	echo '<input type="hidden" name="FormID" value="' . $_SESSION['FormID'] . '" />';
+	echo '<table class="selection" align="center" >';
+	$tableheader = '<tr> 
+                                        <th width =150 >' . '文件名称' . '</th>
+										<th width =190 >' . '上传时间' . '</th>
+										<th width =80 >' . '上传人员' . '</th>
+                                        <th  width =50>' . '下载' . '</th>
+
+
+
+				</tr>';
+
+	echo $tableheader;
+	$RowCounter = 1;
+	$k = 0; 
+$i = 1;
+
+	while ($myrow = DB_fetch_array($result2)) {
+		if ($k == 1) {
+			echo '<tr class="EvenTableRows">';
+			$k = 0;
+		} else {
+			echo '<tr class="EvenTableRows">';
+			$k++;
+		}
+
+		echo '  
+		              <td>' . $myrow['file_name'] . '</td>
+                      <td>' . date('Y-m-d H:i:s', $myrow['creation_date']) . '</td>
+					  <td>' . $myrow['created_by'] . '</td>
+					  <td><img src=' . $myrow['file_patch'] . ' "  id="myImg' .$i.'" onclick=check(' .$i.') width="100%" height="100%"></td>
+					 
+					   
+
+
+
+        </tr>';
+		 
+		$RowCounter++;
+		if ($RowCounter == 500) {
+			$RowCounter = 1;
+			echo $tableheader;
+		}
+        $i++;
+	}
+	echo '</table> ';
+
+
+	echo '</div>
+          </form>';
+}
+ 
+ 
+
+		$uploadflag = 1;
+$_POST['ItemNo'];
+	
+
+
+?>
+ 
+ <!-- 弹窗 -->
+ <div id="myModal" class="modal">
+
+<!-- 关闭按钮 -->
+<span class="close" onclick="document.getElementById('myModal').style.display='none'">&times;</span>
+
+<!-- 弹窗内容 -->
+<img class="modal-content" id="img01" src="">
+
+</div>
+
+<?php
+  include('includes/footer.inc');
+?>
+
+
+<script>
+window.onload=function(){
+
+    check =  function (s1){
+        // 获取点击图片
+        var img = document.getElementById('myImg'+s1);
+        // 获取弹窗
+        var modal = document.getElementById('myModal');
+        // 弹窗图片
+        var contImg = document.getElementById('img01');
+
+        // console.log('111');
+        modal.style.display = 'block';
+        contImg.src = img.src
+        // console.log(contImg.src,'srccc');
+
+        // 点击x按钮关闭弹窗
+        var closeBox = document.getElementsByClassName('close')[0];
+        closeBox.onclick = function () {
+            modal.style.display = 'none';
+        }
+    }
+}
+</script>
+
+
+
+<style>
+    /* 触发弹窗图片的样式 */
+    #myImg {
+        border-radius: 5px;
+        cursor: pointer;
+        transition: 0.3s;
+    }
+
+    #myImg:hover {
+        opacity: 0.7;
+    }
+
+    /* 弹窗背景 */
+    .modal {
+        display: none;
+        /* Hidden by default */
+        position: fixed;
+        /* Stay in place */
+        z-index: 1;
+        /* Sit on top */
+        padding-top: 100px;
+        /* Location of the box */
+        left: 0;
+        top: 0;
+        width: 100%;
+        /* Full width */
+        height: 100%;
+        /* Full height */
+        overflow: auto;
+        /* Enable scroll if needed */
+        background-color: rgb(0, 0, 0);
+        /* Fallback color */
+        background-color: rgba(0, 0, 0, 0.9);
+        /* Black w/ opacity */
+    }
+
+    /* 图片 */
+    .modal-content {
+        margin: auto;
+        display: block;
+        width: 80%;
+        max-width: 700px;
+    }
+
+    /* 文本内容 */
+    #caption {
+        margin: auto;
+        display: block;
+        width: 80%;
+        max-width: 700px;
+        text-align: center;
+        color: #ccc;
+        padding: 10px 0;
+        height: 150px;
+    }
+
+    /* 添加动画 */
+    .modal-content,
+    #caption {
+        -webkit-animation-name: zoom;
+        -webkit-animation-duration: 0.6s;
+        animation-name: zoom;
+        animation-duration: 0.6s;
+    }
+
+    @-webkit-keyframes zoom {
+        from {
+            -webkit-transform: scale(0)
+        }
+
+        to {
+            -webkit-transform: scale(1)
+        }
+    }
+
+    @keyframes zoom {
+        from {
+            transform: scale(0)
+        }
+
+        to {
+            transform: scale(1)
+        }
+    }
+
+    /* 关闭按钮 */
+    .close {
+        position: absolute;
+        top: 15px;
+        right: 35px;
+        color: #f1f1f1;
+        font-size: 40px;
+        font-weight: bold;
+        transition: 0.3s;
+    }
+
+    .close:hover,
+    .close:focus {
+        color: #bbb;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    /* 小屏幕中图片宽度为 100% */
+    @media only screen and (max-width: 700px) {
+        .modal-content {
+            width: 100%;
+        }
+    }
+</style>

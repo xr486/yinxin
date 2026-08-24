@@ -1,0 +1,632 @@
+<?php
+
+include('includes/session.inc');
+$Title = _('报价单转订单');
+$ViewTopic= '报价单转订单';
+$BookMark = '报价单转订单';
+include('includes/header.inc');
+include('includes/SQL_CommonFunctions.inc');
+
+if (isset($_GET['Updateorder_number']) ) {
+$_POST['order_number']=$_GET['Updateorder_number'];
+}
+ 
+
+unset($result);
+
+ 
+ if (isset($_POST['Save'])) 
+{
+  $errorflag = 0;
+  $all_amount = 0;
+  $all_invoice_dis_amount = 0;
+  $k =0;
+   for ($i=1; $i<=$_POST['flag'];$i++)
+  {
+    if($_POST['status'.$i]<>'')
+	{        
+          if ($_POST['quantity'.$i]=='') 
+		  {
+            $errorflag = 1;
+            prnMsg($value.'数量未填写,请确认！',error);
+          }	 
+		  if ($_POST['quantity'.$i]<=0 ) 
+		  {
+            $errorflag = 1;
+            prnMsg($value.'数量必须大于0,请确认！',error);
+          }	
+		  
+		  if ($_POST['price'.$i]=='') 
+		  {
+            $errorflag = 1;
+            prnMsg($value.'价格未填写,请确认！',error);
+          }
+		  
+		  
+
+      }
+  }
+  if ($errorflag == 0) 
+  {
+    $Delivery_date = strtotime($_POST['Delivery_date']);
+    DB_Txn_Begin($db);
+    $time = time();
+    $delivery_amount = 0;
+    $k =0;
+
+	$date = date('Ymd');
+			
+        $sql_num = "select 	(
+		CASE WHEN substr(max(order_number) ,-2,1) = 0 THEN
+			RIGHT (
+				'100' + (
+					max(substr(order_number ,- 1)) + 1
+				),
+				2
+			)
+		ELSE
+			substr(max(order_number),-2,2) + 1
+		END
+        ) order_number from so_headers_all where substr(order_number,-10,8) = '" . $date . "'";
+      // echo $sql_num;
+        $result_num = DB_query($sql_num, $db);
+        $rownum = DB_num_rows($result_num);
+        while ($v = DB_fetch_array($result_num)) {
+            if ($v['order_number'] == null) {
+                $OrderNum = 'SO'.$date . '01';
+            } else {
+                $OrderNum =  'SO'. $date . $v['order_number'];
+            }
+        }
+      $line=0;
+   for ($i=1; $i<=$_POST['flag'];$i++)
+	{
+       $k = $k +1; 
+	   if($_POST['status'.$i]<>'')
+		   {         
+         $line=$line+1;    
+           
+		  $_POST['line_amount'.$i]=$_POST['baojia'.$i] * $_POST['need_qty'.$i];
+		  $all_amount= $all_amount + $_POST['line_amount'.$i];	   
+		    
+			$sql = "insert into so_lines_all(order_number,line,stockid,uom,price,quantity,need_date,
+						 line_remark,line_amount,subinventory_code,customer_item,
+						creation_date,created_by,last_update_date,last_updated_by)
+						values('".$OrderNum."','".$line."','".$_POST['item_no'.$i]."','".$_POST['uom'.$i]."','".$_POST['price'.$i]."','".$_POST['quantity'.$i]."','".strtotime($_POST['need_date'.$i])."', '".$_POST['need_remark'.$i]."','".$_POST['line_amount'.$i]."','".$_POST['subinventory_code'.$i]."','".$_POST['customer_item'.$i]."',
+						'".$time."','".$_SESSION['UserID']."','".$time."','".$_SESSION['UserID']."') ";			
+						$result = DB_query($sql,$db);
+
+
+         $sql3="update quote_lines_all
+		   set so_order_line='".$line."'
+		    ,so_order_num ='".$OrderNum."'
+		  where  quote_line_id  = '" . $_POST['quote_line_id'.$i] . "'";
+		   $ErrMsg = _('更新报价行信息有误');
+		   $DbgMsg = _('The SQL that was used to update the quote_lines_all and failed was');
+            $result = DB_query($sql3,$db,$ErrMsg,$DbgMsg);
+ 
+        }
+      } 	    
+  
+    
+	if ($k>0) {
+
+		if ($_POST['youhui_amount']=='') {
+						$_POST['youhui_amount'] = 0;
+		 }
+		 $sql2="update quote_headers_all 
+		 set status='已转'
+		  where  order_number  = '" . $_POST['order_number'] . "'";
+		  $result = DB_query($sql2,$db);
+ 
+		$sql = "insert into so_headers_all
+(term_name,yewu,coycode,order_all_amount,all_line_amount,order_invoice_amount,order_payment_amount,youhui_amount,tax_amount,order_number,customer_code,customer_contact,need_date,qianding_date,status,currency_code,tax_name,subject,project,jiaohuotiaojian,baozhuang,zhiliangbaozheng,mainfeifuwu,creation_date,header_remark,created_by,last_update_date,last_updated_by)values('".$_POST['term_name']."','".$_POST['yewu']."','".$_POST['coycode']."','".$_POST['order_all_amount']."','".$_POST['all_line_amount']."','".$_POST['order_invoice_amount']."','".$_POST['order_payment_amount']."','".$_POST['youhui_amount']."','".$_POST['tax_amount']."','".$OrderNum."','".$_POST['customer_code']."','".$_POST['Concact']."'
+,'".$_POST['need_date']."','".$time."','待签核',
+'".$_POST['currency_code']."','".$_POST['tax_name']."','".$_POST['subject']."','".$_POST['project']."','".$_POST['jiaohuotiaojian']."','".$_POST['baozhuang']."','".$_POST['zhiliangbaozheng']."','".$_POST['mainfeifuwu']."','".$time."','".$_POST['Header_Remark']."','".$_SESSION['UserID']."','".$time."','".$_SESSION['UserID']."')";
+			$result = DB_query($sql,$db);
+DB_Txn_Commit($db);
+    prnMsg('报价申请单已换成销售订单'.$OrderNum.'完成！',success);
+	header("Location: SussCreate1.php?OrderNum=".$OrderNum); 
+	}
+        
+    }    
+}
+
+
+if (isset($_POST['Save2'])) 
+{
+  $errorflag = 0;
+  $all_amount = 0;
+  $all_invoice_dis_amount = 0;
+  $k =0;
+   for ($i=1; $i<=$_POST['flag'];$i++)
+  {
+    if($_POST['status'.$i]<>'')
+	{        
+          if ($_POST['baojia'.$i]=='') 
+		  {
+            $errorflag = 1;
+            prnMsg($value.'报价未填写,请确认！',error);
+          }	 
+		  if ($_POST['baojia'.$i]<=0 ) 
+		  {
+            $errorflag = 1;
+            prnMsg($value.'报价必须大于哦,请确认！',error);
+          }	  
+      }
+  }
+  if ($errorflag == 0) 
+  {
+    $Delivery_date = strtotime($_POST['Delivery_date']);
+    DB_Txn_Begin($db);
+    $time = time();
+    $delivery_amount = 0;
+    $k =0;
+   for ($i=1; $i<=$_POST['flag'];$i++)
+	{
+       $k = $k +1; 
+	   if($_POST['status'.$i]<>'')
+		   {         
+          if($_POST['this_invoice_amount'.$i]=='')
+		  {
+            $_POST['this_invoice_amount'.$i] = '0';
+            $bumishu[$i] = 0;
+          }  
+          if($_POST['this_invoice_dis_amount'.$i]=='')
+		  {
+            $_POST['this_invoice_dis_amount'.$i] = 0;
+          } 
+    
+          $sql = "update  quote_lines_all
+                    set baojia     =  '".$_POST['baojia'.$i]."' ,
+					baojia_rate =  '".$_POST['baojia_rate'.$i]."' 
+                  where  order_number  ='".$_POST['order_number']."' 
+				   and   line ='".$_POST['line'.$i]."' ";
+          $result = DB_query($sql,$db);
+		   
+ 
+        }
+      } 	    
+  
+
+          
+    DB_Txn_Commit($db);
+	if ($k>0) {
+    prnMsg('报价申请单'.$_POST['order_number'].'回复完成！',success);
+    echo "<script>location.href='index.php';</script>";
+	}
+        
+    }    
+}
+
+?>
+ 
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>报价单转订单</title>
+<link rel="shortcut icon" href="/JXC/favicon.ico"/>
+<link rel="icon" href="/JXC/favicon.ico"/>
+<meta http-equiv="Content-Type" content="application/html; charset=utf-8"/>
+<link href="/css/xenos/default.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src ="/JXC/javascripts/miscfunctions.js"></script>
+<script type="text/javascript" src ="/JXC/javascripts/wdatepicker.js"></script>
+<script type="text/javascript">var basepath='/JXC/statics/base/images';</script>
+<script type="text/javascript" src="/JXC/statics/base/js/metvar.js"></script>
+<script type="text/javascript" src="/JXC/statics/base/js/jQuery1.7.2.js"></script>
+<script type="text/javascript" src="/JXC/statics/base/js/uploadify/jquery.uploadify.v2.1.4.min.js"></script>
+<script type="text/javascript" src="/JXC/statics/base/js/iframes.js"></script>
+<script type="text/javascript" src="/JXC/statics/base/js/cookie.js"></script>
+<script type="text/javascript" src="/JXC/statics/base/js/jquery.livequery.js"></script>
+
+
+
+<script src="/JXC/javascript/jquery-1.7.2.min.js"></script>
+<script src="/JXC/javascript/lhgdialog.min.js?self=true&skin=chrome"></script>
+<script src="/javascript/bootstrap.min.js"></script>
+
+<script type="text/javascript">
+/*ajax执行*/
+var lang = 'cn';
+var metimgurl='/JXC/statics/base/images/';
+var depth='';
+$(document).ready(function(){
+	ifreme_methei();
+});
+</script>
+<script type="text/javascript">
+function metreturn(url){
+	if(url){
+		location.href=url;
+	}else if($.browser.msie){
+		history.go(-1);
+	}else{
+		history.go(-1);
+	}
+} 
+
+function addsave() 
+{
+
+  var v = $('#idcount').val();
+  $("#purchase_table_"+v).css("display","");
+  var c = parseFloat(v) + 1;
+  $('#idcount').val(c);     
+}
+
+ </script>
+</head>
+<body>
+ 
+<div id="CanvasDiv">
+<div id="BodyDiv">
+<div id="BodyWrapDiv">
+<p class="page_title_text"><img src="<?php echo $RootPath; ?>/css/<?php echo $Theme; ?>//images/transactions.png" title="报价单转订单" alt="报价单转订单">报价单转订单</p>
+<form action="<?php echo htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES, 'UTF-8'); ?>" method ="POST"><input type="hidden" name="time"
+value="<?=$time?>">
+<div>
+<input type="hidden" name="FormID" value = "<?php echo $_SESSION['FormID']; ?>">
+<table class="selection">
+
+<?php
+	 
+
+$sql ="SELECT b.customer_code,
+    b.customer_name, p.order_all_amount,p.tax_amount,p.youhui_amount,p.order_payment_amount,p.order_invoice_amount,p.all_line_amount,
+    p.order_number,
+    p.status,
+    p.yewu,p.coycode,subject,project,jiaohuotiaojian,baozhuang,zhiliangbaozheng,mainfeifuwu,
+    p.need_date, 
+    p.creation_date,
+    p.created_by,
+    p.last_update_date,
+    p.last_updated_by ,(select employee_name from hr_employees where employee_num=yewu) employee_name
+FROM quote_headers_all p, customers b
+WHERE p.customer_code = b.customer_code
+and p.order_number = '" .$_POST['order_number'] . "'
+and status IN ('同意') ";
+	// echo $sql;
+	$result = DB_query($sql,$db);
+    if (DB_num_rows($result)==0) {
+        unset($result);
+        prnMsg(_('没有预测，请重新输入条件查询！') ,'error');
+	 }
+ while ($myrow = DB_fetch_array($result))  {
+       $_POST['customer_code']=$myrow['customer_code'] ;
+       $_POST['customer_name']=$myrow['customer_name'] ;  
+	   $_POST['employee_name']=$myrow['employee_name'] ; 
+	   $_POST['need_date']=$myrow['need_date'] ; 
+	   $_POST['order_number']=$myrow['order_number'] ;  
+	   $_POST['yewu']=$myrow['yewu'] ;
+	   $_POST['subject']=$myrow['subject'] ;
+	   $_POST['project']=$myrow['project'] ;
+	   $_POST['jiaohuotiaojian']=$myrow['jiaohuotiaojian'] ;
+	   $_POST['baozhuang']=$myrow['baozhuang'] ;
+	   $_POST['zhiliangbaozheng']=$myrow['zhiliangbaozheng'] ;
+	   $_POST['mainfeifuwu']=$myrow['mainfeifuwu'] ;
+	   $_POST['currency_code']=$myrow['currency_code'] ;
+	   $_POST['tax_name']=$myrow['tax_name'] ;
+	   $_POST['term_name']=$myrow['term_name'] ;
+	   $_POST['coycode']=$myrow['coycode'] ;
+	   $_POST['order_all_amount']=$myrow['order_all_amount'] ;
+	   $_POST['tax_amount']=$myrow['tax_amount'] ;
+	   $_POST['youhui_amount']=$myrow['youhui_amount'] ;
+	   $_POST['order_payment_amount']=$myrow['order_payment_amount'] ;
+	   $_POST['order_invoice_amount']=$myrow['order_invoice_amount'] ;
+	   $_POST['all_line_amount']=$myrow['all_line_amount'] ;
+ }     
+?>
+
+<tr>
+ <td>报价申请单号码:</td>
+  <td  ><input type="text" required="required" maxlength="100" size="20" name="order_number"  value="<?=$_POST['order_number']?>" size="15" maxlength="20"/> </td>
+  <td>客户代码：</td>
+  <td><input type="text" required="required" name="customer_code" id="text_slect_vendor" value="<?=$_POST['customer_code']?>" size="10" maxlength="25"/> </td>
+  <td>客户名称：</td>
+  <td colspan="5"><input readonly="readonly" type="text" name="customer_name" id="text_slect_name" value="<?=$_POST['customer_name']?>" size="70" maxlength="50"/></td>
+  
+</tr>
+
+<tr>
+  <td>业务：</td>
+  <td  ><input readonly="readonly" type="text"   name="employee_name" id="text_slect_currencycode" value="<?=$_POST['employee_name']?>" size="5" maxlength="10"/></td>
+   <td>需求日期：</td>
+  <td><input type="text" name="need_date22" maxlength="20" size="10" required="required" value="<?=date('Y-m-d',$_POST['need_date'])?>" onfocus="WdatePicker() "></td>
+  
+   <td>税别</td>
+	 	<td>
+			<select name="tax_name" id="text_slect_tax_name">
+				<?php
+					$sql = "select tax_name from tax_set order by tax_id";
+					$result = DB_query($sql,$db);
+					while ($v = DB_fetch_array($result)) {
+						if ($v['tax_name']==$_POST['tax_name']) {
+				?>
+					<option value="<?=$v['tax_name']?>" selected="selected"><?=$v['tax_name']?></option>
+				<?php }else{?>
+				<option value="<?=$v['tax_name']?>"><?=$v['tax_name']?></option>
+				<?php		}
+					}
+				?>
+			</select>
+		</td>   
+	 
+    <tr> 
+							
+							<td>总价:</td>
+							<td  ><input  type="text" readonly="readonly" class="number" name="order_all_amount" id="order_all_amount" value="<?=$_POST['order_all_amount']?>" size="10" maxlength="10"/></td>
+							<td>合计金额:</td>
+							<td  ><input  type="text" readonly="readonly" class="number" name="all_line_amount" id="all_line_amount" value="<?=$_POST['all_line_amount']?>" size="10" maxlength="10"/></td>
+							<td>优惠:</td>
+							<td  ><input  type="text" readonly="readonly" class="number" name="youhui_amount" id="youhui_amount" value="<?=$_POST['youhui_amount']?>" size="10" maxlength="10" onkeyup="check_amount()" /></td>
+							<td>税金:</td>
+							<td  ><input  type="text" readonly="readonly" class="number" name="tax_amount" id="tax_amount" value="<?=$_POST['tax_amount']?>" size="10" maxlength="10" onkeyup="check_amount()" onblur="check55()"/></td>
+                            <td>应收款金额:</td>
+							<td  ><input  type="text" readonly="readonly" class="number" name="order_payment_amount" id="order_payment_amount" value="<?=$_POST['order_payment_amount']?>" size="10" maxlength="10"/></td>
+							 <td>应开票金额:</td>
+							<td  ><input  type="text" readonly="readonly" class="number" name="order_invoice_amount" id="order_invoice_amount" value="<?=$_POST['order_invoice_amount']?>" size="10" maxlength="10"/></td>
+							 
+						
+                             
+    
+                        </tr>
+                        	
+  <input readonly="readonly" type="hidden"   name="subject" id="text_slect_currencycode" value="<?=$_POST['subject']?>" size="10" maxlength="10"/>
+  <input readonly="readonly" type="hidden"   name="project" id="text_slect_currencycode" value="<?=$_POST['project']?>" size="10" maxlength="10"/>
+  <input readonly="readonly" type="hidden"   name="jiaohuotiaojian" value="<?=$_POST['jiaohuotiaojian']?>" size="10" maxlength="10"/>
+  <input readonly="readonly" type="hidden"   name="baozhuang"   value="<?=$_POST['baozhuang']?>" size="10" maxlength="10"/>
+  <input readonly="readonly" type="hidden"   name="zhiliangbaozheng"  value="<?=$_POST['zhiliangbaozheng']?>" size="10" maxlength="10"/>
+  <input readonly="readonly" type="hidden"   name="mainfeifuwu"  value="<?=$_POST['mainfeifuwu']?>" size="10" maxlength="10"/>
+   <input readonly="readonly" type="hidden"   name="currency_code"  value="<?=$_POST['currency_code']?>" size="10" maxlength="10"/> 
+ <input readonly="readonly" type="hidden"   name="term_name"  value="<?=$_POST['term_name']?>" size="10" maxlength="10"/>
+ <input readonly="readonly" type="hidden"   name="need_date"  value="<?=$_POST['need_date']?>" size="10" maxlength="10"/>
+ <input readonly="readonly" type="hidden"   name="coycode"  value="<?=$_POST['coycode']?>" size="10" maxlength="10"/>
+ <input readonly="readonly" type="hidden"   name="yewu"  value="<?=$_POST['yewu']?>" size="10" maxlength="10"/></td>
+</tr>
+  
+ 
+</table>
+
+<input type="hidden" name="PageOffset" value="1"/><br/>
+<?php
+if (isset($_POST['customer_name']) and $_POST['customer_name'] != '') {
+
+	$sql ="select *
+				from quote_lines_all c
+				where  c.order_number= '" .$_POST['order_number'] . "' and item_no<>'' 
+				  ";
+	// echo $sql;
+	$result = DB_query($sql,$db);
+    if (DB_num_rows($result)==0) {
+		$line_count=DB_num_rows($result);
+        unset($result);
+        prnMsg(_('该报价单没有要转的明细，请重新输入条件查询！') ,'error');
+    }
+
+?>
+<input id="purchase_table_lastRow" name="purchase_table_lastRow" type=hidden value="">
+
+<div class="centre"> 
+                        <p id="Prompt" style="color: red;font-size: 20px"></p>
+                    </div>
+
+<table id="purchase_table" cellpadding="2" class="selection">
+ 
+<tr id="list-top">
+   
+  
+ <th>行</th>
+                <th width="130" bgcolor="#87CEFA">料号</th> 
+					<th width="150" bgcolor="#87CEFA">料号名称</th>
+					<th width="150" bgcolor="#87CEFA">规格型号</th>
+					<th bgcolor="#87CEFA">单位</th>
+					 
+                   	<th bgcolor="#87CEFA">数量</th>	 
+				    <th bgcolor="#87CEFA">单价 </th>
+				    <th bgcolor="#87CEFA">金额</th>	  
+                 <th bgcolor="#87CEFA">仓库</th>		  
+                 <th bgcolor="#87CEFA">备注</th>
+  <th width="15" align="center">选择</th>
+ 
+</tr>
+<?php   
+$i=1;
+ 
+ while ($myrow = DB_fetch_array($result)  )  {
+ 
+	 ?>
+ 
+<tr id="purchase_table_<?=$i?>" >
+  	
+  <td> <input type="text" readonly="readonly" name="line<?=$i?>" id="text_slect_receipt_line<?=$i?>" value="<?= $myrow['line'] ?>" size="1" maxlength="10"/></td>
+  <td><input readonly="readonly" type="text" name="item_no<?=$i?>" id="item_no<?=$i?>" value="<?= $myrow['item_no'] ?>" size="14" maxlength="150"/></td>
+  <td><input readonly="readonly" type="text" name="item_name<?=$i?>" id="item_name<?=$i?>" value="<?= $myrow['item_name'] ?>" size="22" maxlength="150"/></td>  
+   
+  <td><input readonly="readonly" type="text" name="item_desc<?=$i?>" id="item_desc<?=$i?>" value="<?= $myrow['item_desc'] ?>" size="22" maxlength="150"/></td>  
+ 
+   <td><input type="text" readonly="readonly" name="uom<?=$i?>" id="text_slect_buliao<?=$i?>" value="<?=$myrow['uom']?>" size="2" maxlength="50"  /> 
+	 <td><input type="text" class="number" name="quantity<?=$i?>" id="text_slect_buliao<?=$i?>" value="<?=$myrow['quantity']?>" size="7" maxlength="50"  />  
+	  <td><input type="text" class="number" name="price<?=$i?>"  value="<?= $myrow['price']?>" size="7" maxlength="200"/></td> 
+	   <td><input type="text" class="number" name="line_amount<?=$i?>"  value="<?= $myrow['line_amount']?>" size="7" maxlength="200"/></td>  
+	   <td><select name="subinventory_code<?=$i?>">  
+   <?php  
+   $sql = "SELECT loccode,locationname FROM locations where managed='Y' order by paixu";
+    $result1 = DB_query($sql, $db);
+     
+    while ($Salesmanrow = DB_fetch_array($result1)) {
+		 ?>
+        <option style="width:40px;" value="<?=$Salesmanrow['loccode']?>">  <?=$Salesmanrow['locationname'] ?>
+            </option> 
+   <?php }
+   ?>
+     </select>  </td> 
+ 
+	   <td><input type="text"  name="need_remark<?=$i?>"  value="<?= $myrow['need_remark']?>" size="14" maxlength="200"/></td> 
+  <td><input type="checkbox" name="status<?=$i?>" checked /></td>
+ <td> 
+
+  <input type="hidden"  name="order_number<?=$i?>"  value="<?= $myrow['order_number'] ?>" size="8" maxlength="10"/>
+ <input type="hidden"  name="quote_line_id<?=$i?>"  value="<?= $myrow['quote_line_id'] ?>" size="8" maxlength="10"/>
+  </td>
+</tr>
+<?php 
+ $i=$i+1;
+  
+ }
+  ?>
+
+  	 
+	<td ><input type="hidden" name="flag" value="<?=$i-1?>" size="15" maxlength="45"/></td> 
+</table>
+
+<div class="centre">
+<input type="submit" name="Save" value="确认转订单">  &nbsp;&nbsp;
+		<a href="javascript:window.opener=null;window.open('','_self');window.close();">关闭</a>
+</div>
+ <br/>
+<?php
+ 
+}
+?>
+<input type="hidden" name="idcount" id='idcount' value="11"/>
+<input type="hidden" name="JustSelectedAvendor" value="Yes"/>
+</div>
+</form>
+</div>
+</div>
+
+<div id="FooterDiv">
+<div id="FooterWrapDiv">
+
+</div>
+</div>
+</div>
+
+
+<script type="text/javascript">
+      
+	function checktotal(){       
+								   var  all_invoice_amount=0; 
+								   var  all_dis_amount=0;                
+                                for(var i=1 ; i < 50; i++){   
+									if (document.getElementById("text_this_invoice_amount" + i)==null)  {
+									p=0;
+										}
+									else {							
+								   var  invoice_amount=0;
+								   var  dis_amount=0;
+                                   var invoice_amount=document.getElementById("text_this_invoice_amount"+i).value;   
+                                   var dis_amount=document.getElementById("text_this_invoice_dis_amount"+i).value;                               								     
+								   if( invoice_amount>0 )
+								   {  
+								   all_invoice_amount=Number(all_invoice_amount) + Number(invoice_amount);                                 
+                                   }
+								   if( dis_amount>0 )
+								   {  
+								   all_dis_amount=Number(all_dis_amount) + Number(dis_amount);                                 
+                                   }
+
+								    }}
+									
+                    // var tax_rate=document.getElementById("text_slect_tax_rate").value;  
+
+		            document.getElementById("invoice_amount_all").value=all_invoice_amount;
+		            document.getElementById("invoice_dis_amount").value=all_dis_amount; 
+		            //document.getElementById("tax_amount").value=Math.round(Number(all_invoice_amount*tax_rate)*100)/100;
+								}
+  
+function  check(s1){
+	    var a=document.getElementById("text_this_baojia"+s1).value;
+        var b=document.getElementById("text_this_price"+s1).value;
+		if (a>0)
+		{
+		   document.getElementById("text_this_baojia_rate"+s1).value=Math.round(Number(a/b)*100)/100;;
+		}
+        
+    
+     }
+
+    $(document).ready(function(){
+
+        $('.divToilet table tr td a').click(function(){
+            $(this).parent('td').toggleClass('highlight');
+            if(!($(this).parent('td').hasClass('highlight'))) {
+                $(this).next().val('0');
+            }else {
+                $(this).next().val('1');
+            }
+        });
+        <?php for($i=1;$i<=50;$i++){?> 
+        $('#btn_slect_po<?=$i?>').dialog({
+            title:'选择未开票的采购入库单',
+            width: '950px',
+            height: 520,
+            content:'url:SearchNoInvoicePo2.php?fwValue=<?=$i?>&cat=<?=$_POST['customer_code']?>',
+            init:function(){
+			    this.content.document.getElementById('cat').value = 'buliao';
+                this.content.document.getElementById('fwValue').value = '<?=$i?>';
+            }
+        });
+		<?php }?>
+
+
+		 <?php for($i=1;$i<=50;$i++){?> 
+        $('#btn_slect_subcode<?=$i?>').dialog({
+            title:'选择仓库',
+            width: '600px',
+            height: 370,
+            content:'url:Searchsubcode.php?fwValue=<?=$i?>&cat=buliao',
+            init:function(){
+			    this.content.document.getElementById('cat').value = $_POST['customer_code'];
+                this.content.document.getElementById('fwValue').value = '<?=$i?>';
+            }
+        });
+		<?php }?>
+
+
+		$('#btn_slect_vendor').dialog({
+            title:'选择客户',
+            width: '950px',
+            height: 470,
+            content:'url:BtnSearchAPVendor3.php?fwValue=&cat=buliao',
+            init:function(){
+			    this.content.document.getElementById('cat').value ='buliao';
+                this.content.document.getElementById('fwValue').value = '';
+            }
+        });
+
+
+
+	
+        //Function to get URL arguments
+
+        function getRequest() {
+            var url = location.search; //获取url中"?"符后的字串
+            var theRequest = new Object();
+            if (url.indexOf("?") != -1) {
+                var str = url.substr(1);
+                strs = str.split("&");
+                for(var i = 0; i < strs.length; i ++) {
+                    theRequest[strs[i].split("=")[0]]=(strs[i].split("=")[1]);
+                }
+            }
+            return theRequest;
+        }
+          
+ 
+    });
+	function checkall(thisform){
+		for(var i=0;i<thisform.elements.length;i++){
+		if(thisform.elements[i].type=="checkbox"&&thisform.elements[i].checked==false&&thisform.elements[i].name!="selectall")
+		{thisform.elements[i].checked=true;}
+		else if(thisform.elements[i].type=="checkbox"&&thisform.elements[i].checked==true&&thisform.elements[i].name!="selectall")
+		{thisform.elements[i].checked=false;}} }
+</script>
+</body>
+
+</html>
+<?
+
+include('includes/footer.inc');
+?>
+

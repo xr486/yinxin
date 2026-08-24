@@ -1,0 +1,316 @@
+﻿<?php
+/* $Id: SupplierTransInquiry.php 5785 2012-12-29 04:47:42Z daintree $ */
+include('includes/session.inc');
+$Title = '采购单退货（检验不良）';
+include('includes/header.inc');
+if (isset($_POST['return'])) {
+    header('Location: InPOCheckNo.php');
+}  
+if (isset($_GET['NUM'])) {
+    $NUM = $_GET['NUM'];
+} else {
+    $NUM=$_POST['NUM'];
+}
+if (isset($_GET['identifier'])) {
+    $_POST['identifier'] = $_GET['identifier'];
+}
+if (!isset($_POST['identifier'])) {
+    $identifier = date('U');
+} else {
+    $identifier = $_POST['identifier'];
+}
+if (isset($_POST['Submit'])) {
+    $_SESSION['num' . $identifier]= 400;
+    isset($_SESSION['num' . $identifier]) or die("no session");
+    if ($_SESSION['num' . $identifier] == 400) {
+        $_SESSION['num' . $identifier] = 500;
+        $InputError = 0;
+        $checkQty=0;
+        $count=0;
+		$return_date=time();
+        DB_Txn_Begin($db);
+         foreach ($_POST as $key => $value) {
+             if (mb_substr($key, 0, 6) == 'status') {
+                 $count = $count + 1;
+                 $po_num_line = mb_substr($key, 6);
+                 $n = strpos($po_num_line, '_');
+                 if ($n) {
+                     $po_num = substr($po_num_line, 0, $n);
+                     $line = substr($po_num_line, $n + 1);
+                     $return_date = strtotime(Date('Y-m-d H:i:s'));
+                     $return_qty = $_POST['return' . $po_num_line];
+                     $Qty = $_POST['Qty' . $po_num_line];
+                     $stockid=$_POST['stockid'.$po_num_line];
+                    
+                     $rec_num = $_POST['receipt_num' . $po_num_line];
+                     $receipt_line = $_POST['receipt_line' . $po_num_line];
+                     if ($return_qty > $Qty) {
+                         $checkQty = 1;
+                     }
+                     if ($return_qty != '' && $checkQty != 1) {
+//                    echo $receive_qty;
+                         $sql1 = "UPDATE po_lines_all set
+                           quantity_received=ifnull(quantity_received,0)-" . $return_qty . " ,
+                               quantity_rejected=ifnull(quantity_rejected,0)-" . $return_qty . " ,
+                               last_update_date='" . $return_date . "' ,last_updated_by='" . $_SESSION['UserID'] . "' where
+                            po_num='" . $po_num . "'  and  line='" . $line . "'";
+                         $result = DB_query($sql1, $db);
+
+
+                         $sqlUpdatercvline = "update po_rcv_receipt_line set
+            inspection_bad_return_vendor=ifnull(inspection_bad_return_vendor,0)+" . $return_qty . ",
+            reject_area_quantity=ifnull(reject_area_quantity,0) - " . $return_qty . ",
+			last_update_date='" . $return_date . "',last_updated_by='" . $_SESSION['UserID'] . "'
+            where receipt_num='" . $rec_num . "'   and  po_num='" . $po_num . "'  and  receipt_line='" . $receipt_line . "'  and  po_line='" . $line . "'";
+
+//    echo $sqlinsertrcvline;
+                         $result_line = DB_query($sqlUpdatercvline, $db);
+
+                         $sqltrancsation = "insert into po_rcv_transactions(receipt_num,receipt_line,po_num,po_line,stockid,transaction_type,transaction_date,transaction_quantity,creation_date,created_by,last_update_date,last_updated_by) ";
+                         $sqltrancsation .= "values( '" . $rec_num . "','" . $receipt_line . "','".$po_num."','".$line."','".$stockid."','REJECTTORETURN','" . $return_date . "','" . $return_qty . "','" . $return_date . "','" . $_SESSION['UserID'] . "','" . $return_date . "','" . $_SESSION['UserID'] . "')";
+  //  echo $sqltrancsation;
+                         $result_trancsation = DB_query($sqltrancsation, $db);
+                         unset($sql1);
+                         unset($result);
+                         unset($sqlUpdatercvline);
+                         unset($result_line);
+                         unset($sqltrancsation);
+                         unset($result_trancsation);
+                     } else {
+                         $InputError = 1;
+                     }
+                 }
+             }
+         }
+     
+//      $sqlinsertrcv="insert into po_rcv_receipt_header(receipt_num,vendor,create_date,created_by) values('".$OrderNum."','".$vendor."','". $_SESSION['UserID'] ."','".$v_date."')";
+//     echo $sqlinsertrcv;
+//     $result_header=DB_query($sqlinsertrcv, $db);
+//        }
+            if ($count != 0) {
+        if ($InputError == 1) {
+            $msg = '存在数据没有输入数量或退运量超过范围！';
+            prnMsg($msg, 'error');
+        } else {
+            DB_Txn_Commit($db);
+            $msg = '退货成功！';
+            prnMsg($msg, 'success');
+            echo '<br /><div class="centre"><a href="' . $RootPath . '/InPOCheckNo.php">' . _('继续退货') . '</a></div>';
+// echo '<meta http-equiv="refresh" content="0.3" url=RequestReceive.php"/>';
+            unset($sql1);
+            unset($sql_num);
+            unset($NUM);
+            unset($result_num);
+            unset($sqlinsertrcv);
+            unset($rownum);
+            unset($result_header);
+        }
+            }else{
+                $msg = '请选中更改项';
+                $NUM=$_POST['NUM'];
+            prnMsg($msg, 'error');                
+            }
+    }
+} else {
+    session_start() or die("session is not started");
+    $_SESSION['num' . $identifier] = 400;
+}
+
+
+echo '<p class="page_title_text">
+		<img src="' . $RootPath . '/css/' . $Theme . '/images/supplier.png" title="' . '采购单退货（检验不良）' .
+ '" alt="" />' . ' ' . $Title . '
+	</p>';
+
+
+if (isset($NUM) and $NUM != '') {
+
+    $sql = "select 
+rh.receipt_num,rl.receipt_line,
+a.po_num,
+b.line,
+b.stockid,
+c.item_desc,
+c.item_name,
+a.vendor_code,
+d.vendor_name,
+ifnull(b.quantity,0) quantity,
+ifnull(rl.quantity_received,0) this_received,
+ifnull(rl.reject_area_quantity,0) this_return,
+ifnull(rl.inspection_bad_return_vendor,0) inspection_bad_return_qty,
+rl.subinventory_code,
+b.need_date,
+rl.already_inspection_qty,
+rl.reject_area_quantity
+FROM  po_headers_all a,
+      po_lines_all b,
+			po_rcv_receipt_header rh,
+			po_rcv_receipt_line  rl,
+                        sf_item_no c,vendors d
+WHERE   a.po_num=b.po_num    
+and a.vendor_code=d.vendor_code
+and b.po_num=rl.po_num
+and b.line=rl.po_line
+and rl.receipt_num=rh.receipt_num
+and b.stockid=c.item_no 
+and ifnull(rl.reject_area_quantity,0)>0
+and ifnull(rl.reject_area_quantity,0)>ifnull(rl.inspection_bad_return_vendor,0)";
+
+        $sql .= " and rh.receipt_num= '" . $NUM . "' ";
+
+    $sql .= " ORDER BY a.po_num,b.line";
+    $TransResult = DB_query($sql, $db);
+    
+    $ErrMsg = _('来料报检单查询错误，请查看所选采购单') . ' - ' . DB_error_msg($db);
+    $DbgMsg = _('The SQL that failed was');
+    if (DB_num_rows($TransResult) == 0) {
+        unset($TransResult);
+        prnMsg(_('没有找到需要不良退货的来料报检单，请重新输入条件查询！'), 'info');
+    } else {
+        echo '<lable id="alert" style="color:red;"></lable>';
+        echo '<form method="post" action="' . htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES, 'UTF-8') . '"><input type="hidden" name = "identifier" value ="' . $identifier . '">';
+        echo '<div>';
+
+        echo '<input type="hidden" name="FormID" value="' . $_SESSION['FormID'] . '" />';
+        echo '<div class="text-nav-table"> <table class="selection" align="center" >';
+        $tableheader = '<tr>
+	                              <th width =40>' . '确认' . '</th>
+                                  <th width =80>' . '来料报检单号' . '</th>
+								  <th width =10>' . '行' . '</th> 
+	                              <th width =100>' . '采购单号' . '</th>
+                                        <th width =20>' . '行' . '</th>
+                                        <th width =150>' . '料号' . '</th>
+                                            <th width =200>' . '料号名称' . '</th>
+									  <th width =200>' . '规格型号' . '</th>
+                                             <th  width = 80>' . '来料报检量' . '</th>
+									  <th  width = 80>' . '已检测量' . '</th>
+                                        <th  width = 80>' . '已退量' . '</th> 
+                                         <th  width = 80>' . '待退量' . '</th> 
+                                         <th width =80 >' . '本次退货量<span style="color:red">*</span>' . '</th>
+                                        
+                                         
+                                       
+				</tr>';
+        echo $tableheader;
+
+        $RowCounter = 1;
+        $k = 0; //row colour counter
+
+        while ($myrow = DB_fetch_array($TransResult)) {
+
+            if ($k == 1) {
+                echo '<tr class="EvenTableRows">';
+                $k = 0;
+            } else {
+                echo '<tr class="EvenTableRows">';
+                ;
+                $k++;
+            }
+            echo '<td><input type="checkbox" name="status' . $myrow['po_num'] .'_'.$myrow['line']. '" /></td>';
+            echo '<td>' . $myrow['receipt_num'] . '</td>';
+				echo '<td>' . $myrow['receipt_line'] . '</td>'; 
+                echo '<td><font color="red">' . $myrow['po_num'] . '</font></td>';
+            echo '<td>' . $myrow['line'] . ' </td>';
+            echo '<td>' . $myrow['stockid'] . ' </td>';
+            echo '<td>' . $myrow['item_name'] . ' </td>';
+            echo '<td>' . $myrow['item_desc'] . ' </td>';
+            echo '<td>' . $myrow['this_received'] . ' </td>';
+            echo '<td>' . $myrow['already_inspection_qty'] . ' </td>';
+			echo '<td>' . $myrow['inspection_bad_return_qty'] . ' </td>'; 
+            echo '<td size="6"  id="pre_return' . $myrow['po_num'] .'_'.$myrow['line'].  '">' . $myrow['this_return'] . ' </td>';
+            echo'      
+            <td><input type="text" class="number" id="return' . $myrow['po_num'] .'_'.$myrow['line'].  '" 
+			name="return' . $myrow['po_num'] .'_'.$myrow['line'].  '" size="8" maxlength="25"  value="' .$myrow['this_return'] . '" 
+			onkeyup="check(\'' . $myrow['po_num'] .'_'.$myrow['line']. '\')"/></td>';
+         
+
+            echo'<input type="hidden"  name="Qty'. $myrow['po_num'] .'_'.$myrow['line']. '" value="' . $myrow['this_return'] . '"  />';
+            echo'<input type="hidden"  name="receipt_num'. $myrow['po_num'] .'_'.$myrow['line']. '" value="' . $myrow['receipt_num'] . '"  /> ';
+			echo'<input type="hidden"  name="receipt_line'. $myrow['po_num'] .'_'.$myrow['line']. '" value="' . $myrow['receipt_line'] . '"  /> ';
+            echo' <input type="hidden"  name="stockid'. $myrow['po_num'] .'_'.$myrow['line']. '" value="' . $myrow['stockid'] . '"  />';       
+echo '<input type="hidden" name="NUM" value="' . $myrow['receipt_num'] . '"/></tr>';
+
+
+            $RowCounter++;
+            If ($RowCounter == 500) {
+                $RowCounter = 1;
+                echo $tableheader;
+            }
+        }
+        echo '<tr><td colspan="17"><p><input type="checkbox" name="selectall" onclick="checkall(this.form);"/>全选/取消全选</p></td></tr>';
+        echo '</table></div>';
+         
+
+        echo '</div>';
+        echo '<div class="centre">
+			<input type="submit" id="submit" name="Submit" value="' . _('确认') . '" />
+                             <input type="submit" name="return" value="' . "返回上一层" . '" />
+		</div>
+          </form>';
+        
+        echo '<script language="javascript" type="text/javascript">';
+echo 'function checkall(thisform){for(var i=0;i<thisform.elements.length;i++){if(thisform.elements[i].type=="checkbox"&&thisform.elements[i].checked==false&&thisform.elements[i].name!="selectall"){thisform.elements[i].checked=true;}else if(thisform.elements[i].type=="checkbox"&&thisform.elements[i].checked==true&&thisform.elements[i].name!="selectall"){thisform.elements[i].checked=false;}} }';
+echo '</script>';
+
+        echo '<script type="text/javascript">
+                 window.onload = function(){
+                    document.getElementById("submit").onclick = function(){
+                      return checkInput();
+                    }
+                 }
+ 
+                 function checkInput(){
+                     for(var i=0;i < array.length; i++){
+                        return checkArray(array[i]);
+                     }
+                 }
+
+                 function checkArray(id){
+                    var pre_return = document.getElementById("pre_return"+id).innerHTML;
+                    var re = document.getElementById("return"+id).value;
+                        if(re * 1 <= 0){
+                           document.getElementById("alert").innerHTML = "！！警告：退货量输入错误不可以<=0";
+                           return false;
+                        } else if(re * 1  > pre_return * 1){
+                           document.getElementById("alert").innerHTML = "！！警告：不能大于待退货量"; 
+                           return false;
+                        } else {
+                            document.getElementById("alert").innerHTML = "";
+                        }
+                        return true;
+                 }
+
+                 var array = new Array();
+                 var i = 0;
+                 function check(id){
+                    
+                    var pre_return = document.getElementById("pre_return"+id).innerHTML;
+                        var re = document.getElementById("return"+id).value;
+                        if(re * 1 < 0){
+                           document.getElementById("alert").innerHTML = "！！警告：数值输入错误";
+                           array[i] = id;
+                           i++;
+                        } else if(re * 1  > pre_return * 1){
+                           document.getElementById("alert").innerHTML = "！！警告：不能大于待退货量";
+                           array[i] = id;
+                           i++;
+                        } else {
+                            document.getElementById("alert").innerHTML = "";
+                        }
+                        return true;
+                 }
+                function submit(){
+                     var al = document.getElementById("alert").innerHTML;
+                     if(al=="！！警告：不能大于待退货量"||al=="！！警告：数值输入错误"){
+                         return false;
+                     }
+                     return true;
+                }
+
+             </script>';
+
+    }
+}
+
+include('includes/footer.inc');
+?>

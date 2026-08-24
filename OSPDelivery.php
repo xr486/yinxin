@@ -1,0 +1,353 @@
+﻿<?php
+/* $Id: SupplierTransInquiry.php 5785 2012-12-29 04:47:42Z daintree $ */
+include('includes/session.inc');
+$Title = '采购单入库';
+include('includes/header.inc');
+if (isset($_POST['return'])) {
+//    echo 'AAAAAAAAAA';
+    header('Location: InPODelivery.php');
+}
+if (isset($_GET['NUM'])) {
+    $NUM = $_GET['NUM'];
+} else {
+    $NUM=$_POST['NUM'];
+}
+if (isset($_GET['identifier'])) {
+    $_POST['identifier'] = $_GET['identifier'];
+}
+if (!isset($_POST['identifier'])) {
+    $identifier = date('U');
+} else {
+    $identifier = $_POST['identifier'];
+}
+if (isset($_POST['Submit'])) {
+    $errorflag = 0;
+    $time = time();
+    $time2=$time - 5;
+    if ($_SESSION['lastsearchtime'] > $time2 )  {
+        $errorflag = 1;
+        prnMsg($value.'重复提交！',error);
+    }
+   
+
+    $_SESSION['num' . $identifier]= 400;
+    isset($_SESSION['num' . $identifier]) or die("no session");
+    if ($_SESSION['num' . $identifier] == 400 and $errorflag == 0 ) {
+        $_SESSION['num' . $identifier] = 500;
+        $InputError = 0;
+        $checkQty = 0;
+        $count = 0;
+        $time=time();
+        DB_Txn_Begin($db);
+        foreach ($_POST as $key => $value) {
+            if (mb_substr($key, 0, 6) == 'status') {
+                $count = $count + 1;
+                $i = mb_substr($key, 6);
+			  
+                   
+                 
+                if ($_POST['already_inspection_qty' . $i] > $_POST['this_received' . $i]) {
+                    $checkQty = 1;
+                    prnMsg($value.'入库单'.$_POST['receipt_num' . $i] .'行'.$_POST['receipt_line' . $i].'已检验数量大于收货数量',error);
+                }
+  
+                    if ($_POST['delivery_quantity' . $i] > $_POST['wait_qty' . $i]) {
+                        $checkQty = 1;
+						prnMsg($value.'入库单'.$_POST['receipt_num' . $i] .'行'.$_POST['receipt_line' . $i].'入库数量大于待入库数量',error);
+                    }
+					if ($_POST['delivery_quantity' . $i] <0 ) {
+                        $checkQty = 1;
+						
+						 prnMsg($value.'入库单'.$_POST['receipt_num' . $i] .'行'.$_POST['receipt_line' . $i].'小于0',error);
+                    }
+                    // if ($_POST['youxiaoqi' . $i] > 0 and $_POST['shengchan_date' . $i] == '' ) {
+                    //     $checkQty = 1;
+                    //     prnMsg($value . '请输入正确的生产日期！', error);
+                    // }
+                    // if ( strtotime($_POST['shengchan_date' . $i]) > $time) {
+                    //     $checkQty = 1;
+                    //     prnMsg($value . '请输入正确的生产日期！', error);
+                    // }
+                   
+                    if ($_POST['delivery_quantity' . $i] != '' && $checkQty != 1) {
+
+                        if ($_POST['youxiaoqi' . $i] == '0') {
+							$_POST['shengchan_date' . $i] = '';
+						
+						}
+//                    echo $receive_qty;
+                        $sql1 = "UPDATE po_lines_all set 
+                           quantity_deliveried=ifnull(quantity_deliveried,0)+" . $_POST['delivery_quantity' . $i]. " ,
+                               last_update_date='" . $time . "' ,last_updated_by='" . $_SESSION['UserID'] . "' 
+							   where  po_num='" . $_POST['po_num' . $i]. "'  and  line='" . $_POST['po_line' . $i] . "'";
+                        $result = DB_query($sql1, $db);
+
+
+                        $sqlUpdatercvline = "update po_rcv_receipt_line 
+						set delivery_quantity=ifnull(delivery_quantity,0)+" . $_POST['delivery_quantity' . $i] . ",
+                        wait_delivery_quantity=ifnull(wait_delivery_quantity,0)-" . $_POST['delivery_quantity' . $i] . ", 
+                        subinventory_code = '" . $_POST['subinventory_code' . $i] . "',
+				        last_update_date='" . $time . "',	
+						last_updated_by='" . $_SESSION['UserID'] . "' 
+						where RECEIPT_NUM='" . $_POST['receipt_num' . $i] . "'   
+			and  po_num='" . $_POST['po_num' . $i] . "' 
+			and  receipt_line='" . $_POST['receipt_line' . $i] . "' 
+			and  po_line='" . $_POST['po_line' . $i] . "'";
+
+//    echo $sqlinsertrcvline;
+                        $result_line = DB_query($sqlUpdatercvline, $db);
+
+                        $sqltrancsation = "insert into po_rcv_transactions(receipt_num,receipt_line,po_num,po_line,stockid,transaction_type,transaction_date,transaction_quantity,lot_num,huohao,shengchan_date,youxiaoqi,creation_date,created_by,last_update_date,last_updated_by) ";
+                        $sqltrancsation.="values( '" . $_POST['receipt_num' . $i] . "','" . $_POST['receipt_line' . $i] . "','" . $_POST['po_num' . $i]. "','" .  $_POST['po_line' . $i] . "','" . $_POST['stockid' . $i] . "','POIN','" . $time . "','" . $_POST['delivery_quantity' . $i] . "','" . $_POST['lot_num' . $i] . "','" . $_POST['huohao' . $i] . "','" . strtotime($_POST['shengchan_date' . $i]) . "','".$_POST['youxiaoqi' . $i]."','" . $time . "','" . $_SESSION['UserID'] . "','" . $time . "','" . $_SESSION['UserID'] . "')";
+ 
+                        $result_trancsation = DB_query($sqltrancsation, $db);
+                      
+						//  $insertDel="insert into inv_onhand_quantity_all(stockid,cost_price,
+                        //             quantity,lot_num,shengchan_date,youxiaoqi,subinventory_code,creation_date,created_by,last_update_date,
+                        //             last_updated_by) values('" . $_POST['stockid' . $i] . "','" . $_POST['price' . $i] . "',
+                        //             '" . $_POST['delivery_quantity' . $i] . "','" . $_POST['lot_num' . $i] . "','" . strtotime($_POST['shengchan_date' . $i]) . "','".$_POST['youxiaoqi' . $i]."','".$_POST['subinventory_code' . $i]."',
+                        //             '".$time."','".$_SESSION['UserID'] ."','".$time."','".$_SESSION['UserID'] ."')";
+                        // $result_insertDel=DB_query($insertDel, $db);
+
+                        // $sql7 = "select sum(quantity) quantity from inv_onhand_quantity_all 
+                        //       where stockid='" . $_POST['stockid' . $i] . "'
+                        //       and subinventory_code='" .  $_POST['subinventory_code' . $i] . "'";
+                        // $result7 = DB_query($sql7, $db);
+                        // $v7 = DB_fetch_array($result7);
+
+
+                        $sqlinvtrancsation="insert into inv_transactions_all(subinventory_from,transaction_type,
+                                 trans_num,transaction_date,quantity,after_onhand,uom ,item_no,receipt_num,receipt_line,po_num,
+                                 po_line,lot_num,huohao,shengchan_date,youxiaoqi,creation_date,created_by,last_update_date,last_updated_by) ";
+    $sqlinvtrancsation.="values('".$_POST['subinventory_code' . $i]."','POIN','".$_POST['receipt_num' . $i]."',
+     '".$time."','".$_POST['delivery_quantity' . $i]."','".$v7['quantity']."','".$_POST['uom' . $i]."','".$_POST['stockid' . $i]."',
+     '".$_POST['receipt_num' . $i]."','".$_POST['receipt_line' . $i]."','". $_POST['po_num' . $i]."',
+     '". $_POST['po_line' . $i]."','" . $_POST['lot_num' . $i] . "','" . $_POST['huohao' . $i] . "','" . strtotime($_POST['shengchan_date' . $i]) . "','" . $_POST['youxiaoqi' . $i] . "','".$time."','".$_SESSION['UserID']."','".$time."','".$_SESSION['UserID']."')";
+    $result_invtrancsation = DB_query($sqlinvtrancsation, $db); 
+                        unset($sql1);
+                        unset($result);
+                        unset($sqlUpdatercvline);
+                        unset($result_line);
+                        unset($sqltrancsation);
+                        unset($result_trancsation);
+                        unset($insertDel);
+                        unset($result_insertDel);
+                        unset($sqlinvtrancsation);
+                        unset($result_invtrancsation);
+                    } else {
+                        $InputError = 1;
+                    }
+                }
+            }
+
+        $_SESSION['lastsearchtime']=$time;
+//      $sqlinsertrcv="insert into po_rcv_receipt_header(receipt_num,vendor,create_date,created_by) values('".$OrderNum."','".$vendor."','". $_SESSION['UserID'] ."','".$v_date."')";
+//     echo $sqlinsertrcv;
+//     $result_header=DB_query($sqlinsertrcv, $db);
+//        }
+        if ($count != 0) {
+            if ($InputError == 1) {
+                $msg = '存在数据没有输入数量超过待入库量！';
+
+                $NUM=$_POST['NUM'];
+                prnMsg($msg, 'error');
+            } else {
+                DB_Txn_Commit($db);
+                $msg = '采购单入库成功！';
+                prnMsg($msg, 'success');
+                $NUM=$_POST['NUM'];
+
+                 echo '<br /><div class="centre"><a href="' . $RootPath . '/OSPInPODelivery.php">' . _('采购单入库') . '</a></div>';
+                 echo '<br /><div class="centre"><a href="' . $RootPath . '/PrintInPODelivery.php?Updatedelivery_num='.$NUM .'" target="_blank"  >' . _('打印') . '</a></div>';
+// echo '<meta http-equiv="refresh" content="0.3" url=RequestReceive.php"/>';
+                unset($sql1);
+                unset($sql_num);
+                unset($result_num);
+                unset($sqlinsertrcv);
+                unset($rownum);
+                unset($result_header);
+                unset($NUM);
+            }
+        } else {
+            $msg = '请选中更改项';
+            $NUM=$_POST['NUM'];
+            prnMsg($msg, 'error');
+        }
+    }
+} else {
+    session_start() or die("session is not started");
+    $_SESSION['num' . $identifier] = 400;
+}
+
+
+echo '<p class="page_title_text">
+		<img src="' . $RootPath . '/css/' . $Theme . '/images/supplier.png" title="' . '采购单入库' .
+ '" alt="" />' . ' ' . $Title . '
+	</p>';
+ 
+if (isset($NUM) and $NUM != '') {
+    // $SQL_FromDate = FormatDateForSQL($_POST['FromDate']);
+    // $SQL_ToDate = FormatDateForSQL($_POST['ToDate']);
+    $sql = "select rl.receipt_line_id,
+rh.receipt_num,rl.receipt_line,
+a.po_num,
+b.line,
+b.stockid,
+c.item_desc,
+	c.item_name,
+a.vendor_code,
+d.vendor_name,
+rl.uom,
+ifnull(b.quantity,0) quantity,
+ifnull(rl.quantity_received,0) this_received,
+ifnull(rl.DELIVERY_QUANTITY,0) DELIVERY_QUANTITY,
+ifnull(rl.already_inspection_qty,0) already_inspection_qty,
+ifnull(rl.wait_delivery_quantity,0) wait_delivery_quantity,
+rl.subinventory_code,
+b.need_date,c.youxiaoqi,c.huohao,
+rl.reject_area_quantity,b.price ,rl.lot_num,c.project_name,c.sub_code
+FROM  po_headers_all a,
+      po_lines_all b,
+			po_rcv_receipt_header rh,
+			po_rcv_receipt_line  rl,
+                        sf_item_no c,vendors d
+WHERE a.vendor_code=d.vendor_code
+and a.po_num=b.po_num    
+and b.po_num=rl.po_num
+and b.line=rl.po_line
+and rl.receipt_num=rh.receipt_num
+and b.stockid=c.item_no 
+and ifnull(rl.wait_delivery_quantity,0)>0
+      ";
+      
+
+
+    $sql .= " and rh.receipt_num= '" . $NUM . "' ";
+
+
+    $sql .= " ORDER BY rh.receipt_num,rl.receipt_line";
+    $TransResult = DB_query($sql, $db);
+
+    $ErrMsg = _('来料报检单查询错误，请查看所选采购单') . ' - ' . DB_error_msg($db);
+    $DbgMsg = _('The SQL that failed was');
+    if (DB_num_rows($TransResult) == 0) {
+        unset($TransResult);
+        prnMsg(_('没有找到需要入库的来料报检单，请重新输入条件查询！'), 'info');
+    } else {
+        echo '<form method="post" action="' . htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES, 'UTF-8') . '"><input type="hidden" name = "identifier" value ="' . $identifier . '">';
+        echo '<div>';
+//echo '<div style="width:1300px;height:400px;overflow-x: hidden; overflow-y: scroll;">';
+        echo '<input type="hidden" name="FormID" value="' . $_SESSION['FormID'] . '" />
+		 <div class="centre">
+                                <p id="Prompt" style="color: red;font-size: 20px"></p>
+                            </div>';
+
+        echo '<div class="text-nav-table"> <table class="selection" align="center" >';
+        $tableheader = '<tr>
+	                              <th  width =40>' . '选择' . '</th>
+                                          <th width =100>' . '来料报检单号' . '</th>
+										  <th width =10>' . '行' . '</th> 
+	                                <th width =100>' . '采购单号' . '</th>
+                                        <th width =10>' . '行' . '</th>
+                                        <th width =100>' . '料号' . '</th>
+                                            <th  >' . '料号名称' . '</th>
+                                           <th  >' . '规格型号' . '</th>
+                                          <th   >' . '来料报检量' . '</th>
+										 <th   >' . '已入库量' . '</th>  
+                                          <th   >' . '待入库量' . '</th>  
+							 <th width =120 >' . '本次入库量<span style="color:red">*</span>' . '</th>  
+                                        
+                                       
+				</tr>';
+        echo $tableheader;
+
+        $RowCounter = 1;
+        $k = 0; //row colour counter
+
+        while ($myrow = DB_fetch_array($TransResult)) {
+
+            if ($k == 1) {
+                echo '<tr class="EvenTableRows">';
+                $k = 0;
+            } else {
+                echo '<tr class="EvenTableRows">';
+                ;
+                $k++;
+            }
+            echo '<td><input type="checkbox" name="status' . $myrow['receipt_line_id'] . '" /></td>';
+            echo '<td>' . $myrow['receipt_num'] . '</td>';
+			echo '<td>' . $myrow['receipt_line'] . '</td>'; 
+            echo '<td><font color="red">' . $myrow['po_num'] . '</font></td>';
+            echo '<td>' . $myrow['line'] . ' </td>';
+            echo '<td>' . $myrow['stockid'] . ' </td>';
+            echo '<td>' . $myrow['item_name'] . ' </td>';
+            echo '<td>' . $myrow['item_desc'] . ' </td>';
+            echo '<td>' . $myrow['this_received'] . ' </td>';
+			echo '<td>' . $myrow['DELIVERY_QUANTITY'] . ' </td>';
+			echo '<td>' . $myrow['wait_delivery_quantity'] . ' </td>';
+            echo'<td><input type="text" class="number"  id="delivery_quantity' . $myrow['receipt_line_id'] . '"  name="delivery_quantity' . $myrow['receipt_line_id'] . '" size="8" maxlength="25"  value="' . $myrow['wait_delivery_quantity'] . '"  onblur="check55(' . $myrow['receipt_line_id'] . ')" /></td>';
+         
+          
+
+            
+      
+			echo'<input type="hidden"  name="uom' . $myrow['receipt_line_id'] . '" value="' . $myrow['uom'] . '"  />';
+            echo'<input type="hidden" id="wait_qty' . $myrow['receipt_line_id'] . '" name="wait_qty' . $myrow['receipt_line_id'] . '" value="' . $myrow['wait_delivery_quantity'] . '"  />';
+            echo'<input type="hidden"   name="receipt_num' . $myrow['receipt_line_id'] . '" value="' . $myrow['receipt_num'] . '"  /> ';
+			echo'<input type="hidden"  name="receipt_line' . $myrow['receipt_line_id'] . '" value="' . $myrow['receipt_line'] . '"  /> ';
+            echo' <input type="hidden"  name="stockid' . $myrow['receipt_line_id'] . '" value="' . $myrow['stockid'] . '"  />';
+			 echo' <input type="hidden"  name="price' . $myrow['receipt_line_id'] . '" value="' . $myrow['price'] . '"  />';
+			 echo' <input type="hidden"  name="po_num' . $myrow['receipt_line_id'] . '" value="' . $myrow['po_num'] . '"  />';
+			 echo' <input type="hidden"  name="po_line' . $myrow['receipt_line_id'] . '" value="' . $myrow['line'] . '"  />';
+			 echo' <input type="hidden"  name="lot_num' . $myrow['receipt_line_id'] . '" value="' . $myrow['lot_num'] . '"  />';
+             echo' <input type="hidden"  name="youxiaoqi' . $myrow['receipt_line_id'] . '" value="' . $myrow['youxiaoqi'] . '"  />';
+			 echo' <input type="hidden"  name="this_received' . $myrow['receipt_line_id'] . '" value="' . $myrow['this_received'] . '"  />';
+			 echo' <input type="hidden"  name="already_inspection_qty' . $myrow['receipt_line_id'] . '" value="' . $myrow['already_inspection_qty'] . '"  />';
+           
+            echo '<input type="hidden" name="NUM" value="' . $myrow['receipt_num'] . '"></td> </tr>';
+           
+
+            $RowCounter++;
+            If ($RowCounter == 500) {
+                $RowCounter = 1;
+                echo $tableheader;
+            }
+        }
+         echo '<tr><td colspan="15"><p><input type="checkbox" name="selectall" onclick="checkall(this.form);"/>全选/取消全选</p></td></tr>';
+        echo '</table></div>';
+
+
+        echo '</div>';
+        echo '<div class="centre">
+			<input type="submit" name="Submit" value="' . _('确认') . '" />
+                            <input type="submit" name="return" value="' . "返回上一层" . '" />
+		</div>
+          </form>';
+    }
+}
+
+echo '<script language="javascript" type="text/javascript">';
+echo 'function checkall(thisform){for(var i=0;i<thisform.elements.length;i++){if(thisform.elements[i].type=="checkbox"&&thisform.elements[i].checked==false&&thisform.elements[i].name!="selectall"){thisform.elements[i].checked=true;}else if(thisform.elements[i].type=="checkbox"&&thisform.elements[i].checked==true&&thisform.elements[i].name!="selectall"){thisform.elements[i].checked=false;}} }';
+echo '</script>';
+
+
+//}
+include('includes/footer.inc');
+?>
+<script language="javascript" type="text/javascript">
+  function check55(s1) {
+            var a = document.getElementById("wait_qty" + s1).value;
+            var b = document.getElementById("delivery_quantity" + s1).value;
+            if (parseFloat(b) > parseFloat(a)) {
+                document.getElementById("Prompt").innerHTML = "入库数量" + b + "不可以大于未良品量！" + a;
+                document.getElementById("delivery_quantity" + s1).value = "";
+                document.getElementById("delivery_quantity" + s1).focus();
+            } else if (parseInt(b) < 0) {
+                document.getElementById("Prompt").innerHTML = "入库数量不可以小于0！" + a;
+                document.getElementById("delivery_quantity" + s1).value = "";
+                document.getElementById("delivery_quantity" + s1).focus();
+            } else {
+                document.getElementById("Prompt").innerHTML = "";
+            }
+        }
+		</script> 

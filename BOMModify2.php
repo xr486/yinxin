@@ -1,0 +1,682 @@
+<?php
+ 
+include ('includes/DefineBOMUpdateClass.php');
+include ('includes/session.inc');
+$Title = _('BOM修改');
+$ViewTopic = 'BOM修改';
+$BookMark = 'BOM修改';
+include ('includes/header.inc');
+include ('includes/SQL_CommonFunctions.inc');
+  
+
+if (isset($_GET['identifier'])) {
+    $_POST['identifier'] = $_GET['identifier'];
+}
+
+if (!isset($_POST['identifier'])) {
+    $identifier = date('U');
+} else {
+    $identifier = $_POST['identifier'];
+}
+if (isset($_POST['DeleteAll'])) {
+	$sql="select count(*) as count from wip_jobs_all where  bom_header_id='" . $_POST['bom_header_id'] . "' ";
+	$result = DB_query($sql,$db);
+	$row=DB_fetch_array($result);
+	if($row['count']>0){
+		
+			prnMsg('BOM已有开工单,不能删除', 'error');
+			echo '<a href="javascript:history.back(-1)">点击返回</a>';
+		} else {
+		 echo $_POST['bom_header_id'];
+	 $sql="delete from bom_headers_all where  bom_header_id='" . $_POST['bom_header_id'] . "' ";
+	  $result = DB_query($sql,$db);
+	   
+	   $sql="delete  from bom_substitutes_all where  component_sequence_id  in ( select component_sequence_id from bom_lines_all where  bom_header_id='" . $_POST['bom_header_id'] . "') ";
+	  $result = DB_query($sql,$db);
+	 
+
+	   $sql="delete from bom_lines_all where  bom_header_id='" . $_POST['bom_header_id'] . "' ";
+	  $result = DB_query($sql,$db);
+	  echo '<meta http-equiv="refresh" content="0; url=' . $RootPath .'/BOMModify.php" />';
+	  exit();
+	 }
+
+
+}
+if (isset($_POST['UpdateBom'])) {
+	//echo $_POST['bom_header_id'];
+	 
+	 $sql="update   bom_headers_all
+	 set version='" . $_POST['version'] . "'
+	 where  bom_header_id='" . $_POST['bom_header_id'] . "' ";
+	 //echo $sql;
+	  $result = DB_query($sql,$db);
+	  $msg = 'BOM修改完成';
+    prnMsg($msg, 'success');
+	    echo '<meta http-equiv="refresh" content="0; url=' . $RootPath .
+                     '/BOMModify2.php?New=Yes&UpdateBOMItem='. $_POST['bom_header_id'] . '" />';
+	 
+}
+
+//新增行处理 begin
+if (isset($_POST['Save'])) {
+	$errorflag = 1;
+	foreach ($_POST as $key => $value) {
+		if ($value != '') {
+			if (substr($key, 0,7)=='stockid') {
+				$errorflag = 0;
+				$i = substr($key, 7);
+				if ($value != '') {
+					if ($_POST['uom'.$i]=='') {
+						$errorflag = 1;
+						prnMsg($value.'未填写单位，请填写单位！',error);
+					}
+					 
+					if ($_POST['component_quantity'.$i]=='') {
+						$errorflag = 1;
+						prnMsg($value.'未填写单位用量，请填写单位用量！',error);
+					}
+
+				}
+			}
+		}
+	}
+ 
+	if ($errorflag == 0) {
+
+		$sumamount=0.00;
+		DB_Txn_Begin($db);
+		$time = time();
+		$order_amount = 0;
+
+		$sql_num = "select 	max(item_num) line from bom_lines_all where  bom_header_id  = '" . $_POST['bom_header_id']. "'";
+		$result_num = DB_query($sql_num, $db);
+		$rownum = DB_num_rows($result_num);
+		while ($v = DB_fetch_array($result_num)) {
+			$line =  $v['line'];			 
+		}
+
+		foreach ($_POST as $key => $value) {
+			if ($value != '') {
+				if (substr($key, 0,7)=='stockid') {
+					$i = substr($key, 7);
+					
+					if($_POST['sunhao_rate'.$i]==''){
+						$_POST['sunhao_rate'.$i] =0; 
+					}
+					$line=$line+1;
+
+					$sql= "insert into bom_lines_all(
+				    assembly_item_no, bom_header_id,
+					item_num,operation_seq_num,
+				    component_item,
+			 	   COMPONENT_QUANTITY,
+			 	   sunhao_rate,
+			 	   weizhi,
+			 	   COMPONENT_REMARKS, 
+             	   EFFECTIVITY_DATE,
+			 	   CREATION_DATE,			
+             	   CREATED_BY,		last_update_date,
+             	   last_updated_by)
+						values( 
+						'".$_POST['assembly_item_no']. "','".$_POST['bom_header_id']. "',  
+						'".$_POST['item_num'.$i]."', '".$_POST['operation_seq_num'.$i]."',
+                        '".$_POST['stockid'.$i]."',
+						'".$_POST['component_quantity'.$i]."',
+						'".$_POST['sunhao_rate'.$i]."',
+						'".$_POST['weizhi'.$i]."',
+                        '".$_POST['component_remarks'.$i]."', 
+					    '" . $time. "',
+					    '" . $time. "',
+                        '" . $_SESSION['UserID']. "',
+                       
+                        '" . $time. "',
+                        '" .$_SESSION['UserID'] . "') ";
+            $result = DB_query($sql,$db);
+
+			// 注：编辑 BOM 不再修改审核状态（status 只能由 BOM 审核功能修改）
+
+				
+				}
+			}
+		}
+       
+
+
+			
+		DB_Txn_Commit($db);
+		$msg = 'BOM新增行成功！1秒后将跳转回上一页！';
+    prnMsg($msg, 'success');
+  echo '<meta http-equiv="refresh" content="0; url=' . $RootPath .
+                    '/BOMModify2.php?New=Yes&UpdateBOMItem='. $_POST['bom_header_id'] . '" />';
+	}
+}
+
+//新增行处理 end
+
+if (isset($_GET['New'])) {
+ 
+
+    unset($_SESSION['Contract' . $identifier]);
+    $_SESSION['Contract' . $identifier] = new ReceiveRequest();
+    if (isset($_GET['UpdateBOMItem'])) {
+        if (!isset($_SESSION['Contract' . $identifier]->bom_header_id) or $_SESSION['Contract' .
+            $identifier]->bom_header_id == '') {
+            $bom_header_id = $_GET['UpdateBOMItem'];
+            $sql = "SELECT a.bom_header_id,a.version,a.assembly_item_no,b.item_name,b.item_desc,item_category1,b.units
+	FROM  sf_item_no b,bom_headers_all a
+WHERE	b.item_no=a.assembly_item_no and a.bom_header_id ='"   . $bom_header_id  . "'";
+            $CustResult = DB_query($sql, $db);
+            while ($myrow = DB_fetch_array($CustResult)) {
+                $_SESSION['Contract' . $identifier]->bom_header_id = $myrow['bom_header_id'];
+                $_SESSION['Contract' . $identifier]->assembly_item_no = $myrow['assembly_item_no'];
+                $_SESSION['Contract' . $identifier]->version = $myrow['version'];
+                $_SESSION['Contract' . $identifier]->status = $myrow['status'];
+                $_SESSION['Contract' . $identifier]->order_date = $myrow['order_date'];
+                $_SESSION['Contract' . $identifier]->need_date = $myrow['need_date'];
+				$_SESSION['Contract' . $identifier]->app_remark = $myrow['app_remark'];
+                $_SESSION['Contract' . $identifier]->create_date = $myrow['creation_date'];              
+            }
+
+
+            if (!isset($_POST['Update'])) {
+                $sql = 'select b.item_no,b.item_name,b.item_desc,b.units,a.*,(select count(*) 
+		from bom_substitutes_all bsa where a.component_sequence_id=bsa.component_sequence_id ) sub_count 
+				from bom_lines_all a,sf_item_no b where a.component_item=b.item_no and bom_header_id = ' . "'" .$_SESSION['Contract' . $identifier]->bom_header_id . "'
+				order by a.item_num"; 
+                $resultline = DB_query($sql, $db);
+               
+            }																																																		
+        }
+    }
+}
+
+
+if (isset($_POST['Edit'])) {
+    if ($_POST["quantity"] > $_SESSION['Contract' . $identifier]->LineItems[$_POST['LineNumber']]->
+        quantity_received) {
+        $_SESSION['Contract' . $identifier]->LineItems[$_POST['LineNumber']]->quantity =
+            $_POST['quantity'];
+        $_SESSION['Contract' . $identifier]->LineItems[$_POST['LineNumber']]->price = $_POST['price'];
+        $_SESSION['Contract' . $identifier]->LineItems[$_POST['LineNumber']]->amount = $_POST['quantity'] *
+            $_POST['price'];
+        $line = $_SESSION['Contract' . $identifier]->LineItems[$_GET['Delete']]->line;
+    } else {
+        prnMsg(_('修改失败，输入量小于来料报检量！'), 'error');
+
+    }
+}
+
+ 
+if (isset($_GET['component_sequence_id'])   ) {
+   $time = time();
+	 
+       $sql = "delete from   bom_lines_all 
+	   where  component_sequence_id= '" . $_GET['component_sequence_id'] . "' ";
+	   $result = DB_query($sql,$db);
+
+	 
+	 
+    prnMsg(_('删除成功！'), 'success');
+	echo '<meta http-equiv="refresh" content="0; url=' . $RootPath .
+                    '/BOMModify2.php?New=Yes&UpdateBOMItem='. $_GET['UpdateBOMItem'] . '" />';
+    //DB_Txn_Commit($db);
+   
+	 
+}
+
+
+
+
+ 
+
+if (isset($_POST['Submit'])) {
+ 
+
+    isset($_SESSION['num' . $identifier]) or die("no session");
+    if ($_SESSION['num' . $identifier] == 400) {
+        $_SESSION['num' . $identifier] = 500;
+        DB_Txn_Begin($db);
+        $InputError = 0;
+		  
+        $v_date = strtotime(Date('Y-m-d H:i:s'));
+        $sumamount = 0.00;
+        if ($InputError == 0) {
+          $count=null;
+          $sumamount = null;
+          foreach ($_POST as $key => $value){
+          
+        //$receipt_line_id =mb_substr($key,15);
+		
+           if (mb_substr($key,0,21)=='component_sequence_id') {
+              $component_sequence_id =mb_substr($key,21);
+			  $i = $_POST[$key];   
+			//  echo $po_line_id ;
+               //var_dump($i);
+			  if ( $component_sequence_id>0 ) {
+              //var_dump( $_POST['amount'.$line]);   
+			 
+			   if ($_POST['disable_date'.$i])  {
+	             $disable_date = strtotime($_POST['disable_date'.$i]);
+	            } else {
+					 $disable_date=0;
+				}
+              $count = $count + 1; 	 	
+              $linesql = "UPDATE bom_lines_all " . " 
+			  set component_quantity=  " . $_POST['component_quantity'.$i] . ", 
+                                sunhao_rate  ='" . $_POST['sunhao_rate'.$i]  . "',
+								weizhi  ='" . $_POST['weizhi'.$i]  . "',
+                                component_remarks ='" . $_POST['component_remarks'.$i]  . "', 
+                                disable_date ='" . $disable_date  . "',
+                                last_update_date ='" . $v_date . "',
+                                last_updated_by= '" . $_SESSION['UserID'] . "'
+                        where component_sequence_id='" .  $component_sequence_id  . "'  ";
+				//echo $linesql;
+              $Result = DB_query($linesql, $db); 
+			  
+			  
+			  // 注：编辑 BOM 不再修改审核状态（status 只能由 BOM 审核功能修改）
+			  }
+              
+           }
+        }
+             
+
+            if ($count > 0) {
+                //var_dump($sumamount);
+           
+                DB_Txn_Commit($db);
+                $msg = 'BOM修改成功！1秒后将跳转回主页！';
+                prnMsg($msg, 'success');
+               echo '<meta http-equiv="refresh" content="0; url=' . $RootPath .'/BOMModify2.php?New=Yes&UpdateBOMItem='. $_POST['bom_header_id'] . '" />';
+              
+            } else {
+                prnMsg(_('采购单行无数据，如果确定全部取消请选择：全部取消'), 'error');
+                unset($_SESSION['Contract' . $identifier]);
+            }
+            DB_Txn_Commit($db);
+        }
+        include ('includes/footer.inc');
+        exit;
+    } else {
+        header('Location: SelectTransferRequest.php');
+    }
+}  else {
+    session_start() or die("session is not started");
+    $_SESSION['num' . $identifier] = 400;
+}
+echo '	<div class="centre">
+		<a href="' . $RootPath . '/BOMModify.php">返回重新选择BOM</a>
+	</div>';
+echo '<p class="page_title_text"><img src="' . $RootPath . '/css/' . $Theme .
+    '/images/supplier.png" title="' . _('Dispatch') . '" alt="" />' . ' ' . $Title .
+    '</p>';
+
+
+
+echo '<form action="' . htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES,
+    'UTF-8') . '" method="post"><input type="hidden" name = "identifier" value ="' .
+    $identifier . '">';
+echo '<div>';
+echo '<input type="hidden" name="FormID" value="' . $_SESSION['FormID'] . '" />';
+echo '<div class="centre"> 
+<p id="Prompt" style="color: red;font-size: 20px"></p>
+                    </div>';
+ $sql = "SELECT bom_header_id,a.version,b.item_no,b.item_name,b.item_desc,b.units,item_category1
+	FROM sf_item_no b,bom_headers_all a
+WHERE	b.item_no=a.assembly_item_no and   a.bom_header_id ='" .$_SESSION['Contract' . $identifier]->bom_header_id."'";
+ 
+$result = DB_query($sql, $db); 
+while ($myrow = DB_fetch_array($result)) {
+echo '<table width="100%" border="1" cellpadding="0" cellspacing="0"> 
+<div class="text-nav">
+        <div class="text-nav-1"><div>母件料号:</div ><input type="text" readonly="readonly" value="' . $myrow['item_no'] . '" /></div>
+        <div class="text-nav-1"><div>料号名称:</div ><input type="text" readonly="readonly" value="' . $myrow['item_name'] . '" /></div>
+        <div class="text-nav-1"><div>规格型号:</div ><input type="text" readonly="readonly" value="' . $myrow['item_desc'] . '" /></div>
+        <div class="text-nav-1"><div>版本:</div ><input type="text"  name="version" value="' . $myrow['version'] . '" /></div>
+        <div class="text-nav-1"><div>单位:</div ><input type="text" readonly="readonly" value="' . $myrow['units'] . '" /></div>
+        <div class="text-nav-1"><div>分类:</div ><input type="text" readonly="readonly" value="' . $myrow['item_category1'] . '" />
+		<input type="hidden"  name="bom_header_id" value="' . $myrow['bom_header_id'] . '" /> </div>
+</div>
+   </table>';
+}
+
+echo '<br /> <div class="centre">
+	                <input type="submit" name="DeleteAll" value="删除BOM" style="background:#e74c3c;color:#fff;border:none;padding:7px 26px;border-radius:3px;cursor:pointer;font-size:13px" onclick="return confirm(\'确认删除该 BOM 及其所有子件？此操作不可恢复！\');"/>
+	                <input type="submit" name="UpdateBom" value="修改保存" style="background:#1976D2;color:#fff;border:none;padding:7px 26px;border-radius:3px;cursor:pointer;font-size:13px"/>
+					
+					</div>';
+echo '<table class="selection">';
+ 
+ //  <input type="submit" name="UpdateBom" value="修改"/>
+echo '</table>';
+
+echo '
+    </div>
+	</form>';
+
+if (!isset($_SESSION['Contract' . $identifier]->assembly_item_no)) {
+    include ('includes/footer.inc');
+    exit;
+}
+
+$i = 0; //Line Item Array pointer
+echo '<form action="' . htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES,
+    'UTF-8') . '" method="post"><input type="hidden" name = "identifier" value ="' .
+    $identifier . '">';
+echo '<div>';
+echo '<input type="hidden" name="FormID" value="' . $_SESSION['FormID'] . '" />';
+//用隐藏域保存采购单表号
+echo ' <input type="hidden" class="text"  name="assembly_item_no" value="' . $_SESSION['Contract' . $identifier]->assembly_item_no . '" />';
+ echo ' <input type="hidden" class="text"  name="bom_header_id" value="' . $_SESSION['Contract' . $identifier]->bom_header_id . '" />';
+
+  
+
+echo '<div style="overflow:auto;border:1px solid #e0e8f0;border-radius:6px">
+<table class="selection">
+	<tr style="background:#eef4fb">
+		<th>' . _('序号') . '</th> 
+		 
+		<th   width=190>' . _('料号') . '</th>
+		<th   width=40>' . _('替代料') . '</th>
+                 
+		<th   width=150>' . _('料号名称') . '</th>	
+		<th   width=150>' . _('规格型号') . '</th>
+		<th   width=50>' . _('单位') . '</th>   
+                 <th   width=80>' . _('数量') . '</th> 
+                 <th   width=80>' . _('自损率') . '</th> 
+                 <th   width=80>' . _('备注') . '</th>  
+                 <th   width=80>' . _('生效日期') . '</th>  
+                 <th   width=80>' . _('失效日期') . '</th>             
+                
+	</tr>';
+
+$k = 0;
+$i = 1;
+
+while ($myrow = DB_fetch_array($resultline)) {
+    
+    if ($k == 1) {
+        echo '<tr class="EvenTableRows">';
+        $k = 0;
+    } else {
+        echo '<tr class="OddTableRows">';
+        $k++;
+    }
+                  $disable_date='';
+				  if ($myrow['disable_date']<>0) {
+				  $disable_date=date('Y-m-d',$myrow['disable_date']);
+				  }
+				 $item_num = $myrow['item_num'];
+
+	 echo ' <td>' . $myrow['item_num'] . '</td>  
+	 		 
+	   <td><input readonly="readonly" id="text_slect_item_no' .$i.'"   type="text"  name="item_no'.$i.'" size="18"  value="' . $myrow['item_no']  . '" /> </td> 
+	    <td><a href="' . $RootPath . '/SearchBOMComentDetail.php?component_sequence_id=' . $myrow['component_sequence_id'] .  '" target="_blank">' . $myrow['sub_count'] . ' </td> ';
+	   echo ' <td><input readonly="readonly" id="text_slect_ItemDesc' .$i.'"  type="text"  name="item_name'.$i.'" size="15"  value="' . $myrow['item_name']  . '" /> </td> ';
+	   echo ' <td><input readonly="readonly" id="text_slect_item_desc' .$i.'"  type="text"  name="item_desc'.$i.'" size="25"  value="' . $myrow['item_desc']  . '" /> </td> ';
+	   echo ' <td><input readonly="readonly" id="text_slect_units' .$i.'"  type="text"  name="units'.$i.'" size="2"  value="' . $myrow['units']  . '" /> </td> ';
+	   echo ' <td><input id="component_quantity' .$i.'"   style="background-color:yellow" type="text"  name="component_quantity'.$i.'" class="number" size="5"  value="' . $myrow['component_quantity']  . '" /></td> ';
+	   echo ' <td><input id="sunhao_rate' .$i.'"  type="text"  name="sunhao_rate'.$i.'" size="12"   value="' . $myrow['sunhao_rate']  . '" /></td> ';
+	   echo ' <td><input id="component_remarks' .$i.'"   type="text"  name="component_remarks'.$i.'"  size="8"  value="' . $myrow['component_remarks']  . '" /> 
+         
+		 <td ><input type="text" readonly="readonly" size="9"  name="effectivity_date'.$i.'" value="' .date('Y-m-d', $myrow['effectivity_date']). '"</td>
+		 <td ><input type="text"  onfocus="WdatePicker()" size="9"  name="disable_date'.$i.'" value="'.$disable_date.'"</td>
+		 <td><a href="' . $RootPath . '/BOMModify2.php?New=Yes&UpdateBOMItem='.$_SESSION['Contract' . $identifier]->bom_header_id .'&component_sequence_id=' .$myrow['component_sequence_id'] .'"  >删除</td>
+						</td> 
+
+	   
+
+	   <input type="hidden" name="component_sequence_id'.$myrow['component_sequence_id'].'" value="'.$i.'" /></td> ';
+    
+
+       echo ' 
+     </tr>';            
+      $i++;
+	echo ' </tr>';
+
+}
+echo '</table></div>
+   
+	
+	<div class="centre">
+                <input type="submit" id="submit" name="Submit" value="' . _('修改保存') .
+    '" />   
+	</div>
+       
+    </div>
+    </form>';
+ 
+//*********************************************************************************************************
+ 
+?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>新建采购订单</title>
+<link rel="shortcut icon" href="/favicon.ico"/>
+<link rel="icon" href="/favicon.ico"/>
+<meta http-equiv="Content-Type" content="application/html; charset=utf-8"/>
+<link href="/css/xenos/default.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src ="./JXC/javascripts/miscfunctions.js"></script>
+<script type="text/javascript" src ="./JXC/javascripts/wdatepicker.js"></script>
+<script type="text/javascript">var basepath='./JXC/statics/base/images';</script>
+<script type="text/javascript" src="./JXC/statics/base/js/metvar.js"></script>
+<script type="text/javascript" src="./JXC/statics/base/js/jQuery1.7.2.js"></script>
+<script type="text/javascript" src="./JXC/statics/base/js/uploadify/jquery.uploadify.v2.1.4.min.js"></script>
+<script type="text/javascript" src="./JXC/statics/base/js/iframes.js"></script>
+<script type="text/javascript" src="./JXC/statics/base/js/cookie.js"></script>
+<script type="text/javascript" src="./JXC/statics/base/js/jquery.livequery.js"></script>
+
+<link rel="stylesheet" href="jquery.ui.autocomplete.css">
+<script type="text/javascript" src="ui/jquery.ui.core.js"></script>
+<script type="text/javascript" src="ui/jquery.ui.widget.js"></script>
+<script type="text/javascript" src="ui/jquery.ui.position.js"></script>
+<script type="text/javascript" src="ui/jquery.ui.autocomplete.js"></script>
+
+<script src="./JXC/javascript/jquery-1.7.2.min.js"></script>
+<script src="./JXC/javascript/lhgdialog.min.js?self=true&skin=chrome"></script>
+   
+<script src="./javascript/bootstrap.min.js"></script>
+
+<script type="text/javascript">
+/*ajax执行*/
+var lang = 'cn';
+var metimgurl='./JXC/statics/base/images/';
+var depth='';
+$(document).ready(function(){
+	ifreme_methei();
+});
+</script>
+<script type="text/javascript">
+
+
+
+function metreturn(url){
+	if(url){
+		location.href=url;
+	}else if($.browser.msie){
+		history.go(-1);
+	}else{
+		history.go(-1);
+	}
+} 
+
+
+
+	</script>
+</head>
+<body>
+
+<div id="CanvasDiv">
+	<div id="BodyDiv">
+		<div id="BodyWrapDiv">
+			<p class="page_title_text"><img src="<?php echo $RootPath; ?>/css/<?php echo $Theme; ?>//images/transactions.png" title="新增BOM行" alt="新增BOM行">新增BOM行</p>
+			<form action="<?php echo htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES, 'UTF-8'); ?>" method ="POST"><input type="hidden" name="time" value="<?=$time?>">
+				<div>
+			 
+				 <input  type="hidden"   name="assembly_item_no"  value="<?=$_SESSION['Contract' . $identifier]->assembly_item_no?>"  /> 
+				 <input  type="hidden"   name="bom_header_id"  value="<?=$_SESSION['Contract' . $identifier]->bom_header_id?>"  /> 
+			
+					<input type="hidden" name="FormID" value = "<?php echo $_SESSION['FormID']; ?>">
+					 
+					 
+					<input type="hidden" name="PageOffset" value="1"/><br/>
+					<?php
+					if (isset($_SESSION['Contract' . $identifier]->bom_header_id) and $_SESSION['Contract' . $identifier]->bom_header_id != '') {
+						?>
+						<input id="purchase_table_lastRow" name="purchase_table_lastRow" type=hidden value="">
+
+						<div class="centre"> 
+                        <p id="Prompt" style="color: red;font-size: 20px"></p>
+                    </div>
+                    <div style="overflow:scroll">
+						<table id="purchase_table" cellpadding="2" class="selection">
+							<tr id="list-top">
+								<th width="10">序号</th>  
+							 
+								<th  bgcolor="#87CEFA" width="100">子料号</th>
+								<th width="100">材料名称</th>
+								<th width="100">规格型号</th>
+                                <th width="30">单位</th>
+                                <th width="30">数量</th>
+								<th width="10">自损率</th>
+								<th width="10">备注</th> 
+								<th width="50" align="center">操作</th>
+							</tr>
+							<?php for($j=1;$j<=50;$j++){
+							 $item_num++;
+							?>
+
+								<tr id="purchase_table_<?=$j?>" <?php echo $j>3&&$_POST['stockid'.$j]==''?'style="display:none"':''?> class="mouse click">
+								<td><input  style="background-color:#D2E9FF;" type="text" name="item_num<?=$j?>"  value="<?=$item_num?>" size="2" maxlength="25" /></td>
+							
+                                
+									<td><input  style="background-color:#D2E9FF;" type="text" name="stockid<?=$j?>" id="text_slect_item_num<?=$j?>" value="<?=$_POST['stockid'.$j]?>" size="15" maxlength="25" />
+										<a class="btn btn-info btn-xs" id="btn_slect_new_item<?=$j?>" hfre="###" title="选择产品">选择</a> </td>
+									<td ><input readonly="readonly" type="text" name="item_name<?=$j?>" id="text_slect_item_name<?=$j?>" value="<?=$_POST['item_name'.$j]?>" size="25" maxlength="15"/></td>
+
+									<td ><input readonly="readonly" type="text" name="item_spec<?=$j?>" id="text_slect_itemdesc<?=$j?>" value="<?=$_POST['item_spec'.$j]?>" size="25" maxlength="15"/></td>
+
+									<td><input readonly="readonly" type="text" name="uom<?=$j?>" id="text_slect_uom<?=$j?>" value="<?=$_POST['uom'.$j]?>" size="4" maxlength="4"/></td>
+									<td><input type="text" type="component_quantity" class="number" name="component_quantity<?=$j?>" id="component_quantity<?=$j?>" value="<?=$_POST['component_quantity'.$j]?>" size="6" maxlength="14"/></td>
+									<td><input type="text"  name="sunhao_rate<?=$j?>" value="<?=$_POST['sunhao_rate'.$j]?>" size="11" maxlength="300" /></td>
+
+								 
+									
+									<td><input type="text"  id="component_remarks<?=$j?>"   name="component_remarks<?=$j?>" value="<?=$_POST['lineamount'.$j]?>" size="20" maxlength="100" /></td>
+ 
+  
+									<td>  <a onclick="delettr($(this));" style="padding:0px 5px;" href="javascript:;">删除</a></td>
+ 
+
+								</tr>
+							<?php }?>
+
+						</table></div>
+                       
+						<div class="centre">
+							<a onclick="addsave();">添加行</a>
+
+						</div>
+
+						<div class="centre">
+							<input type="submit" name="Save" value="新增行保存">
+						</div>
+						<?php
+					}
+					?>
+					<input type="hidden" name="idcount" id='idcount' value="11"/>
+					<input type="hidden" name="JustSelectedACustomer" value="Yes"/>
+				</div>
+			</form>
+		</div>
+	</div>
+
+	<div id="FooterDiv">
+		<div id="FooterWrapDiv">
+
+		</div>
+	</div>
+</div>
+<script type="text/javascript">
+ 	
+     
+
+	function addsave()
+		{
+
+			var v = $('#idcount').val();
+			$("#purchase_table_"+v).css("display","");
+			var c = parseFloat(v) + 1;
+			$('#idcount').val(c);
+		}
+
+	$(document).ready(function(){
+
+		$('.divToilet table tr td a').click(function(){
+			$(this).parent('td').toggleClass('highlight');
+			if(!($(this).parent('td').hasClass('highlight'))) {
+				$(this).next().val('0');
+			}else {
+				$(this).next().val('1');
+			}
+		});
+
+		<?php for($i=1;$i<=500;$i++){?>
+		$('#btn_slect_buliao<?=$i?>').dialog({
+			title:'选择料号',
+			width: '800px',
+			height: 470,
+			content:'url:Searchitemforbom2.php?fwValue=<?=$i?>&cat=<?=$_SESSION['Contract' . $identifier]->assembly_item_no?>',
+			init:function(){
+				this.content.document.getElementById('cat').value = 'buliao';
+				this.content.document.getElementById('fwValue').value = '<?=$i?>';
+			}
+		});
+		<?php }?>
+
+		<?php for($j=1;$j<=500;$j++){?>
+		$('#btn_slect_new_item<?=$j?>').dialog({
+			title:'选择料号',
+			width: '800px',
+			height: 470,
+			content:'url:Searchitemforbom3.php?fwValue=<?=$j?>&cat=<?=$_SESSION['Contract' . $identifier]->bom_header_id?>',
+			init:function(){
+				this.content.document.getElementById('cat').value = 'buliao';
+				this.content.document.getElementById('fwValue').value = '<?=$j?>';
+			}
+		});
+		<?php }?>
+
+ 
+		
+		//Function to get URL arguments
+
+		function getRequest() {
+			var url = location.search; //获取url中"?"符后的字串
+			var theRequest = new Object();
+			if (url.indexOf("?") != -1) {
+				var str = url.substr(1);
+				strs = str.split("&");
+				for(var i = 0; i < strs.length; i ++) {
+					theRequest[strs[i].split("=")[0]]=(strs[i].split("=")[1]);
+				}
+			}
+			return theRequest;
+		}
+
+
+	});
+ 
+
+
+ 
+                     
+   
+</script>
+</body>
+</html>
+<?php
+include ('includes/footer.inc');
+?>

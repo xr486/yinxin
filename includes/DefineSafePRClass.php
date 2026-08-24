@@ -1,0 +1,69 @@
+<?php
+
+Class StockRequest {
+
+	var $LineItems; /*array of objects of class LineDetails using the product id as the pointer */
+	var $Need_date;
+	var $Location;
+	var $Department;
+	var $Narrative;
+	var $LineCounter=1;
+        var $pr;
+
+	function StockRequest(){
+	/*Constructor function initialises a new shopping cart */
+		
+		$this->LineItems=array();
+	}
+
+	function AddLine($StockID,
+                        $ItemDescription,
+                        $Quantity,
+                        $UOM,
+                        $SafeQty,
+                        $Qty,
+                        $LineNumber=-1) {
+
+		if ($LineNumber==-1){
+			$LineNumber = $this->LineCounter;
+		}
+            $this->LineItems[$LineNumber]=new LineDetails($StockID,
+                                                        $ItemDescription,
+                                                        $Quantity,
+                                                        $UOM,
+                                                        $SafeQty,
+                                                        $Qty,
+                                                        $LineNumber);
+		$this->LineCounter = $LineNumber + 1;
+	}
+}
+
+Class LineDetails {
+	var $StockID;
+	var $ItemDescription;
+	var $Quantity;
+	var $UOM;
+        var $SafeQty;
+        var $Qty;
+	var $LineNumber;
+
+	function LineDetails($StockID,
+						$ItemDescription,
+						$Quantity,
+						$UOM,
+                                                $SafeQty,
+                                                $Qty,
+						$LineNumber) {
+
+		$this->LineNumber=$LineNumber;
+		$this->StockID=$StockID;
+		$this->ItemDescription=$ItemDescription;
+		$this->Quantity=$Quantity;
+		$this->UOM=$UOM;
+                $this->SafeQty=$SafeQty;
+                $this->Qty=$Qty;
+	}
+
+}
+
+?>

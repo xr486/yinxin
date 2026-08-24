@@ -1,0 +1,66 @@
+<?php
+//  首先引入XLSXWriter包
+putenv("NLS_LANG=AMERICAN_AMERICA.AL32UTF8");
+ob_start();
+include('includes/session2.inc');
+include('includes/SQL_CommonFunctions.inc');
+unset($result);
+
+ 
+
+$sql = "select b.wip_entity_name,b.seq_id,b.operation_seq_num,c.item_no,c.item_desc,c.item_name,quantity_per_assembly,quantity_issued,b.required_quantity,(b.required_quantity-quantity_issued) need_issued,(select sum(c.quantity)  from inv_onhand_quantity_all c where c.stockid=b.segment1 and c.subinventory_code='".$_GET['insubinventory']."') onhand_quantity,units 
+						from wip_material_requierments b,sf_item_no c
+                        where b.segment1=c.item_no   and b.wip_entity_name='".$_GET['wip_entity_name']."' 
+      order by b.operation_seq_num,b.segment1 ";
+     
+
+   
+	$result_num = DB_query($sql,$db);
+//oci_execute($par);
+include_once("xlsxwriter.class.php");
+$date=date('YmdHis');
+//ini_set('display_errors', 0);
+//ini_set('log_errors', 1);
+error_reporting(E_ALL & ~E_NOTICE);
+
+$filename = "工单材料超耗领用报表".$date.".xlsx";
+header('Content-disposition: attachment; filename="'.XLSXWriter::sanitize_filename($filename).'"');
+header("Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+header('Content-Transfer-Encoding: binary');
+header('Cache-Control: must-revalidate');
+header('Pragma: public');
+$rows2 = array( 
+  array('工单材料超耗领用报表'),
+);
+
+$rows = array( 
+  array('工单名','制程','料号','料号名称','规格型号','单位','库存量','单位用量','需求量','已领数量','缺料数量'),
+);
+
+
+$writer = new XLSXWriter();
+$writer->setAuthor('Shunfansoft'); 
+
+//$writer->writeSheetHeader('Sheet1', $header);
+ foreach($rows2 as $row2)
+	$writer->writeSheetRow('Sheet1', $row2);
+foreach($rows as $row)
+	$writer->writeSheetRow('Sheet1', $row);
+    
+
+	while ($v = DB_fetch_array($result_num)) {
+
+ 
+      $writer->writeSheetRow('Sheet1', array($v['wip_entity_name'],$v['operation_seq_num'],$v['item_no'],$v['item_name'],
+        $v['item_desc'],$v['units'],$v['onhand_quantity'],$v['quantity_per_assembly'],$v['required_quantity'],$v['quantity_issued'],$v['need_issued'],
+        
+        ));
+	 }
+      
+	  
+
+$writer->writeToStdOut();
+//$writer->writeToFile('example.xlsx');
+//echo $writer->writeToString();
+exit(0);
+?>

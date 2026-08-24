@@ -1,0 +1,116 @@
+body {
+    background-color: #f3f6fb;
+    padding: 0px;
+    margin: 0px;
+}
+
+.kanban_all {
+    /* border: 1px solid black; */
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.kanban_all_position {
+    /* border: 1px solid black; */
+    width: 98%;
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.kanban_line {
+    /* border: 1px solid black; */
+    width: calc(50% - 2%);
+    margin: 1% 1% 0 1%;
+    background-color: #fff;
+}
+
+.kanban_title {
+    background-color: #fff;
+    padding: 2%;
+    font-size: 120%;
+    font-weight: bold;
+    font-family: '华文细黑';
+    border-left: 4px solid #75b2fa;
+    border-bottom: 1px solid #f3f6fb;
+}
+
+.kanban_content {
+    padding: 1%;
+    background-color: #fff;
+}
+
+.kanban_content table {
+    width: 100%;
+    /* border: 1px solid green; */
+}
+
+.kanban_content table td {
+    width: 100%;
+    /* 或者您可以根据需求设置其他百分比值，例如33.33% */
+}
+
+.kanban_line_double {
+    /* border: 1px solid blue; */
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+}
+
+.kanban_line_double .left {
+    /* border: 1px solid red; */
+    width: 48%;
+    height: 100%;
+}
+
+.kanban_line_double .left .kanban_title {
+    padding: 4%;
+}
+
+/* 
+.kanban_line_double .left .kanban_content {
+    padding: 2%;
+} */
+
+.kanban_line_double .middle {
+    background-color: #f3f6fb;
+    width: 4%;
+}
+
+.kanban_line_double .right {
+    /* border: 1px solid black; */
+    width: 48%;
+    height: 100%;
+}
+
+.kanban_line_double .right .kanban_title {
+    padding: 4%;
+}
+
+/*
+.kanban_line_double .right .kanban_content {
+    padding: 2%;
+} */
+
+/* 表格 */
+.table {
+    text-align: center;
+    /* border: 1px solid black; */
+    border-collapse: collapse;
+}
+
+.table tr th {
+    width: 20%;
+    /* border: 1px solid black; */
+    color: #5a5a5a;
+    font-weight: bold;
+}
+
+.table tr td {
+    width: 20%;
+    text-align: center;
+    padding-top: 1%;
+    color: #5a5a5a;
+}

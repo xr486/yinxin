@@ -1,0 +1,186 @@
+<?php
+
+/* $Id: vendors.php 6338 2013-09-28 05:10:46Z daintree $ */
+ob_start();
+include('includes/session.inc');
+if (isset($_GET['identifier'])) {
+    $_POST['identifier'] = $_GET['identifier'];
+}
+
+if (!isset($_POST['identifier'])) {
+    $identifier = date('U');
+} else {
+    $identifier = $_POST['identifier'];
+}
+if (isset($_GET['ItemID'])) {
+    $ItemID = $_GET['ItemID'];
+} else {
+    $ItemID = '';
+}
+$Title = _('料号修改记录查询');
+$ViewTopic = '料号修改记录查询';
+$BookMark = '料号修改记录查询';
+include('includes/header.inc');
+include('includes/SQL_CommonFunctions.inc');
+include('includes/CountriesArray.php');
+
+echo '<p class="page_title_text">
+		<img src="' . $RootPath . '/css/' . $Theme . '/images/customer.png" title="' . _('项目门框单') .
+ '" alt="" />' . ' ' . _('料号修改记录查询') . '
+	</p>';
+if (isset($ItemID) and $ItemID != '') {
+ 
+ 
+
+        echo '<form method="post" action="' . htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES, 'UTF-8') . '">'
+        . '<input type="hidden" name = "identifier" value ="' . $identifier . '">';
+        echo '<div>';
+        echo '<input type="hidden" name="FormID" value="' . $_SESSION['FormID'] . '" />';
+      
+		 $v_order_date = date('Y-m-d',$_POST['order_date']);
+        $v_create_date = date('Y-m-d H:i:s', $_POST['create_date']);
+		
+       
+		
+        echo '<br />';
+        $sql2 = "select b.* 
+  from  sf_item_no_log b 
+  where b.item_no= '" . $ItemID . "'
+ order by b.change_id";
+ 
+        $result2 = DB_query($sql2, $db);
+//        echo $sql2;
+        if (DB_num_rows($result2) == 0) {
+            unset($result2);
+            prnMsg(_('没有找到，请重新登录查询！'), 'info');
+        } else {
+            echo '<form method="post" action="' . htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES, 'UTF-8') . '"><input type="hidden" name = "identifier" value ="' . $identifier . '">';
+            echo '<div>';
+            echo '<input type="hidden" name="FormID" value="' . $_SESSION['FormID'] . '" />';
+            echo '<div class="text-nav-table"> <table class="selection" align="center" >';
+            $tableheader = '<tr>  
+			 <th  bgcolor="#87CEFA" width="10">id </th> 
+			 <th  bgcolor="#87CEFA" width="10">变更类型 </th> 
+			 <th  bgcolor="#87CEFA" width="10">变更时间 </th> 
+			 <th class="ascending"   >料号</th>
+                    <th class="ascending"   >料号名称</th>
+                    <th class="ascending"   >规格型号</th>
+                    <th class="ascending"   >单位</th>
+                    <th  >最小订单量</th>
+                    <th   >安全库存</th>
+					<th   >生产周期</th>
+					<th class="ascending"   >料号类型</th> 
+					<th class="ascending"   >料号分类</th> 
+					<th class="ascending"   >默认仓库</th> 
+					<th   >库位</th> 
+                                           
+				</tr>';
+            echo $tableheader;
+            $RowCounter = 1;
+            $k = 0; //row colour counter
+            while ($myrow = DB_fetch_array($result2)) {
+                if ($k == 1) {
+                    echo '<tr class="EvenTableRows">';
+                    $k = 0;
+                } else {
+                    echo '<tr class="EvenTableRows">';
+                    $k++;
+                }
+
+            
+			  
+                echo ' <tr bgcolor="LavenderBlush">
+				 <td>' . $myrow['change_id'] . '</td>
+				 <td>' . $myrow['change_type'] . '</td>
+				 <td>' . date('Y-m-d H:i:s',$myrow['change_time']) . '</td>
+				 <td>' . $myrow['item_no'] . '</td>
+				 <td>' . $myrow['item_name'] . '</td>
+				 <td>' . $myrow['item_desc'] . '</td>
+				 <td>' . $myrow['units'] . '</td>
+				 <td>' . $myrow['min_order'] . '</td>
+				 <td>' . $myrow['safe_qty'] . '</td>
+				 <td>' . $myrow['manufacture_time'] . '</td>';
+                 $sql_ty = "select item_type,type_name from sf_item_type where item_type = '".$myrow['item_type']."'";
+                 $result_ty = DB_query($sql_ty, $db);
+            $myrow2 = DB_fetch_array($result_ty) ;
+				echo ' <td>' . $myrow2['type_name'] . '</td>
+				 <td>' . $myrow['item_category1'] . '</td>
+				 <td>' . $myrow['sub_code'] . '</td>
+				 <td>' . $myrow['sub_locator'] . '</td>
+			             
+                    
+                      </tr> <input type="hidden" name="wip_entity_name" value="' . $myrow['wip_entity_name'] . '" />
+                ';
+			
+
+                $RowCounter++;
+                If ($RowCounter == 500) {
+                    $RowCounter = 1;
+                    echo $tableheader;
+                }
+            }
+            echo '</table></div> ';
+
+
+            echo '</div>
+          </form>';
+        }
+   if ($myrowh['status_type'] == '开始')
+        echo '<br />
+      
+                                 
+</div>';
+ 
+    
+    echo '</div>
+          </form>';
+}
+//拒签
+if (isset($_POST['Reject'])) {
+    DB_Txn_Begin($db);
+    $v_date = strtotime(Date('Y-m-d H:i:s'));
+    $sql1 = " update wip_jobs_all 
+                set status_type = '拒绝',
+		     approve_date  = '" . $v_date . "',
+              approved_by  = '" . $_SESSION['UserID'] . "'
+               where wip_entity_name ='" . $_POST['wip_entity_name'] . "'";
+    $result1 = DB_query($sql1, $db);
+
+    DB_Txn_Commit($db);
+    $msg = '拒签成功！1秒后将跳转上一页！';
+    prnMsg($msg, 'success');
+    echo '<meta http-equiv="refresh" content="1; url=' . $RootPath . '/POApproved.php" />';
+    echo '<br />';
+    echo '<br /><div class="centre"><a href="' . $RootPath . '/POApproved.php">' . _('采购单签核') . '</a></div>';
+	
+}
+if (isset($_POST['Submit'])) {
+    DB_Txn_Begin($db);
+    $v_date = strtotime(Date('Y-m-d H:i:s'));
+	 
+ $sql1 = " update wip_jobs_all 
+                set status_type = '签核',
+		     approve_date  = '" . $v_date . "',
+              approved_by  = '" . $_SESSION['UserID'] . "'
+               where wip_entity_name ='" . $_POST['wip_entity_name'] . "'";
+    $result1 = DB_query($sql1, $db);
+  
+
+	DB_Txn_Commit($db); 
+    $msg = '签核成功！1秒后将跳转上一页！';
+    prnMsg($msg, 'success');
+   echo '<meta http-equiv="refresh" content="1; url=' . $RootPath . '/ProjectMKPlanApprove.php" />';
+  
+ 
+
+	
+
+
+    
+    
+}
+if (isset($_POST['return'])) {
+    header('Location: POApproved.php');
+}
+include('includes/footer.inc');
+?>

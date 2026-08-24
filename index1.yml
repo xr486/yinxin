@@ -1,0 +1,325 @@
+- generic [active] [ref=f1e1]:
+  - generic:
+    - generic:
+      - generic [ref=f1e2]:
+        - list [ref=f1e3]:
+          - listitem [ref=f1e4]:
+            - textbox "搜索模块" [ref=f1e5]
+          - listitem [ref=f1e6]:
+            - link "" [ref=f1e7] [cursor=pointer]:
+              - /url: javascript:;
+        - list [ref=f1e9]:
+          - listitem [ref=f1e10]:
+            - generic [ref=f1e12] [cursor=pointer]:
+              - generic [ref=f1e13]: 
+              - superscript [ref=f1e14]: "0"
+          - listitem [ref=f1e15]:
+            - link "" [ref=f1e16] [cursor=pointer]:
+              - /url: javascript:;
+          - listitem [ref=f1e18]:
+            - link "" [ref=f1e19] [cursor=pointer]:
+              - /url: javascript:;
+          - listitem [ref=f1e21]:
+            - link "Dtest" [ref=f1e22] [cursor=pointer]:
+              - /url: javascript:;
+          - text: 
+      - generic [ref=f1e24]:
+        - generic "点击缩小" [ref=f1e30] [cursor=pointer]: 
+        - generic [ref=f1e32]:
+          - list [ref=f1e34]:
+            - listitem [ref=f1e35]:
+              - generic "产品数据管理" [ref=f1e36] [cursor=pointer]: 
+              - text:                                                                                                                         
+            - listitem [ref=f1e40]:
+              - generic "基础设置" [ref=f1e41] [cursor=pointer]: 
+              - text:       
+            - listitem [ref=f1e45]:
+              - generic "项目管理" [ref=f1e46] [cursor=pointer]: 
+              - text:                     
+          - generic [ref=f1e50]:
+            - list
+      - generic [ref=f1e51]:
+        - generic [ref=f1e52] [cursor=pointer]: 
+        - generic [ref=f1e53] [cursor=pointer]: 
+        - generic [ref=f1e54] [cursor=pointer]:
+          - text: 
+          - list [ref=f1e55]:
+            - listitem [ref=f1e56]:
+              - link [ref=f1e57]:
+                - /url: javascript:;
+        - list [ref=f1e59]:
+          - listitem [ref=f1e60] [cursor=pointer]:
+            - generic [ref=f1e61]: 
+            - text: 主页
+      - iframe [ref=f1e64]:
+        - generic [ref=f3e2]:
+          - generic "刷新全部数据" [ref=f3e4] [cursor=pointer]: 
+          - generic [ref=f3e6]:
+            - generic [ref=f3e8]:
+              - generic [ref=f3e9]:
+                - generic [ref=f3e11]: 工序流转卡
+                - generic [ref=f3e12]:
+                  - generic [ref=f3e13] [cursor=pointer]: 查看详情
+                  - generic "刷新数据" [ref=f3e14] [cursor=pointer]: 
+              - generic [ref=f3e15]:
+                - table
+                - generic [ref=f3e17]:
+                  - table [ref=f3e19]:
+                    - rowgroup [ref=f3e20]:
+                      - row [ref=f3e21]:
+                        - columnheader "批次" [ref=f3e22]
+                        - columnheader "生产进度" [ref=f3e24]
+                        - columnheader "物料编码" [ref=f3e26]
+                        - columnheader "生产交期" [ref=f3e28]
+                        - columnheader "当前工序" [ref=f3e30]
+                        - columnheader "计划数量" [ref=f3e32]
+                        - columnheader "完成数量" [ref=f3e34]
+                  - generic [ref=f3e36]:
+                    - table:
+                      - rowgroup
+                    - generic [ref=f3e37]: 没有列表查看权限
+            - generic [ref=f3e41]:
+              - generic [ref=f3e42]:
+                - generic [ref=f3e44]: 我的消息
+                - generic [ref=f3e45]:
+                  - generic [ref=f3e46] [cursor=pointer]: 查看详情
+                  - generic "刷新数据" [ref=f3e47] [cursor=pointer]: 
+              - generic [ref=f3e48]:
+                - table
+                - generic [ref=f3e49]:
+                  - generic [ref=f3e50]:
+                    - table [ref=f3e52]:
+                      - rowgroup [ref=f3e53]:
+                        - row [ref=f3e54]:
+                          - columnheader "时间" [ref=f3e55]
+                          - columnheader "标题" [ref=f3e57]
+                          - columnheader "内容" [ref=f3e59]
+                          - columnheader "检验员" [ref=f3e61]
+                    - table [ref=f3e64]:
+                      - rowgroup [ref=f3e65]:
+                        - row [ref=f3e66]:
+                          - cell "2026-08-12 10:35" [ref=f3e67]
+                          - cell "有新的[待办任务]，请注意及时处理。" [ref=f3e69]
+                          - cell "任务主题：[1]，步骤：[12]。" [ref=f3e71]
+                          - cell "Dtest" [ref=f3e73]
+                        - row [ref=f3e75]:
+                          - cell "2026-08-11 09:11" [ref=f3e76]
+                          - cell "有新的[待办任务]，请注意及时处理。" [ref=f3e78]
+                          - cell "任务主题：[文件归档]，步骤：[123]。" [ref=f3e80]
+                          - cell "Dtest" [ref=f3e82]
+                  - generic [ref=f3e86]:
+                    - link "" [ref=f3e87]:
+                      - /url: javascript:;
+                    - generic [ref=f3e88]:
+                      - emphasis [ref=f3e89]
+                      - emphasis [ref=f3e90]: "1"
+                    - link "" [ref=f3e91]:
+                      - /url: javascript:;
+                    - generic [ref=f3e92]:
+                      - text: 到第
+                      - textbox [ref=f3e93]: "1"
+                      - text: 页
+                      - button "确定" [ref=f3e94] [cursor=pointer]
+                    - generic [ref=f3e95]: 共 2 条
+                    - combobox [ref=f3e97] [cursor=pointer]:
+                      - option "10 条/页" [selected]
+                      - option "20 条/页"
+                      - option "30 条/页"
+                      - option "40 条/页"
+                      - option "50 条/页"
+                      - option "60 条/页"
+                      - option "70 条/页"
+                      - option "80 条/页"
+                      - option "90 条/页"
+            - generic [ref=f3e99]:
+              - generic [ref=f3e100]:
+                - generic [ref=f3e102]: 首件检/巡检情况
+                - generic [ref=f3e103]:
+                  - generic [ref=f3e104] [cursor=pointer]: 查看详情
+                  - generic "刷新数据" [ref=f3e105] [cursor=pointer]: 
+              - generic [ref=f3e106]:
+                - table
+                - generic [ref=f3e108]:
+                  - table [ref=f3e110]:
+                    - rowgroup [ref=f3e111]:
+                      - row [ref=f3e112]:
+                        - columnheader "时间" [ref=f3e113]
+                        - columnheader "类型" [ref=f3e115]
+                        - columnheader "物料编码" [ref=f3e117]
+                        - columnheader "物料名称" [ref=f3e119]
+                        - columnheader "工序" [ref=f3e121]
+                        - columnheader "检验产线" [ref=f3e123]
+                        - columnheader "结果" [ref=f3e125]
+                        - columnheader "检验员" [ref=f3e127]
+                  - generic [ref=f3e129]:
+                    - table:
+                      - rowgroup
+                    - generic [ref=f3e130]: 没有列表查看权限
+            - generic [ref=f3e134]:
+              - generic [ref=f3e135]:
+                - generic [ref=f3e137]: 异常报警
+                - generic "刷新数据" [ref=f3e139] [cursor=pointer]: 
+              - generic [ref=f3e140]:
+                - table
+                - generic [ref=f3e141]:
+                  - generic [ref=f3e142]:
+                    - table [ref=f3e144]:
+                      - rowgroup [ref=f3e145]:
+                        - row [ref=f3e146]:
+                          - columnheader "时间" [ref=f3e147]
+                          - columnheader "异常情况" [ref=f3e149]
+                          - columnheader "异常处理" [ref=f3e151]
+                          - columnheader "工位" [ref=f3e153]
+                          - columnheader "人员" [ref=f3e155]
+                    - table [ref=f3e158]:
+                      - rowgroup [ref=f3e159]:
+                        - row [ref=f3e160]:
+                          - cell "2024-06-14 11:08" [ref=f3e161]
+                          - cell "工位异常 / 工位异常 / 工位1" [ref=f3e163]
+                          - cell "问题已经解决" [ref=f3e165]
+                          - cell "工位1" [ref=f3e167]
+                          - cell "孙建武" [ref=f3e169]
+                        - row [ref=f3e171]:
+                          - cell "2024-06-07 14:36" [ref=f3e172]
+                          - cell "物料异常 / 缺料 / 00020260201" [ref=f3e174]
+                          - cell "1" [ref=f3e176]
+                          - cell "流水线工位2" [ref=f3e178]
+                          - cell "chj1" [ref=f3e180]
+                        - row [ref=f3e182]:
+                          - cell "2024-06-07 14:32" [ref=f3e183]
+                          - cell "生产异常 / 无法按期 / 00020260201" [ref=f3e185]
+                          - cell "1" [ref=f3e187]
+                          - cell "流水线工位2" [ref=f3e189]
+                          - cell "chj1" [ref=f3e191]
+                        - row [ref=f3e193]:
+                          - cell "2024-06-07 14:30" [ref=f3e194]
+                          - cell "文件异常 / 干涉 / 00020260201" [ref=f3e196]
+                          - cell "1" [ref=f3e198]
+                          - cell "流水线工位2" [ref=f3e200]
+                          - cell "chj1" [ref=f3e202]
+                        - row [ref=f3e204]:
+                          - cell "2024-06-07 14:28" [ref=f3e205]
+                          - cell "质量异常 / 质量问题" [ref=f3e207]
+                          - cell "1" [ref=f3e209]
+                          - cell "流水线工位2" [ref=f3e211]
+                          - cell "chj1" [ref=f3e213]
+                        - row [ref=f3e215]:
+                          - cell "2024-06-07 14:24" [ref=f3e216]
+                          - cell "设备异常 / 停止工作 / 001设备" [ref=f3e218]
+                          - cell "1" [ref=f3e220]
+                          - cell "流水线工位2" [ref=f3e222]
+                          - cell "chj1" [ref=f3e224]
+                        - row [ref=f3e226]:
+                          - cell "2024-06-07 14:22" [ref=f3e227]
+                          - cell "物料异常 / 缺料 / 00020260201" [ref=f3e229]
+                          - cell "1" [ref=f3e231]
+                          - cell "流水线工位2" [ref=f3e233]
+                          - cell "chj1" [ref=f3e235]
+                        - row [ref=f3e237]:
+                          - cell "2024-06-07 14:14" [ref=f3e238]
+                          - cell "其他 / 其他" [ref=f3e240]
+                          - cell "1" [ref=f3e242]
+                          - cell "流水线工位2" [ref=f3e244]
+                          - cell "chj1" [ref=f3e246]
+                        - row [ref=f3e248]:
+                          - cell "2024-06-07 14:14" [ref=f3e249]
+                          - cell "工位异常 / 工位异常 / 流水线工位2" [ref=f3e251]
+                          - cell "1" [ref=f3e253]
+                          - cell "流水线工位2" [ref=f3e255]
+                          - cell "chj1" [ref=f3e257]
+                        - row [ref=f3e259]:
+                          - cell "2024-06-07 14:13" [ref=f3e260]
+                          - cell "生产异常 / 无法按期 / 00020260201" [ref=f3e262]
+                          - cell "1" [ref=f3e264]
+                          - cell "流水线工位2" [ref=f3e266]
+                          - cell "chj1" [ref=f3e268]
+                  - generic [ref=f3e272]:
+                    - link "" [ref=f3e273]:
+                      - /url: javascript:;
+                    - generic [ref=f3e274]:
+                      - emphasis [ref=f3e275]
+                      - emphasis [ref=f3e276]: "1"
+                    - link "2" [ref=f3e277] [cursor=pointer]:
+                      - /url: javascript:;
+                    - link "3" [ref=f3e278] [cursor=pointer]:
+                      - /url: javascript:;
+                    - generic [ref=f3e279]: …
+                    - link "6" [ref=f3e280] [cursor=pointer]:
+                      - /url: javascript:;
+                    - link "" [ref=f3e281] [cursor=pointer]:
+                      - /url: javascript:;
+                    - generic [ref=f3e282]:
+                      - text: 到第
+                      - textbox [ref=f3e283]: "1"
+                      - text: 页
+                      - button "确定" [ref=f3e284] [cursor=pointer]
+                    - generic [ref=f3e285]: 共 58 条
+                    - combobox [ref=f3e287] [cursor=pointer]:
+                      - option "10 条/页" [selected]
+                      - option "20 条/页"
+                      - option "30 条/页"
+                      - option "40 条/页"
+                      - option "50 条/页"
+                      - option "60 条/页"
+                      - option "70 条/页"
+                      - option "80 条/页"
+                      - option "90 条/页"
+            - generic [ref=f3e290]:
+              - generic [ref=f3e291]: 首件检
+              - generic [ref=f3e292]:
+                - button "设置 " [ref=f3e295] [cursor=pointer]:
+                  - generic [ref=f3e296]:
+                    - text: 设置
+                    - generic [ref=f3e297]: 
+                - generic "刷新数据" [ref=f3e298] [cursor=pointer]: 
+            - generic [ref=f3e305]:
+              - generic [ref=f3e306]: 巡检
+              - generic [ref=f3e307]:
+                - button "设置 " [ref=f3e310] [cursor=pointer]:
+                  - generic [ref=f3e311]:
+                    - text: 设置
+                    - generic [ref=f3e312]: 
+                - generic "刷新数据" [ref=f3e313] [cursor=pointer]: 
+            - generic [ref=f3e320]:
+              - generic [ref=f3e321]: 成品检
+              - generic [ref=f3e322]:
+                - button "设置 " [ref=f3e325] [cursor=pointer]:
+                  - generic [ref=f3e326]:
+                    - text: 设置
+                    - generic [ref=f3e327]: 
+                - generic "刷新数据" [ref=f3e328] [cursor=pointer]: 
+            - generic [ref=f3e335]:
+              - generic [ref=f3e336]: 检验次数
+              - generic [ref=f3e337]:
+                - button "设置 " [ref=f3e340] [cursor=pointer]:
+                  - generic [ref=f3e341]:
+                    - text: 设置
+                    - generic [ref=f3e342]: 
+                - generic "刷新数据" [ref=f3e343] [cursor=pointer]: 
+            - generic [ref=f3e350]:
+              - generic [ref=f3e352]: 异常类型月排行
+              - generic "刷新数据" [ref=f3e354] [cursor=pointer]: 
+            - generic [ref=f3e361]:
+              - generic [ref=f3e363]: 异常类型响应速度比
+              - generic "刷新数据" [ref=f3e365] [cursor=pointer]: 
+            - generic [ref=f3e372]:
+              - generic [ref=f3e374]: 日合格率
+              - generic [ref=f3e375]:
+                - button "设置 " [ref=f3e378] [cursor=pointer]:
+                  - generic [ref=f3e379]:
+                    - text: 设置
+                    - generic [ref=f3e380]: 
+                - generic "刷新数据" [ref=f3e381] [cursor=pointer]: 
+            - generic [ref=f3e388]:
+              - generic [ref=f3e390]: 日产能
+              - generic [ref=f3e391]:
+                - button "设置 " [ref=f3e394] [cursor=pointer]:
+                  - generic [ref=f3e395]:
+                    - text: 设置
+                    - generic [ref=f3e396]: 
+                - generic "刷新数据" [ref=f3e397] [cursor=pointer]: 
+          - generic:
+            - button "初始化设置" [ref=f3e402] [cursor=pointer]
+            - button "仪表盘设置" [ref=f3e404] [cursor=pointer]
+            - button "保存设置" [ref=f3e405] [cursor=pointer]
+            - text: 

@@ -1,0 +1,20 @@
+# === WorkBuddy 内部目录（严禁提交） ===
+.workbuddy/
+
+# === 依赖（可通过 npm 重新安装） ===
+node_modules/
+
+# === 含数据库凭据的配置文件 / 备份 ===
+config.php
+config.php.bak
+connect.php.bak
+*.bak
+
+# === 运行时生成的数据 / 上传文件（非源码） ===
+SO/
+uplode/
+upload/
+yixin.zip
+
+# === IDE / 项目元数据 ===
+nbproject/

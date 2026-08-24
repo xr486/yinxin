@@ -1,0 +1,123 @@
+<?php 
+	include('includes/session.inc');
+	$Title = _('客户创建');
+	$ViewTopic= '客户创建';
+	$BookMark = '客户创建';
+	include('includes/header.inc');
+	include('includes/SQL_CommonFunctions.inc');
+ require_once 'upload.class.php';
+ if (isset($_GET['OrderNum'])) {
+$_SESSION['OrderNum' . $identifier]=$_GET['OrderNum'];
+ }
+ if (isset($_GET['customer_type'])) {
+    $_SESSION['customer_type' . $identifier]=$_GET['customer_type'];
+     }
+
+$msg = '客户编号'.$_SESSION['OrderNum' . $identifier].'建立成功！';
+                prnMsg($msg, success);
+                 echo '<br /><div class="centre"><a href="' . $RootPath . '/AddCustomer.php?New=Y">' . _('继续创建客户') . '</a></div>';
+                 //   echo '<br /><div class="centre"><a href="' . $RootPath . '/PrintSo.php?Updatedelivery_num='.$_SESSION['OrderNum' . $identifier].'" target="_blank"  >' . _('打印') . '</a></div>';
+                 echo '<br /><div class="centre"><a href="' . $RootPath . '/AddCustomer2.php?UpdateCustomerCode=' . $_SESSION['OrderNum' . $identifier] . '">' . _('查询客户资料') . '</a></div>';
+				   
+                 echo '<p class="page_title_text">
+		<img src="' . $RootPath . '/css/' . $Theme . '/images/supplier.png" title="' . '为订单上传商务资质附件' .
+ '" alt="" />' . ' ' .'为订单上传商务资质附件' . '
+	</p>';
+	echo "可以上传'pptx','docx','dotx','xlsx','ppt','xls','doc','pdf','7z','rar','zip','bmp','jpeg','jpg','png','gif'后缀的文件";
+
+$_POST['ItemNo'];
+	if (isset($_POST['Save'])) {
+     $time = time();
+$upload=new upload('Pic','SO');
+$dest=$upload->uploadFile();
+
+$sql = "insert into customers_file (file_name,customer_code,file_patch,creation_date,created_by) values ('" . $_POST['file_name'] . "','" . $_POST['OrderNum1'] . "','" . $dest . "','" . $time . "','" . $_SESSION['UserID'] . "')";
+$result = DB_query($sql,$db);
+
+
+if($_POST['file_namea']!=''){
+    $upload1=new upload('Pica','SO');
+$dest1=$upload1->uploadFile();
+    $sql1 = "insert into customers_filea (file_name,customer_code,file_patch,creation_date,created_by) values ('" . $_POST['file_namea'] . "','" . $_POST['OrderNuma'] . "','" . $dest1 . "','" . $time . "','" . $_SESSION['UserID'] . "')";
+    $result1 = DB_query($sql1,$db);
+}
+
+//echo $sql;
+		 prnMsg( _('附件上传成功,还可以继续上传！'), 'success');
+
+	}
+
+
+?>
+
+<form action="<?php echo htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES, 'UTF-8'); ?>" method ="POST" enctype="multipart/form-data">
+<div>
+	<input type="hidden" name="FormID" value = "<?php echo $_SESSION['FormID']; ?>">
+<br>
+<table class="selection">
+	
+     
+	<tr>
+	<td>附件名称：</td>
+  <td ><input type="text"  required="required"  maxlength="200" size="20" name="file_name"  value="<?=$_POST['file_name']?>" /> </td>
+		<td>上传附件：</td>
+		<td><input type="file" required="required"  name="Pic"></td>
+		
+		<td><input  type="hidden" name="OrderNum1"   value="<?=$_SESSION['OrderNum' . $identifier]?>" size="8" maxlength="25"/> 
+		 
+	</tr>
+
+	
+</table>
+<?php
+
+				   
+ echo '<p class="page_title_text">
+<img src="' . $RootPath . '/css/' . $Theme . '/images/supplier.png" title="' . '为订单上传经营资质附件' .
+'" alt="" />' . ' ' .'为订单上传经营资质附件' . '
+</p>';
+echo "可以上传'pptx','docx','dotx','xlsx','ppt','xls','doc','pdf','7z','rar','zip','bmp','jpeg','jpg','png','gif'后缀的文件";
+if(mb_substr($_SESSION['customer_type' . $identifier],0,1) !="A"){
+    ?>
+    <table class="selection">
+	
+
+	<tr>
+	<td>附件名称：</td>
+  <td ><input type="text"    maxlength="200" size="20" name="file_namea"  value="<?=$_POST['file_namea']?>" /> </td>
+		<td>上传附件：</td>
+		<td><input type="file"   name="Pica"></td>
+		
+		<td><input  type="hidden" name="OrderNuma"   value="<?=$_SESSION['OrderNum' . $identifier]?>" size="8" maxlength="25"/> 
+		 
+	</tr>
+</table>
+<?php
+}else{
+    ?>
+    <table class="selection">
+	
+    <tr>
+	<td>附件名称a：</td>
+  <td ><input type="text"  required="required"  maxlength="200" size="20" name="file_namea"  value="<?=$_POST['file_namea']?>" /> </td>
+		<td>上传附件a：</td>
+		<td><input type="file" required="required"  name="Pica"></td>
+		
+		<td><input  type="hidden" name="OrderNuma"   value="<?=$_SESSION['OrderNum' . $identifier]?>" size="8" maxlength="25"/> 
+		 
+	</tr>
+	
+
+	
+</table>
+<?php
+}
+?>
+</div>
+<div class="centre">
+	<input type="submit" name="Save" value="保存" >
+</div>
+</form>
+<?php
+  include('includes/footer.inc');
+?>

@@ -1,0 +1,173 @@
+<?php
+//  首先引入XLSXWriter包
+
+putenv("NLS_LANG=AMERICAN_AMERICA.AL32UTF8");
+ob_start();
+include('includes/session2.inc');
+include('includes/SQL_CommonFunctions.inc');
+unset($result);
+ 
+$time =date("Y-m-d");
+
+if (isset($_GET['vendor_name'])) {
+    $vendor_name = $_GET['vendor_name'];
+} else if (isset($_POST['vendor_name'])) {
+    $vendor_name = $_POST['vendor_name'];
+}
+if (isset($_GET['vendor_code'])) {
+    $vendor_code = $_GET['vendor_code'];
+} else if (isset($_POST['vendor_code'])) {
+    $vendor_code = $_POST['vendor_code'];
+}
+if (isset($_GET['FromDate'])) {
+    $FromDate = $_GET['FromDate'];
+} else if (isset($_POST['FromDate'])) {
+    $FromDate = $_POST['FromDate'];
+}
+if (isset($_GET['ToDate'])) {
+    $ToDate = $_GET['ToDate'];
+} else if (isset($_POST['ToDate'])) {
+    $ToDate = $_POST['ToDate'];
+}
+if (isset($_GET['item_no'])) {
+    $item_no = $_GET['item_no'];
+} else if (isset($_POST['item_no'])) {
+    $item_no = $_POST['item_no'];
+}
+if (isset($_GET['item_name'])) {
+    $item_name = $_GET['item_name'];
+} else if (isset($_POST['item_name'])) {
+    $item_name = $_POST['item_name'];
+}
+
+ 
+
+if (isset($_GET['po_num'])) {
+    $po_num = $_GET['po_num'];
+} else if (isset($_POST['po_num'])) {
+    $po_num = $_POST['po_num'];
+}
+
+
+if (isset($_GET['receipt_num'])) {
+    $receipt_num = $_GET['receipt_num'];
+} else if (isset($_POST['receipt_num'])) {
+    $receipt_num = $_POST['receipt_num'];
+}
+ 
+$sql = "select 
+                rh.receipt_num,
+                a.po_num,
+                b.line,
+                b.stockid,b.uom,
+                c.item_desc,
+                c.item_name,
+                a.vendor_code,
+                d.vendor_name,
+                rl.receipt_line,
+                rl.quantity_received,
+                (select  sum(transaction_quantity) 
+                 from    po_rcv_transactions prt 
+                 where   transaction_type='REJECT' 
+                 and     prt.receipt_num=rl.receipt_num 
+                 and     rl.receipt_line=prt.receipt_line  ) 
+                 reject_qty ,
+                (select  sum(transaction_quantity) 
+                 from    po_rcv_transactions prt  
+                 where   transaction_type='ACCEPT' 
+                 and     prt.receipt_num=rl.receipt_num 
+                 and     rl.receipt_line=prt.receipt_line ) 
+                 accept_qty ,
+                 ifnull(rl.quantity_received,0)-ifnull(rl.already_inspection_qty,0) qty,
+                 rl.subinventory_code,
+                 b.need_date,
+                 rh.creation_date,rl.wait_inspect_quantity
+                 FROM  po_headers_all a,
+                       po_lines_all b,
+			           po_rcv_receipt_header rh,
+			           po_rcv_receipt_line  rl,
+                       sf_item_no c,
+                       vendors d
+                 WHERE   a.po_num=b.po_num    
+                 and     a.vendor_code=d.vendor_code
+                 and     b.po_num=rl.po_num
+                 and     b.line=rl.po_line
+                 and     b.stockid=c.item_no 
+                 and     rl.receipt_num=rh.receipt_num
+				 and rl.wait_inspect_quantity>0  ";
+if(isset($vendor_name) and $vendor_name != ''){
+    $sql = $sql." and d.vendor_name ".LIKE." '%".$vendor_name."%' ";
+}
+if(isset($vendor_code) and $vendor_code != ''){
+    $sql = $sql." and d.vendor_code ".LIKE." '%".$vendor_code."%' ";
+}
+if(isset($FromDate) and $FromDate != ''){
+    $sql = $sql." and rh.creation_date >=".strtotime($FromDate)." ";
+}
+if(isset($ToDate) and $ToDate != ''){
+    $sql = $sql." and rh.creation_date <=".strtotime($ToDate)." ";
+}
+if (isset($item_no) and $item_no != '') { 
+	$sql = $sql." and c.item_no ".LIKE." '%".$item_no."%' ";
+}
+if (isset($item_name) and $item_name != '') { 
+	$sql = $sql." and c.item_name ".LIKE." '%".$item_name."%' ";
+}
+ 
+if (isset($po_num) and $po_num != '') { 
+	$sql = $sql." and a.po_num ".LIKE." '%".$po_num."%' ";
+}
+ if (isset($receipt_num) and $receipt_num != '') {
+    $sql = $sql . " and rh.receipt_num ".LIKE." '%".$receipt_num."%' ";
+}
+
+ 
+ 
+
+$sql .=" order by rh.creation_date   ";
+ $result_num = DB_query($sql, $db); 
+//oci_execute($par);
+include_once("xlsxwriter.class.php");
+$date=date('YmdHis');
+//ini_set('display_errors', 0);
+//ini_set('log_errors', 1);
+error_reporting(E_ALL & ~E_NOTICE);
+
+$filename = "采购进料待检验明细报表".$date.".xlsx";
+header('Content-disposition: attachment; filename="'.XLSXWriter::sanitize_filename($filename).'"');
+header("Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+header('Content-Transfer-Encoding: binary');
+header('Cache-Control: must-revalidate');
+header('Pragma: public');
+$rows2 = array( 
+  array('采购进料待检验明细报表'),
+
+);
+$rows = array( 
+  array('供应商编码','来料报检单号','行','采购单号','行','料号','料号名称','规格型号','单位','收货量','合格量','不合格量','待检验量','来料报检日期'),
+
+); 
+
+
+$writer = new XLSXWriter();
+$writer->setAuthor('Shunfansoft'); 
+
+//$writer->writeSheetHeader('Sheet1', $header);
+ foreach($rows2 as $row2)
+	$writer->writeSheetRow('Sheet1', $row2);
+foreach($rows as $row)
+	$writer->writeSheetRow('Sheet1', $row);
+
+	while ($v = DB_fetch_array($result_num)) {
+  
+
+	 $writer->writeSheetRow('Sheet1', array($v['vendor_code'],$v['receipt_num'],$v['receipt_line'],$v['po_num'],$v['line'],$v['stockid'],$v['item_name'],$v['item_desc'],$v['uom'],$v['quantity_received'],$v['accept_qty'],$v['reject_qty'],$v['wait_inspect_quantity'],date('Y-m-d H:i:s',$v['creation_date']) ));
+	 }
+    
+	
+
+$writer->writeToStdOut();
+//$writer->writeToFile('example.xlsx');
+//echo $writer->writeToString();
+exit(0);
+?>
