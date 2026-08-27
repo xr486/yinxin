@@ -5,7 +5,19 @@ $Title = _('料号维护');
 $ViewTopic = '料号维护';
 $BookMark = '料号维护';
 
-include ('includes/header.inc');
+// 物料管理 MaterialManage 弹窗模式：?embed=1 时输出精简 HTML
+$isEmbed = isset($_GET['embed']) && $_GET['embed'] == '1';
+if ($isEmbed) {
+	$Theme = isset($_SESSION['Theme']) ? $_SESSION['Theme'] : 'xenos';
+	echo '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' . htmlspecialchars($Title) . '</title>';
+	echo '<link href="' . $RootPath . '/css/' . $Theme . '/default.css" rel="stylesheet" type="text/css"/>';
+	echo '<link href="' . $RootPath . '/css/bom_style.css" rel="stylesheet" type="text/css"/>';
+	echo '<script src="' . $RootPath . '/javascript/jquery-1.7.2.min.js"></script>';
+	echo '<style>body{padding:6px;margin:0;background:#fafbfc;font-family:Verdana,Arial,sans-serif;font-size:13px}.embed-title{font-size:15px;font-weight:bold;color:#1976D2;border-bottom:2px solid #1976D2;padding-bottom:6px;margin-bottom:10px}table.selection{width:100%;table-layout:fixed;border-collapse:collapse}table.selection td{padding:4px 6px;font-size:12px;word-break:break-all;vertical-align:middle}table.selection td:first-child{width:auto;white-space:nowrap}table.selection input[type=text],table.selection select,table.selection textarea{max-width:100%;box-sizing:border-box}table.selection input[size]{width:auto}input[type=text],input.number,input[size],textarea,select{text-align:left!important}</style>';
+	echo '</head><body><div class="embed-title">✏ 料号维护</div>';
+} else {
+	include ('includes/header.inc');
+}
 include ('includes/SQL_CommonFunctions.inc');
 
 if (isset($_GET['ItemID'])) {
@@ -59,7 +71,7 @@ if (isset($_POST['Deletecustomer'])) {
 	item_type,
 	min_order,
 	safe_qty,sub_code,sub_locator,
-	disable_flag,
+	able_flag,
 	pic_path,
 	creation_date,
 	created_by,
@@ -77,7 +89,7 @@ if (isset($_POST['Deletecustomer'])) {
 	item_type,
 	min_order,
 	safe_qty,sub_code,sub_locator,
-	disable_flag,
+	able_flag,
 	pic_path,
 	creation_date,
 	created_by,
@@ -96,7 +108,7 @@ if (isset($_POST['Deletecustomer'])) {
 
 
 		echo '<br /><div class="centre"><a href="' . $RootPath . '/segment1set.php">' . _('查询料号') . '</a></div>';
-		include ('includes/footer.inc');
+		if ($isEmbed) { echo '</body></html>'; } else { include ('includes/footer.inc'); }
 		unset($_SESSION['customer_code']);
 		exit;
 	} else {
@@ -185,7 +197,7 @@ if (isset($_POST['Save'])) {
 	item_type,
 	min_order,
 	safe_qty,sub_code,sub_locator,
-	disable_flag,
+	able_flag,
 	pic_path,
 	creation_date,
 	created_by,
@@ -202,7 +214,7 @@ if (isset($_POST['Save'])) {
 	item_type,
 	min_order,
 	safe_qty,sub_code,sub_locator,
-	disable_flag,
+	able_flag,
 	pic_path,
 	creation_date,
 	created_by,
@@ -232,7 +244,7 @@ if (isset($_POST['Save'])) {
                                     po_price='" . $_POST['po_price'] . "',
                                     so_flag='" . $_POST['Flag1'] . "',
 									item_use = '" . $_POST['item_use'] . "',
-                                    disable_flag='" . $_POST['Flag'] . "',
+                                    able_flag='" . $_POST['Flag'] . "',
                                     last_update_date='" . $time . "',
                                     last_updated_by='" . $_SESSION['UserID'] . "' , 
                                     lead_time = '" . $_POST['lead_time'] . "' ,
@@ -244,7 +256,16 @@ if (isset($_POST['Save'])) {
 									youxiaoqi = '" . $_POST['youxiaoqi'] . "' ,
 									project_name = '" . $project_name . "' ,
 									item_remark = '" . $_POST['item_remark'] . "', 
-									inspect_flag = '" . $_POST['inspect_flag'] . "' 
+									inspect_flag = '" . $_POST['inspect_flag'] . "' ,
+									material = '" . $_POST['material'] . "',
+									spec = '" . $_POST['spec'] . "',
+									model = '" . $_POST['model'] . "',
+									weight = " . ($_POST['weight'] !== '' ? "'" . $_POST['weight'] . "'" : 'NULL') . ",
+									drawing_no = '" . $_POST['drawing_no'] . "',
+									supplier_code = '" . $_POST['supplier_code'] . "',
+									std_part_type = '" . $_POST['std_part_type'] . "',
+									priority = '" . $_POST['priority'] . "',
+									item_status = '" . $_POST['item_status'] . "'
 									
                               where item_id = '" . $_POST['ItemID'] . "' ";
 			$result = DB_query($sql, $db);
@@ -263,7 +284,7 @@ if (isset($_POST['Save'])) {
 		po_price='" . $_POST['po_price'] . "',
 		so_flag='" . $_POST['Flag1'] . "',
 		item_use = '" . $_POST['item_use'] . "',
-		disable_flag='" . $_POST['Flag'] . "',
+		able_flag='" . $_POST['Flag'] . "',
 		last_update_date='" . $time . "',
 		last_updated_by='" . $_SESSION['UserID'] . "' , 
 		lead_time = '" . $_POST['lead_time'] . "' ,
@@ -272,8 +293,17 @@ if (isset($_POST['Save'])) {
 		conditions = '" . $_POST['conditions'] . "' ,
 		youxiaoqi = '" . $_POST['youxiaoqi'] . "' ,
 		project_name = '" . $project_name . "' ,
-		item_remark = '" . $_POST['item_remark'] . "' , 
-		inspect_flag = '" . $_POST['inspect_flag'] . "' 
+									item_remark = '" . $_POST['item_remark'] . "' , 
+									inspect_flag = '" . $_POST['inspect_flag'] . "' ,
+									material = '" . $_POST['material'] . "',
+									spec = '" . $_POST['spec'] . "',
+									model = '" . $_POST['model'] . "',
+									weight = " . ($_POST['weight'] !== '' ? "'" . $_POST['weight'] . "'" : 'NULL') . ",
+									drawing_no = '" . $_POST['drawing_no'] . "',
+									supplier_code = '" . $_POST['supplier_code'] . "',
+									std_part_type = '" . $_POST['std_part_type'] . "',
+									priority = '" . $_POST['priority'] . "',
+									item_status = '" . $_POST['item_status'] . "'
   where item_id = '" . $_POST['ItemID'] . "' ";
 			$result = DB_query($sql, $db);
 		}
@@ -303,7 +333,7 @@ while ($v = DB_fetch_array($result)) {
 	$_POST['zhidao_price'] = $v['zhidao_price'];
 	$_POST['Flag1'] = $v['so_flag'];
 	$_POST['youxiaoqi'] = $v['youxiaoqi'];
-	$_POST['Flag'] = $v['disable_flag'];
+	$_POST['Flag'] = $v['able_flag'];
 	$_POST['lead_time'] = $v['lead_time'];
 	$_POST['sub_code'] = $v['sub_code'];
 	$_POST['sub_locator'] = $v['sub_locator'];
@@ -320,17 +350,24 @@ while ($v = DB_fetch_array($result)) {
 	$_POST['item_remark'] = $v['item_remark'];
 	$_POST['project_name'] = $v['project_name'];
 	$_POST['inspect_flag'] = $v['inspect_flag'];
-	
+	$_POST['material'] = $v['material'];
+	$_POST['spec'] = $v['spec'];
+	$_POST['model'] = $v['model'];
+	$_POST['weight'] = $v['weight'];
+	$_POST['drawing_no'] = $v['drawing_no'];
+	$_POST['supplier_code'] = $v['supplier_code'];
+	$_POST['std_part_type'] = $v['std_part_type'];
+	$_POST['priority'] = $v['priority'];
+	$_POST['item_status'] = $v['item_status'];
+
 	$sql2 = " select * from  sf_item_no_file where item_no='" . $v['item_no'] . "'   ";
 	$result2 = DB_query($sql2, $db);
 
 }
 ?>
-<div class="centre"><a href="<?= $RootPath ?>/segment1set.php">返回查找料号</a></div>
-<p class="page_title_text"><img src="<?php echo $RootPath; ?>/css/<?php echo $Theme; ?>//images/maintenance.png"
-		title="料号维护" alt="料号维护">料号维护</p>
+<div class="centre"><a href="<?= $RootPath ?>/SelectItemNo.php">点击选择料号</a></div>
 <form action="<?php echo htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES, 'UTF-8'); ?>" method="POST"
-	enctype="multipart/form-data">
+enctype="multipart/form-data">
 	<div>
 		<input type="hidden" name="FormID" value="<?php echo $_SESSION['FormID'];
 
@@ -346,7 +383,7 @@ while ($v = DB_fetch_array($result)) {
 						value="<?= $_POST['ItemNo'] ?>" required="required"><span style="color:red">*</span></td>
 
 				<td bgcolor="#87CEFA">料号名称：</td>
-				<td colspan="3"><input type="text" size="70" name="item_name" value="<?= $_POST['item_name'] ?>"
+				<td colspan="3"><input type="text" size="30" name="item_name" value="<?= $_POST['item_name'] ?>"
 						required="required"><span style="color:red">*</span></td>
 
 			</tr>
@@ -670,7 +707,7 @@ while ($v = DB_fetch_array($result)) {
 				?>
 			
 				<td bgcolor="#87CEFA">备注：</td>
-								<td colspan="3"><input  size="70"  type="text" name="item_remark" value="<?= $_POST['item_remark'] ?>"></td>
+								<td colspan="3"><input  size="30"  type="text" name="item_remark" value="<?= $_POST['item_remark'] ?>"></td>
 								</tr>
 								<tr>
 
@@ -703,6 +740,53 @@ while ($v = DB_fetch_array($result)) {
 										value="<?= $_POST['customer_name'] ?>" size="20" maxlength="25" />
 
 								</td> -->
+							<tr>
+								<td bgcolor="#87CEFA">材质：</td>
+								<td colspan="1"><input type="text" name="material" value="<?= $_POST['material'] ?>"></td>
+								<td bgcolor="#87CEFA">规格：</td>
+								<td colspan="1"><input type="text" name="spec" value="<?= $_POST['spec'] ?>"></td>
+								<td bgcolor="#87CEFA">型号：</td>
+								<td colspan="1"><input type="text" name="model" value="<?= $_POST['model'] ?>"></td>
+							</tr>
+							<tr>
+								<td bgcolor="#87CEFA">重量(kg)：</td>
+								<td colspan="1"><input type="text" class="number" name="weight" value="<?= $_POST['weight'] ?>"></td>
+								<td bgcolor="#87CEFA">图号：</td>
+								<td colspan="1"><input type="text" name="drawing_no" value="<?= $_POST['drawing_no'] ?>"></td>
+								<td bgcolor="#87CEFA">标准件类型：</td>
+								<td colspan="1"><input type="text" name="std_part_type" value="<?= $_POST['std_part_type'] ?>"></td>
+							</tr>
+							<tr>
+								<td bgcolor="#87CEFA">物料优先级：</td>
+								<td colspan="1"><input type="text" name="priority" value="<?= $_POST['priority'] ?>"></td>
+								<td bgcolor="#87CEFA">主供应商：</td>
+								<td colspan="1">
+									<select name="supplier_code" id="">
+										<option value="">--</option>
+										<?php
+										$sql = "select vendor_code, vendor_name from vendors order by vendor_code";
+										$result = DB_query($sql, $db);
+										while ($v = DB_fetch_array($result)) {
+											if ($v['vendor_code'] == $_POST['supplier_code']) {
+												?>
+												<option value="<?= $v['vendor_code'] ?>" selected="selected"><?= $v['vendor_code'] . ' ' . $v['vendor_name'] ?></option>
+											<?php } else { ?>
+												<option value="<?= $v['vendor_code'] ?>"><?= $v['vendor_code'] . ' ' . $v['vendor_name'] ?></option>
+											<?php }
+										}
+										?>
+									</select>
+								</td>
+								<td bgcolor="#87CEFA">承认状态：</td>
+								<td colspan="1"><select name="item_status" style="height:28px;padding:3px 6px;border:1px solid #c5d3e0;border-radius:3px;font-size:13px;">
+									<option value="草稿" <?= $_POST['item_status']=='草稿' ? 'selected' : '' ?>>草稿</option>
+									<option value="试用" <?= $_POST['item_status']=='试用' ? 'selected' : '' ?>>试用</option>
+									<option value="正式" <?= $_POST['item_status']=='正式' ? 'selected' : '' ?>>正式</option>
+									<option value="冻结" <?= $_POST['item_status']=='冻结' ? 'selected' : '' ?>>冻结</option>
+									<option value="报废" <?= $_POST['item_status']=='报废' ? 'selected' : '' ?>>报废</option>
+								</select></td>
+							</tr>
+
 			</tr>
 
 		</table>
@@ -828,5 +912,5 @@ if (DB_num_rows($result2) == 0) {
 
 
 <?php
-include ('includes/footer.inc');
+if ($isEmbed) { echo '</body></html>'; } else { include ('includes/footer.inc'); }
 ?>
