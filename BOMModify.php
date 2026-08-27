@@ -30,7 +30,7 @@ if (!isset($_POST['PageOffset'])) {
 }
 
 if (isset($_POST['Search']) OR isset($_POST['Go']) OR isset($_POST['Next']) OR isset($_POST['Previous'])) {
-    $sql = "SELECT a.bom_header_id,a.version,a.assembly_item_no,b.item_name,b.item_desc,a.creation_date,a.created_by ,item_category1
+    $sql = "SELECT a.bom_header_id,a.version,a.assembly_item_no,b.item_name,b.item_desc,a.creation_date,a.created_by ,item_category1,a.status
 	FROM bom_headers_all a,
 	 sf_item_no b
 WHERE	1 = 1
@@ -149,15 +149,14 @@ if (isset($_POST['Search']) and isset($result) OR isset($_POST['Go']) OR isset($
     echo ' <div class="text-nav-table">
                     <table cellpadding="2" class="selection" >';
 
-    echo '<tr> <th  width = 20>' . _('修改') . '</th>
-                    <th bgcolor="#87CEFA" class="ascending"  >' . _('料号') . '</th>
-					<th bgcolor="#87CEFA" class="ascending" >' . _('料号名称') . '</th>
-					<th bgcolor="#87CEFA" class="ascending" >' . _('规格型号') . '</th>
-                    <th bgcolor="#87CEFA" class="ascending"  >' . _('版本') . '</th>  
-                    <th class="ascending"width = 90>' . _('分类') . '</th>                   
-
-					<th bgcolor="#87CEFA" class="ascending"width = 160>' . _('建立日期') . '</th>
-                    <th bgcolor="#87CEFA" class="ascending"width = 100>' . _('建立人员') . '</th>
+    echo '<tr style="background:#eef4fb"> <th  width = 20>' . _('修改') . '</th>
+                    <th>' . _('料号') . '</th>
+					<th>' . _('料号名称') . '</th>
+					<th>' . _('规格型号') . '</th>
+                    <th>' . _('版本') . '</th>  
+                    <th>' . _('状态') . '</th>                   
+                    <th class="ascending"width = 160>' . _('建立日期') . '</th>
+                    <th class="ascending"width = 100>' . _('建立人员') . '</th>
 					<th  width = 20>' . _('查询') . '</th>
             </tr>';
     $k = 0; //row counter to determine background colour
@@ -177,17 +176,21 @@ if (isset($_POST['Search']) and isset($result) OR isset($_POST['Go']) OR isset($
                 $k = 1;
             }
 
-            echo ' <td><a href="' . $RootPath . '/BOMModify2.php?New=Yes&UpdateBOMItem=' . $myrow['bom_header_id'] . '" target="_blank" >修改</td> 
+            $statusBadge = ($myrow['status'] == '已签核') ? '<span style="background:#d4edda;color:#155724;padding:2px 10px;border-radius:10px;font-size:12px">已签核</span>'
+                : (($myrow['status'] == '待签核') ? '<span style="background:#fff3cd;color:#856404;padding:2px 10px;border-radius:10px;font-size:12px">待签核</span>'
+                : (($myrow['status'] == '已拒签') ? '<span style="background:#f8d7da;color:#721c24;padding:2px 10px;border-radius:10px;font-size:12px">已拒签</span>'
+                : '<span style="background:#e2e3e5;color:#383d41;padding:2px 10px;border-radius:10px;font-size:12px">' . htmlspecialchars($myrow['status']) . '</span>'));
+            echo ' <td><a href="' . $RootPath . '/BOMModify2.php?New=Yes&UpdateBOMItem=' . $myrow['bom_header_id'] . '" target="_blank" style="background:#1976D2;color:#fff;padding:3px 14px;border-radius:3px;text-decoration:none;font-size:12px">修改</td> 
 				<td>'   . $myrow['assembly_item_no'] . '</td> 
 			
                                 <td>' . $myrow['item_name'] . '</td> 
                                 <td>' . $myrow['item_desc'] . '</td>  	
                                 <td>' . $myrow['version'] . '</td>  		
-                                <td>' . $myrow['item_category1'] . '</td>                            
+                                <td>' . $statusBadge . '</td>                            
                             
 				<td>' . date('Y-m-d H:i:s', $myrow['creation_date']) . '</td>
 				<td>' . $myrow['created_by'] . '</td>
-                <td><a href="' . $RootPath . '/SearchBOMDetail.php?searchitem_no=' . $myrow['bom_header_id'] . '" target="_blank">多阶查询</td>    <td><a href="' . $RootPath . '/SearchBOMDetail1.php?searchitem_no=' . $myrow['bom_header_id'] . '" target="_blank">单阶查询</td>                ';
+                <td><a href="' . $RootPath . '/SearchBOMDetail.php?searchitem_no=' . $myrow['bom_header_id'] . '" target="_blank" style="color:#0d47a1">多阶</a></td>    <td><a href="' . $RootPath . '/SearchBOMDetail1.php?searchitem_no=' . $myrow['bom_header_id'] . '" target="_blank" style="color:#0d47a1">单阶</td>                ';
 
 
             echo '

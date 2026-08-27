@@ -36,7 +36,7 @@ echo '<p class="page_title_text">
    
 
        
-             $sql = "update bom_headers_all set status = '已签核',approve_date='". $creation_date ."',approve_remark='". $_POST['approve_remark']  ."',approve_by='" . $_SESSION['UserID'] . "' where bom_header_id = '".$_POST['bom_header_id']."' ";
+             $sql = "update bom_headers_all set status = '已审核',approve_date='". $creation_date ."',approve_remark='". $_POST['approve_remark']  ."',approve_by='" . $_SESSION['UserID'] . "' where bom_header_id = '".$_POST['bom_header_id']."' ";
             //   echo $sql;
              $result = DB_query($sql,$db);
            
@@ -85,32 +85,19 @@ if (isset($Updatesearchitem_no) and $Updatesearchitem_no != '') {
         . '<input type="hidden" name = "identifier" value ="' . $identifier . '">';
         echo '<div>';
         echo '<input type="hidden" name="FormID" value="' . $_SESSION['FormID'] . '" />';
-       
-        echo '<table class="selection" id="SignFrame">
-                <div class="text-nav">
-                    <div class="text-nav-1 ">
-                        <div>' . _('母件料号') . ':</div>
-                        <input  type="text" name="assembly_item_no"  value="' . $_POST['assembly_item_no'] . '" />
-                        </div>
-                        <input  type="hidden" name="bom_header_id"  value="' . $_POST['bom_header_id'] . '" />
-			        <div class="text-nav-1 ">
-                        <div>' . _('料号名称') . ':</div>
-                        <input  type="text" name="item_name"  value="' . $_POST['item_name'] . '" />
-                    </div>
-				    <div class="text-nav-1 ">
-                        <div>' . _('规格型号') . ':</div>
-                        <input  type="text" name="item_desc"  value="' . $_POST['item_desc'] . '" />
-                    </div>
 
-			      
-
-		';
-        
-        echo'
-                    <div class="text-nav-2 ">
-                        <div>' . _('签核意见备注') . ':</div>
-				        <input type="text"  style="background-color:#FFF68F" size="50" maxlength="200" name="approve_remark" value= ' . $_POST['approve_remark'] . ' >
-                    </div>';
+        // 母件信息卡片（BOMSetup 风格）
+        echo '<div style="border:1px solid #d6e4f0;border-radius:6px;background:#f9fbfd;padding:12px 16px;margin-bottom:14px">';
+        echo '<div style="font-weight:bold;color:#0d47a1;font-size:14px;margin-bottom:8px">BOM 审核信息</div>';
+        echo '<table class="selection" style="border:none;background:transparent">';
+        echo '<tr><td style="width:110px;color:#666">母件料号</td><td><b>' . htmlspecialchars($_POST['assembly_item_no']) . '</b></td>';
+        echo '<td style="width:110px;color:#666">料号名称</td><td>' . htmlspecialchars($_POST['item_name']) . '</td></tr>';
+        echo '<tr><td style="color:#666">规格型号</td><td>' . htmlspecialchars($_POST['item_desc']) . '</td>';
+        echo '<td style="color:#666">状态</td><td><span style="background:#FFF3CD;color:#856404;padding:2px 10px;border-radius:10px;font-size:12px">未审核</span></td></tr>';
+        echo '<tr><td style="color:#666">签核意见备注</td><td colspan="3"><textarea name="approve_remark" rows="2" cols="60" placeholder="填写签核意见（可选）">' . htmlspecialchars(isset($_POST['approve_remark']) ? $_POST['approve_remark'] : '') . '</textarea></td></tr>';
+        echo '</table>';
+        echo '<input type="hidden" name="bom_header_id" value="' . htmlspecialchars($_POST['bom_header_id']) . '">';
+        echo '</div>';
         echo '</table>';
         echo '<br />';
 
@@ -125,19 +112,19 @@ if (isset($Updatesearchitem_no) and $Updatesearchitem_no != '') {
             echo '<form method="post" action="' . htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES, 'UTF-8') . '"><input type="hidden" name = "identifier" value ="' . $identifier . '">';
             echo '<div>';
             echo '<input type="hidden" name="FormID" value="' . $_SESSION['FormID'] . '" />';
-            echo '<div style="overflow:scroll"> <table class="selection" align="center" >';
+            echo '<div style="overflow:auto;border:1px solid #e0e8f0;border-radius:6px"> <table class="selection" align="center" >';
 		
-            $tableheader = '<tr> 
+            $tableheader = '<tr style="background:#eef4fb"> 
                             <th >行</th>
-                            <th bgcolor="#87CEFA" width="220">子料号</th>
-                            <th width="230">料号名称</th>
-                            <th width="230">规格型号</th>
-                            <th width="30" >单位</th>
-                            <th bgcolor="#87CEFA" width="20">数量</th>
-                            <th width="120">自损率(0-1之间)</th>
+                            <th width="200">子料号</th>
+                            <th width="200">料号名称</th>
+                            <th width="200">规格型号</th>
+                            <th width="60" >单位</th>
+                            <th width="80">数量</th>
+                            <th width="100">自损率</th>
                             <th width="120">生效时间</th>
                             <th width="120">失效时间</th>
-                            <th width="100">备注</th>                 
+                            <th width="120">备注</th>                 
                                             
 				</tr>'; 
             echo $tableheader;
@@ -189,10 +176,12 @@ if (isset($Updatesearchitem_no) and $Updatesearchitem_no != '') {
         }
 
         echo '<br />
-        
-        <input type="submit" name="approve" value="核准" />&nbsp;&nbsp;&nbsp;
-        <input type="submit" name="reject" value="拒绝" />&nbsp;&nbsp;&nbsp;
+        <div style="text-align:center;margin:16px 0">
+        <input type="submit" name="approve" value="核准" style="background:#27ae60;color:#fff;border:none;padding:7px 34px;border-radius:3px;cursor:pointer;font-size:14px" />&nbsp;&nbsp;&nbsp;
+        <input type="submit" name="reject" value="拒绝" style="background:#e74c3c;color:#fff;border:none;padding:7px 34px;border-radius:3px;cursor:pointer;font-size:14px" />&nbsp;&nbsp;&nbsp;
+        <input type="button" value="返回" onclick="location.href=\'BOMApprove.php\'" style="background:#95a5a6;color:#fff;border:none;padding:7px 34px;border-radius:3px;cursor:pointer;font-size:14px" />
         </div>';
+        '</div>';
     }
     //<input type="submit" name="cancel" value="取消" />&nbsp;&nbsp;&nbsp;
     echo '</div>

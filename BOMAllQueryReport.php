@@ -7,6 +7,8 @@ include('includes/session.inc');
 $Title = _('多层BOM查询');
 
 include('includes/header.inc');
+echo '<link rel="stylesheet" href="' . $RootPath . '/css/bom_style.css">';
+include('includes/BOMReportTabs.php');
 include('includes/SQL_CommonFunctions.inc');
 
 function display_children($bom_header_id,$assembly_item_no, $Level, &$bom_lines_allTree) {
@@ -266,6 +268,8 @@ if (isset($Select)) { //assembly_item_no Stock Item selected so display bom_line
 	 
 	 
  
+	echo '<div class="bom-card"><div class="bom-card-title">查询结果</div>';
+	echo '<div class="hier-toolbar"><span class="version-tag">BOM多阶查询结果</span></div>';
 	echo '<br />
 			<table class="selection">';
 	echo '<tr>
@@ -316,7 +320,7 @@ if (isset($Select)) { //assembly_item_no Stock Item selected so display bom_line
 		}
 	}
 	echo '</table>
-		<br />';
+		<br /></div>';
     /* We do want to show the new component entry form in any case - it is a lot of work to get back to it otherwise if we need to add */
 
 		echo '<form method="post" action="' . htmlspecialchars($_SERVER['PHP_SELF'],ENT_QUOTES,'UTF-8') . '?Select=' . $Selectedassembly_item_no .'">';
