@@ -201,26 +201,30 @@ function erSepSel(cur){
     for(var i=0;i<SEP_OPTS.length;i++){ var v=SEP_OPTS[i]; html+='<option value="'+escH(v)+'"'+(cur===v?' selected':'')+'>'+((v==='')?'无':escH(v))+'</option>'; }
     return html;
 }
-function erCfgHtml(s){
+function erUpd(i,key,val){
+    if(i>=0 && i<SEGS.length && SEGS[i]) SEGS[i][key]=val;
+    erRender();
+}
+function erCfgHtml(s,i){
     var t=s.type, h='';
     h += '<div class="er-row" style="margin-bottom:6px"><span class="er-label" style="width:60px">类型</span><b style="color:#0d47a1">'+erTypeName(t)+'</b>'+
-         '<span class="er-label" style="width:70px">后分隔符</span><select class="er-input" style="width:80px" onchange="s.sep=this.value;erRender();">'+erSepSel(s.sep||'')+'</select></div>';
-    if(t==='FIXED') h += '<div class="er-row" style="margin-bottom:0"><span class="er-label" style="width:60px">固定值</span><input class="er-input" value="'+escH(s.value)+'" placeholder="如 W" oninput="s.value=this.value;erRender();"></div>';
-    if(t==='DATE') h += '<div class="er-row" style="margin-bottom:0"><span class="er-label" style="width:60px">格式</span><select class="er-input" style="width:160px" onchange="s.format=this.value;erRender();">'+
+         '<span class="er-label" style="width:70px">后分隔符</span><select class="er-input" style="width:80px" onchange="erUpd('+i+',\x27sep\x27,this.value)">'+erSepSel(s.sep||'')+'</select></div>';
+    if(t==='FIXED') h += '<div class="er-row" style="margin-bottom:0"><span class="er-label" style="width:60px">固定值</span><input class="er-input" value="'+escH(s.value)+'" placeholder="如 W" oninput="erUpd('+i+',\x27value\x27,this.value)"></div>';
+    if(t==='DATE') h += '<div class="er-row" style="margin-bottom:0"><span class="er-label" style="width:60px">格式</span><select class="er-input" style="width:160px" onchange="erUpd('+i+',\x27format\x27,this.value)">'+
         '<option value="YYYYMMDD"'+(s.format==='YYYYMMDD'?' selected':'')+'>YYYYMMDD</option>'+
         '<option value="YYYY-MM-DD"'+(s.format==='YYYY-MM-DD'?' selected':'')+'>YYYY-MM-DD</option>'+
         '<option value="YYMM"'+(s.format==='YYMM'?' selected':'')+'>YYMM</option>'+
         '<option value="YYMMDD"'+(s.format==='YYMMDD'?' selected':'')+'>YYMMDD</option></select></div>';
     if(t==='SERIAL'){
         var randSel = '<option value="serial"'+(s.mode!=='random'?' selected':'')+'>顺序递增</option><option value="random"'+(s.mode==='random'?' selected':'')+'>随机</option>';
-        h += '<div class="er-row" style="margin-bottom:0"><span class="er-label" style="width:60px">模式</span><select class="er-input" onchange="s.mode=this.value;erRender();">'+randSel+'</select>';
+        h += '<div class="er-row" style="margin-bottom:0"><span class="er-label" style="width:60px">模式</span><select class="er-input" onchange="erUpd('+i+',\x27mode\x27,this.value)">'+randSel+'</select>';
         if(s.mode!=='random'){
-            h += '<span class="er-label" style="width:45px">位数</span><input class="er-input" style="width:60px" type="number" min="1" max="12" value="'+(s.digits||6)+'" oninput="s.digits=parseInt(this.value)||1;erRender();">'+
-                 '<span class="er-label" style="width:40px">起始</span><input class="er-input" style="width:60px" type="number" min="0" value="'+(s.start||1)+'" oninput="s.start=parseInt(this.value)||0;erRender();">';
+            h += '<span class="er-label" style="width:45px">位数</span><input class="er-input" style="width:60px" type="number" min="1" max="12" value="'+(s.digits||6)+'" oninput="erUpd('+i+',\x27digits\x27,parseInt(this.value)||1)">'+
+                 '<span class="er-label" style="width:40px">起始</span><input class="er-input" style="width:60px" type="number" min="0" value="'+(s.start||1)+'" oninput="erUpd('+i+',\x27start\x27,parseInt(this.value)||0)">';
         }
         h += '</div>';
     }
-    if(t==='RANDOM') h += '<div class="er-row" style="margin-bottom:0"><span class="er-label" style="width:60px">位数</span><input class="er-input" style="width:60px" type="number" min="1" max="12" value="'+(s.digits||4)+'" oninput="s.digits=parseInt(this.value)||1;erRender();"></div>';
+    if(t==='RANDOM') h += '<div class="er-row" style="margin-bottom:0"><span class="er-label" style="width:60px">位数</span><input class="er-input" style="width:60px" type="number" min="1" max="12" value="'+(s.digits||4)+'" oninput="erUpd('+i+',\x27digits\x27,parseInt(this.value)||1)"></div>';
     return h;
 }
 function erChipText(s){
@@ -246,7 +250,7 @@ function erRenderCfg(){
     var box=document.getElementById('erCfgWrap');
     if(!box) return;
     var html='';
-    for(var i=0;i<SEGS.length;i++){ html+='<div class="er-cfg"><div style="font-weight:bold;color:#0d47a1;margin-bottom:6px">段 '+(i+1)+'：'+escH(erTypeName(SEGS[i].type))+'</div>'+erCfgHtml(SEGS[i])+'</div>'; }
+    for(var i=0;i<SEGS.length;i++){ html+='<div class="er-cfg"><div style="font-weight:bold;color:#0d47a1;margin-bottom:6px">段 '+(i+1)+'：'+escH(erTypeName(SEGS[i].type))+'</div>'+erCfgHtml(SEGS[i],i)+'</div>'; }
     box.innerHTML=html;
 }
 function erSync(){ document.getElementById('segmentsInput').value = JSON.stringify(SEGS); }
