@@ -781,25 +781,27 @@ echo '
 			while ($i < count($ModuleLink)) {
 				//第一层
 				if ($_SESSION['ModulesEnabled'][$i] == 1) {
-					$arr = array(
-						'销售' => 'orders',
-						'采购' => 'Purchase',
-						'刀具' => 'DJ',
-						'仓库' => 'INV',
-						'BOM' => 'BOM',
-						'生产' => 'WIP',
-						'外协' => 'OSP',
-						'品质' => 'QM',
-						'财务' => 'FIN',
-						'应付' => 'AP',
-						'应收' => 'AR' ,
-						'技服' => 'OSP' ,
-						'月结' => 'AP' ,
-						'固定资产' => 'AP',
-						'模具' => 'MES',
-						'人事' => 'OSP',
-						'系统设置' => 'system'
-					);
+				$arr = array(
+					'销售' => 'orders',
+					'采购' => 'Purchase',
+					'刀具' => 'DJ',
+					'仓库' => 'INV',
+				'BOM' => 'BOM',
+				'图文档' => 'Doc',
+				'工艺' => 'Tech',
+				'生产' => 'WIP',
+					'外协' => 'OSP',
+					'品质' => 'QM',
+					'财务' => 'FIN',
+					'应付' => 'AP',
+					'应收' => 'AR' ,
+					'技服' => 'OSP' ,
+					'月结' => 'AP' ,
+					'固定资产' => 'AP',
+					'模具' => 'MES',
+					'人事' => 'OSP',
+					'系统设置' => 'system'
+				);
 					echo '<li class="litem leftnav_first_li">
                         <a href="##" style="color:#fff;text-decoration:none;display:flex;align-items:center;">
                             <img style="width:15px;height:15px;margin-right:2px;" src="' . $RootPath . '/css/' . $Theme . '/images/' . $arr[$ModuleList[$i]] . '.png" />

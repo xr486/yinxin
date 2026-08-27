@@ -136,6 +136,7 @@ if (isset($_POST['Save'])) {
 <link rel="icon" href="/sherp/favicon.ico"/>
 <meta http-equiv="Content-Type" content="application/html; charset=utf-8"/>
 <link href="/css/xenos/default.css" rel="stylesheet" type="text/css"/>
+<link href="<?php echo $RootPath; ?>/css/bom_style.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src ="/shanghai/javascripts/miscfunctions.js"></script>
 <script type="text/javascript" src ="/shanghai/javascripts/wdatepicker.js"></script>
 <script type="text/javascript">var basepath='/shanghai/statics/base/images';</script>
@@ -182,53 +183,50 @@ function addsave()
  </script>
 
 <body>
- <div id="CanvasDiv">
+<div id="CanvasDiv">
 	<div id="BodyDiv">
 		<div id="BodyWrapDiv">
-			<p class="page_title_text"><img src="<?php echo $RootPath; ?>/css/<?php echo $Theme; ?>//images/transactions.png" title="物料整批上传确认" alt="物料整批上传确认">物料整批上传确认</p>
 			<form action="<?php echo htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES, 'UTF-8'); ?>" method ="POST"><input type="hidden" name="time" value="<?=$time?>">
 			<div>
 			<input type="hidden" name="FormID" value = "<?php echo $_SESSION['FormID']; ?>">
-		
-			
-
-			<table cellpadding="2" class="selection">
-			<div class="text-nav-table">
-			</div>
-			</table>
+			<div class="bom-card">
+				<div class="hier-toolbar">
+					<span class="version-tag">物料整批上传确认</span>
+					<span class="bom-link" style="color:#666;font-size:12px">共 <b style="color:#1976D2"><?php echo isset($i) ? ($i-1) : 0; ?></b> 笔待保存</span>
+				</div>
 			<input type="hidden" name="PageOffset" value="1"/><br/>
 			<?php
 			if(1==1){
-			
+
 			?>
 			<div class="text-nav-table">
-				<table cellpadding="2" class="selection">
+				<table class="bom-table">
 			<tr id="list-top">
-				<th width="20" bgcolor="#87CEFA">选择</th>
-				<th width="100" bgcolor="#87CEFA">物料编码<span style="color:red">*</span></th>
-				<th width="100" bgcolor="#87CEFA">物料名称<span style="color:red">*</span></th>
-				<th width="100" bgcolor="#87CEFA">规格型号<span style="color:red">*</span></th> 
-				<th width="10" bgcolor="#87CEFA">单位<span style="color:red">*</span></th>  
-				<th width="50" bgcolor="#87CEFA">物料类型<span style="color:red">*</span></th>
-				<th width="100" bgcolor="#87CEFA">物料分类<span style="color:red">*</span></th>
-				<th width="50" bgcolor="#87CEFA">物料用途<span style="color:red">*</span></th>
-				<th width="50" bgcolor="#87CEFA">是否启用保存条件<span style="color:red">*</span></th>
-				<th width="50" bgcolor="#87CEFA">温度</th>
-				<th width="50" bgcolor="#87CEFA">是否避光</th>
-				<th width="50" bgcolor="#87CEFA">湿度范围</th>
-				<th width="50" bgcolor="#87CEFA">有效期（天）</th>
-				<th width="50" bgcolor="#87CEFA">默认仓库<span style="color:red">*</span></th>
-				<th width="50" bgcolor="#87CEFA">货号</th>
-				<th width="50" bgcolor="#87CEFA">最小订单量</th>
-				<th width="50" bgcolor="#87CEFA">采购周期（天）</th>
-				<th width="50" bgcolor="#87CEFA">安全库存</th>
-				<th width="50" bgcolor="#87CEFA">库位</th>
-				<th width="50" bgcolor="#87CEFA">项目名称</th>
-				<th width="50" bgcolor="#87CEFA">是否可售</th>
-				<th width="50" bgcolor="#87CEFA">是否生效</th>
-				<th width="50" bgcolor="#87CEFA">是否检验</th>
-				<th width="50" bgcolor="#87CEFA">备注</th>
-				<th width="100" bgcolor="#87CEFA">提示</th>
+				<th width="20">选择</th>
+				<th width="100">物料编码<span style="color:red">*</span></th>
+				<th width="100">物料名称<span style="color:red">*</span></th>
+				<th width="100">规格型号<span style="color:red">*</span></th>
+				<th width="10">单位<span style="color:red">*</span></th>
+				<th width="50">物料类型<span style="color:red">*</span></th>
+				<th width="100">物料分类<span style="color:red">*</span></th>
+				<th width="50">物料用途<span style="color:red">*</span></th>
+				<th width="50">是否启用保存条件<span style="color:red">*</span></th>
+				<th width="50">温度</th>
+				<th width="50">是否避光</th>
+				<th width="50">湿度范围</th>
+				<th width="50">有效期（天）</th>
+				<th width="50">默认仓库<span style="color:red">*</span></th>
+				<th width="50">货号</th>
+				<th width="50">最小订单量</th>
+				<th width="50">采购周期（天）</th>
+				<th width="50">安全库存</th>
+				<th width="50">库位</th>
+				<th width="50">项目名称</th>
+				<th width="50">是否可售</th>
+				<th width="50">是否生效</th>
+				<th width="50">是否检验</th>
+				<th width="50">备注</th>
+				<th width="100">提示</th>
 			</tr>
 			<?php
 $sql=" select * from sf_item_upload a  where  a.created_by = '" . $_SESSION['UserID'] . "' 
@@ -436,13 +434,14 @@ if  (DB_num_rows($result) == 0) {
 		<tr>
             <td colspan="11"><p><input type="checkbox" name="selectall" onclick="checkall(this.form);"/>全选/反选</p><input type="hidden" name="flag" value="<?=$i-1?>" size="15" maxlength="45"/></td>
 		</tr>
-					
+
 
 			</table>
 			</div>
-			<div class="centre">
-	            <input type="submit" name="Save" value="保存"> &nbsp;
+			<div class="centre" style="margin-top:14px;">
+	            <input type="submit" name="Save" value="保存" class="bom-btn bom-btn-primary"> &nbsp;
 			</div>
+			</div><!-- /.bom-card -->
 <?php
 		}
 	?>

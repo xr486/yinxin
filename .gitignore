@@ -1,16 +1,46 @@
-# WorkBuddy 项目数据（严禁提交）
+# ===== 工作空间 / 工具缓存（禁止提交） =====
+# WorkBuddy 工作空间：含记忆、缓存等，与项目无关，绝不能上传
 .workbuddy/
-
-# 前端依赖
-node_modules/
-
-# 系统/IDE 临时文件
-Thumbs.db
-.DS_Store
-*.log
+# PhpStorm 工程配置
 .idea/
-.vscode/
+*.iml
+# git 连接信息：含 PAT 密钥，禁止提交
+git相关/
 
-# 会话/缓存临时文件
-session/
-tmp/
+# ===== 系统 / 临时文件 =====
+.DS_Store
+Thumbs.db
+*.log
+
+# ===== 运行时临时产物（禁止提交） =====
+# 销售附件/上传缓存等随机命名文件
+/SO/
+# Playwright 自动化测试记录
+.playwright-cli/
+/after-confirm.yml
+/after-login.yml
+/index1.yml
+/cookies.txt
+/outputs/
+# 根目录调试/测试脚本与截图
+/test_*.js
+/test5.php
+/patch_approved.php
+# 临时调试脚本 / 挂载测试脚本 / 临时日志
+/_tmp_mount_test_cad.php
+/_pdf4_log.txt
+/testfiles/
+# 开发文档下临时输出
+/开发文档/_tmp_*.txt
+
+# ===== 文档 / 分析类（非代码，不纳入版本库） =====
+# 开发文档、历史 SQL 与需求文档目录：仅本地留存，不入库
+/开发文档/
+/sql文件/
+/功能描述/
+/PLM系统功能明细.xls
+/实习工作内容总结.md
+
+# ===== 依赖 / 构建产物（如有） =====
+/vendor/
+/node_modules/

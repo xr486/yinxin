@@ -418,7 +418,7 @@ echo ";
     };
     let currentIndex = -1;
     setInterval(function() {
-        var dataLen = option.series[0].data.length;
+        var dataLen = (option.series && option.series[0] && option.series[0].data) ? option.series[0].data.length : 0;
         // 取消之前高亮的图形
         myChart.dispatchAction({
             type: 'downplay',
@@ -471,7 +471,7 @@ while ($array1 = mysqli_fetch_assoc($result1)) {
 echo "<script>";
 // echo "console.log(" . json_encode($array_data1) . ");";
 echo ";   var array1 = ";
-echo json_encode($array_data1);
+echo json_encode(isset($array_data1) ? $array_data1 : array());
 // 对数据项数量进行判断
 $arrayLength = count($array_data1);
 for ($i = 1; $i <= 5; $i++) {
@@ -623,7 +623,7 @@ echo ";
     };
     let currentIndex2 = -1;
     setInterval(function() {
-        var dataLen2 = option2.series[0].data.length;
+        var dataLen2 = (option2.series && option2.series[0] && option2.series[0].data) ? option2.series[0].data.length : 0;
         // 取消之前高亮的图形
         myChart2.dispatchAction({
             type: 'downplay',
@@ -675,7 +675,7 @@ while ($array3 = mysqli_fetch_assoc($result3)) {
 echo "<script>";
 // echo "console.log(" . json_encode($array_data3) . ");";
 echo ";   var array3 = ";
-echo json_encode($array_data3);
+echo json_encode(isset($array_data3) ? $array_data3 : array());
 // 对数据项数量进行判断
 $arrayLength = count($array_data3);
 for ($i = 1; $i <= 5; $i++) {
@@ -737,7 +737,7 @@ echo ";
     };
     let currentIndex3 = -1;
     setInterval(function() {
-        var dataLen3 = option3.series[0].data.length;
+        var dataLen3 = (option3.series && option3.series[0] && option3.series[0].data) ? option3.series[0].data.length : 0;
         // 取消之前高亮的图形
         myChart3.dispatchAction({
             type: 'downplay',
@@ -792,7 +792,7 @@ while ($array4 = mysqli_fetch_assoc($result4)) {
 echo "<script>";
 // echo "console.log(" . json_encode($array_data4) . ");";
 echo ";   var array4 = ";
-echo json_encode($array_data4);
+echo json_encode(isset($array_data4) ? $array_data4 : array());
 // 对数据项数量进行判断
 $arrayLength = count($array_data4);
 for ($i = 1; $i <= 5; $i++) {
@@ -854,7 +854,7 @@ echo ";
     };
     let currentIndex4 = -1;
     setInterval(function() {
-        var dataLen4 = option4.series[0].data.length;
+        var dataLen4 = (option4.series && option4.series[0] && option4.series[0].data) ? option4.series[0].data.length : 0;
         // 取消之前高亮的图形
         myChart4.dispatchAction({
             type: 'downplay',
@@ -1013,7 +1013,7 @@ echo ";
     };
     let currentIndex6 = -1;
     setInterval(function() {
-        var dataLen6 = option6.series[0].data.length;
+        var dataLen6 = (option6.series && option6.series[0] && option6.series[0].data) ? option6.series[0].data.length : 0;
         // 取消之前高亮的图形
         myChart6.dispatchAction({
             type: 'downplay',
@@ -1068,7 +1068,7 @@ while ($array7 = mysqli_fetch_assoc($result7)) {
 }
 echo "<script>";
 echo ";  var array7 = ";
-echo json_encode($array_data7);
+echo json_encode(isset($array_data7) ? $array_data7 : array());
 // echo "console.log(" . json_encode($array_data7) . ");";
 // 对数据项数量进行判断
 $arrayLength = count($array_data7);
@@ -1130,7 +1130,7 @@ echo ";
     };
     let currentIndex7 = -1;
     setInterval(function() {
-        var dataLen7 = option7.series[0].data.length;
+        var dataLen7 = (option7.series && option7.series[0] && option7.series[0].data) ? option7.series[0].data.length : 0;
         // 取消之前高亮的图形
         myChart7.dispatchAction({
             type: 'downplay',
