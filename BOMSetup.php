@@ -346,7 +346,7 @@ function refCount($db, $item_no) {
 // 字段中文标签
 function fieldLabel($f) {
     static $map = array(
-        'item_no'=>'物料编码','item_name'=>'物料名称','item_desc'=>'规格型号','units'=>'单位',
+        'item_no'=>'物料编码','item_name'=>'物料名称','model'=>'型号','spec'=>'规格','units'=>'单位',
         'item_category1'=>'分类','item_type'=>'类型','item_use'=>'用途','project_name'=>'项目名',
         'inspect_flag'=>'检验标志','gongyi'=>'工艺','min_order'=>'最小订购量','unit_price'=>'单价',
         'safe_qty'=>'安全库存','min_qty'=>'最小库存','max_qty'=>'最大库存','huohao'=>'货号',
@@ -354,7 +354,7 @@ function fieldLabel($f) {
         'po_price'=>'采购价','zhidao_price'=>'指导价','so_flag'=>'可售标志','sub_code'=>'仓库',
         'sub_locator'=>'库位','conditions'=>'状态','wendu'=>'温度','light'=>'光照','shidu'=>'湿度',
         'suoding_flag'=>'锁定','suoding_remark'=>'锁定备注','item_remark'=>'备注','youxiaoqi'=>'有效期',
-        'disable_flag'=>'停用','item_status'=>'物料状态','pic_path'=>'图片路径','created_by'=>'创建人',
+        'able_flag'=>'停用','item_status'=>'物料状态','pic_path'=>'图片路径','created_by'=>'创建人',
         'creation_date'=>'创建日期','last_updated_by'=>'最后更新人','last_update_date'=>'最后更新日期'
     );
     return isset($map[$f]) ? $map[$f] : $f;
@@ -446,7 +446,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && $postOp != '') {
             $version  = $_POST['version'];
             $item_no  = trim($_POST['item_no']);
             $item_name= trim($_POST['item_name']);
-            $item_desc= trim($_POST['item_desc']);
             $units    = trim($_POST['units']);
             $cat1     = trim($_POST['item_category1']);
             $item_type= $_POST['item_type'];
@@ -497,11 +496,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && $postOp != '') {
             }
             if ($err == '') {
                 $t = time();
-                DB_query("INSERT INTO sf_item_no(item_no,item_name,item_desc,units,item_category1,item_type,
-                    item_use,project_name,inspect_flag,gongyi,disable_flag,creation_date,created_by,last_update_date,last_updated_by)
-                    VALUES('" . esc($db, $item_no) . "','" . esc($db, $item_name) . "','" . esc($db, $item_desc) . "','" . esc($db, $units) . "',
+                DB_query("INSERT INTO sf_item_no(item_no,item_name,units,item_category1,item_type,
+                    item_use,project_name,inspect_flag,gongyi,able_flag,creation_date,created_by,last_update_date,last_updated_by,model,spec)
+                    VALUES('" . esc($db, $item_no) . "','" . esc($db, $item_name) . "','" . esc($db, $units) . "',
                     '" . esc($db, $cat1) . "','" . esc($db, $item_type) . "','" . esc($db, $item_use) . "','" . esc($db, $project) . "',
-                    '" . esc($db, $inspect) . "','" . esc($db, $gongyi) . "','Y','" . $t . "','" . esc($db, $_SESSION['UserID']) . "','" . $t . "','" . esc($db, $_SESSION['UserID']) . "')", $db);
+                    '" . esc($db, $inspect) . "','" . esc($db, $gongyi) . "','Y','" . $t . "','" . esc($db, $_SESSION['UserID']) . "','" . $t . "','" . esc($db, $_SESSION['UserID']) . "','" . esc($db, $_POST['model']) . "','" . esc($db, $_POST['spec']) . "')", $db);
                 // 注意：不自动创建新物料的 BOM 头（否则空 BOM 头会让新节点显示折叠符但无子件）。
                 // 新物料作为子件引用是叶子；以后在它下面新建子 BOM 时，new_save 的"母件无 BOM 头自动创建"逻辑会建头。
                 $r = DB_query("SELECT MAX(item_num)+1 AS n FROM bom_lines_all WHERE bom_header_id='" . esc($db, $hdr['bom_header_id']) . "'", $db);
@@ -804,7 +803,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && $postOp != '') {
             // 快捷添加物料：只创建物料主数据（不添加 BOM 行），成功后把物料代码写回父表单（create_top）
             $item_no  = trim($_POST['item_no']);
             $item_name= trim($_POST['item_name']);
-            $item_desc= trim($_POST['item_desc']);
             $units    = trim($_POST['units']);
             $cat1     = trim($_POST['item_category1']);
             $item_type= $_POST['item_type'];
@@ -824,11 +822,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && $postOp != '') {
             }
             if ($err == '') {
                 $t = time();
-                DB_query("INSERT INTO sf_item_no(item_no,item_name,item_desc,units,item_category1,item_type,
-                    item_use,project_name,inspect_flag,gongyi,disable_flag,creation_date,created_by,last_update_date,last_updated_by)
-                    VALUES('" . esc($db, $item_no) . "','" . esc($db, $item_name) . "','" . esc($db, $item_desc) . "','" . esc($db, $units) . "',
+                DB_query("INSERT INTO sf_item_no(item_no,item_name,units,item_category1,item_type,
+                    item_use,project_name,inspect_flag,gongyi,able_flag,creation_date,created_by,last_update_date,last_updated_by,model,spec)
+                    VALUES('" . esc($db, $item_no) . "','" . esc($db, $item_name) . "','" . esc($db, $units) . "',
                     '" . esc($db, $cat1) . "','" . esc($db, $item_type) . "','" . esc($db, $item_use) . "','" . esc($db, $project) . "',
-                    '" . esc($db, $inspect) . "','" . esc($db, $gongyi) . "','Y','" . $t . "','" . esc($db, $_SESSION['UserID']) . "','" . $t . "','" . esc($db, $_SESSION['UserID']) . "')", $db);
+                    '" . esc($db, $inspect) . "','" . esc($db, $gongyi) . "','Y','" . $t . "','" . esc($db, $_SESSION['UserID']) . "','" . $t . "','" . esc($db, $_SESSION['UserID']) . "','" . esc($db, $_POST['model']) . "','" . esc($db, $_POST['spec']) . "')", $db);
                 DB_Txn_Commit($db);
                 // 写回父表单（create_top / 复制BOM）的物料代码输入框（用 target 参数定位），并关闭快捷添加弹窗
                 $writeTarget = (isset($_POST['target']) && preg_match('/^[A-Za-z][A-Za-z0-9_]*$/', $_POST['target'])) ? $_POST['target'] : 'assembly';
@@ -851,7 +849,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && $postOp != '') {
             if ($err == '') {
                 $map = array(
                     'item_name'      => trim($_POST['item_name']),
-                    'item_desc'      => trim($_POST['item_desc']),
+                    'model'          => trim($_POST['model']),
+                    'spec'           => trim($_POST['spec']),
                     'units'          => trim($_POST['units']),
                     'item_category1' => trim($_POST['item_category1']),
                     'item_type'      => trim($_POST['item_type']),
@@ -868,7 +867,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && $postOp != '') {
                     'shidu'          => trim($_POST['shidu']),
                     'conditions'     => trim($_POST['conditions']),
                     'so_flag'        => trim($_POST['so_flag']),
-                    'disable_flag'   => trim($_POST['disable_flag']),
+                    'able_flag'      => trim($_POST['able_flag']),
                     'suoding_flag'   => trim($_POST['suoding_flag']),
                     'item_status'    => trim($_POST['item_status']),
                 );
@@ -1337,7 +1336,7 @@ function renderDialogForm($op, $p) {
 
     if ($op == 'ref') {
         $opts = '';
-        $r = DB_query("SELECT item_no,item_name FROM sf_item_no WHERE disable_flag<>'N' ORDER BY item_no", $db);
+        $r = DB_query("SELECT item_no,item_name FROM sf_item_no WHERE able_flag<>'N' ORDER BY item_no", $db);
         while ($row = DB_fetch_array($r)) {
             $opts .= '<option value="' . htmlspecialchars($row['item_no']) . '">' . htmlspecialchars($row['item_no'] . ' ' . $row['item_name']) . '</option>';
         }
@@ -1354,7 +1353,7 @@ function renderDialogForm($op, $p) {
                      ELSE (SELECT h3.status FROM bom_headers_all h3 WHERE h3.assembly_item_no = i.item_no ORDER BY h3.is_current DESC, h3.bom_header_id DESC LIMIT 1) END AS latest_status
                 FROM sf_item_no i
                 LEFT JOIN (SELECT DISTINCT assembly_item_no FROM bom_headers_all) h ON h.assembly_item_no = i.item_no
-                WHERE i.disable_flag<>'N'" . $qiWhere . "
+                WHERE i.able_flag<>'N'" . $qiWhere . "
                 ORDER BY i.item_category1, i.item_no", $db);
         while ($row = DB_fetch_array($r)) { $qiItems[] = $row; }
         $qiCategories = array();
@@ -1764,7 +1763,8 @@ REFJS;
             <tr><td colspan="2"><b>新建物料并作为子件引用到 ' . htmlspecialchars($assembly . ' (v' . $version . ')') . '</b></td></tr>
             <tr><td>物料代码*</td><td><input name="item_no" id="newItemNo" size="20"><button type="button" onclick="genItemNo(\'#newItemNo\')" style="margin-left:5px;padding:2px 8px">随机生成</button></td></tr>
             <tr><td>物料名称*</td><td><input name="item_name" size="40"></td></tr>
-            <tr><td>规格型号</td><td><input name="item_desc" size="40"></td></tr>
+            <tr><td>型号</td><td><input name="model" size="40"></td></tr>
+            <tr><td>规格</td><td><input name="spec" size="40"></td></tr>
             <tr><td>单位</td><td><input name="units" size="10"></td></tr>
             <tr><td>分类</td><td><select name="item_category1">' . $cats . '</select></td></tr>
             <tr><td>类型</td><td><select name="item_type"><option value="M">M原材料</option><option value="B">B半成品</option><option value="F" selected>F成品</option><option value="P">P</option></select></td></tr>
@@ -2061,7 +2061,7 @@ REFJS;
         $topAsms = array();
         $r = DB_query("SELECT DISTINCT h.assembly_item_no FROM bom_headers_all h
             JOIN sf_item_no i ON i.item_no = h.assembly_item_no
-            WHERE i.disable_flag<>'N'
+            WHERE i.able_flag<>'N'
             AND h.assembly_item_no NOT IN (SELECT DISTINCT component_item FROM bom_lines_all WHERE disable_date=0)
             ORDER BY h.assembly_item_no", $db);
         while ($row = DB_fetch_array($r)) { $topAsms[] = array('item' => $row['assembly_item_no'], 'line_id' => ''); }
@@ -2082,7 +2082,7 @@ REFJS;
                      ELSE (SELECT h3.status FROM bom_headers_all h3 WHERE h3.assembly_item_no = i.item_no ORDER BY h3.is_current DESC, h3.bom_header_id DESC LIMIT 1) END AS latest_status
                 FROM sf_item_no i
                 LEFT JOIN (SELECT DISTINCT assembly_item_no FROM bom_headers_all) h ON h.assembly_item_no = i.item_no
-                WHERE i.disable_flag<>'N'" . $qiWhere . "
+                WHERE i.able_flag<>'N'" . $qiWhere . "
                 ORDER BY i.item_category1, i.item_no", $db);
         while ($row = DB_fetch_array($r)) { $qiItems[] = $row; }
         $qiCategories = array();
@@ -2303,7 +2303,7 @@ REFJS;
                      ELSE (SELECT h3.status FROM bom_headers_all h3 WHERE h3.assembly_item_no = i.item_no ORDER BY h3.is_current DESC, h3.bom_header_id DESC LIMIT 1) END AS latest_status
                 FROM sf_item_no i
                 LEFT JOIN (SELECT DISTINCT assembly_item_no FROM bom_headers_all) h ON h.assembly_item_no = i.item_no
-                WHERE i.disable_flag<>'N'" . $qiWhere . "
+                WHERE i.able_flag<>'N'" . $qiWhere . "
                 ORDER BY i.item_category1, i.item_no", $db);
         while ($row = DB_fetch_array($r)) { $qiItems[] = $row; }
         $qiCategories = array();
@@ -2326,7 +2326,7 @@ REFJS;
         $curUse = $selVal('item_use');
         $curInsp = $selVal('inspect_flag');
         $curSo = $selVal('so_flag');
-        $curDis = $selVal('disable_flag');
+        $curDis = $selVal('able_flag');
         $curLock = $selVal('suoding_flag');
         $v = function($key) use ($src) { return isset($src[$key]) ? htmlspecialchars($src[$key]) : ''; };
         // 重写分类下拉（每个 option 单独判断 selected）
@@ -2364,8 +2364,9 @@ REFJS;
             <table class="selection" style="font-size:13px;min-width:1000px;width:max-content">
             <tr><td><span style="color:#c00">*</span> 物料代码</td><td><input name="item_no" id="qiItemNo" size="20" value="' . ($isEdit ? htmlspecialchars($editItemNo) : $v('item_no')) . '" required' . ($isEdit ? ' readonly style="background:#f5f5f5"' : '') . '>' . ($isEdit ? '' : '<button type="button" onclick="genItemNo(\'#qiItemNo\')" style="margin-left:5px;padding:2px 8px">随机生成</button>') . '</td>
                 <td><span style="color:#c00">*</span> 物料名称</td><td><input name="item_name" size="30" value="' . $v('item_name') . '" required></td></tr>
-            <tr><td>规格型号</td><td><input name="item_desc" size="20" value="' . $v('item_desc') . '"></td>
-                <td><span style="color:#c00">*</span> 单位</td><td><input name="units" size="10" value="' . $v('units') . '"' . ($isEdit ? '' : ' required') . '></td></tr>
+            <tr><td>型号</td><td><input name="model" size="20" value="' . $v('model') . '"></td>
+                <td>规格</td><td><input name="spec" size="20" value="' . $v('spec') . '"></td></tr>
+            <tr><td><span style="color:#c00">*</span> 单位</td><td><input name="units" size="10" value="' . $v('units') . '"' . ($isEdit ? '' : ' required') . '></td>
             <tr><td><span style="color:#c00">*</span> 分类</td><td><select name="item_category1"' . ($isEdit ? '' : ' required') . '>' . $catOpts . '</select></td>
                 <td><span style="color:#c00">*</span> 类型</td><td><select name="item_type"' . ($isEdit ? '' : ' required') . '><option value=""></option><option value="M"' . ($curType === 'M' ? ' selected' : '') . '>M原材料</option><option value="B"' . ($curType === 'B' ? ' selected' : '') . '>B半成品</option><option value="F"' . ($curType === 'F' ? ' selected' : '') . '>F成品</option></select></td></tr>
             <tr><td>用途</td><td><select name="item_use"><option value=""></option><option value="S"' . ($curUse === 'S' ? ' selected' : '') . '>S生产</option><option value="Y"' . ($curUse === 'Y' ? ' selected' : '') . '>Y研发</option></select></td>
@@ -2381,7 +2382,7 @@ REFJS;
             <tr><td>湿度</td><td><input name="shidu" size="10" value="' . $v('shidu') . '"></td>
                 <td>状态</td><td><input name="conditions" size="10" value="' . $v('conditions') . '"></td></tr>
             <tr><td>可售标志</td><td><select name="so_flag"><option value=""></option><option value="Y"' . ($curSo === 'Y' ? ' selected' : '') . '>Y</option><option value="N"' . ($curSo === 'N' ? ' selected' : '') . '>N</option></select></td>
-                <td>停用</td><td><select name="disable_flag"><option value=""></option><option value="Y"' . ($curDis === 'Y' ? ' selected' : '') . '>Y</option><option value="N"' . ($curDis === 'N' ? ' selected' : '') . '>N</option></select></td></tr>
+                <td>停用</td><td><select name="able_flag"><option value=""></option><option value="Y"' . ($curDis === 'Y' ? ' selected' : '') . '>Y</option><option value="N"' . ($curDis === 'N' ? ' selected' : '') . '>N</option></select></td></tr>
             <tr><td>锁定</td><td><select name="suoding_flag"><option value=""></option><option value="Y"' . ($curLock === 'Y' ? ' selected' : '') . '>Y</option><option value="N"' . ($curLock === 'N' ? ' selected' : '') . '>N</option></select></td>
                 <td>物料状态</td><td><input name="item_status" size="10" value="' . $v('item_status') . '"></td></tr>
             <tr><td colspan="4" class="centre"><input type="submit" value="' . ($isEdit ? '保存修改' : '新建物料并填入') . '"></td></tr>
@@ -2790,7 +2791,9 @@ function renderItemDocsPanel($db, $item_no) {
 		echo '<td class="op">';
 		echo '<a href="' . $RootPath . '/DocPLM.php?op=versions&doc_id=' . intval($d['doc_id']) . '" target="_blank" style="margin-right:6px;">历史版本</a>';
 		if ($d['file_patch'] && file_exists($d['file_patch'])) {
-			echo '<a href="' . $RootPath . '/' . $d['file_patch'] . '" download="' . htmlspecialchars($d['doc_name'] . ($fext !== '' ? '.' . $fext : '')) . '">下载</a>';
+			$_dl = ($fext !== '' && substr(strtolower($d['doc_name']), -strlen($fext) - 1) === '.' . $fext)
+				? $d['doc_name'] : $d['doc_name'] . ($fext !== '' ? '.' . $fext : '');
+			echo '<a href="' . $RootPath . '/' . $d['file_patch'] . '" download="' . htmlspecialchars($_dl) . '">下载</a>';
 		}
 		echo '</td>';
 		echo '</tr>';
@@ -2882,7 +2885,7 @@ function renderHierarchy($db, $assembly, $level, $hierCode, $path, $parentQty = 
             <td class="col-itemNo">' . htmlspecialchars($ln['component_item']) . '</td>
             <td class="col-childVer">' . $childVerTxt . '</td>
             <td class="col-itemName" title="' . htmlspecialchars($nm) . '">' . htmlspecialchars($nm) . '</td>
-            <td class="col-spec">' . htmlspecialchars($info ? $info['item_desc'] : '') . '</td>
+            <td class="col-spec">' . htmlspecialchars(trim(($info ? (string)$info['model'] . ' ' . (string)$info['spec'] : ''))) . '</td>
             <td class="col-unit">' . htmlspecialchars($info ? $info['units'] : '') . '</td>
             <td class="col-category">' . htmlspecialchars($info ? $info['item_category1'] : '') . '</td>
             <td class="col-type">' . htmlspecialchars(itemTypeName($type)) . '</td>
@@ -2985,7 +2988,7 @@ function renderRightPanel($db, $view, $filterParent, $version = '', $activeTab =
                             <label><input type="checkbox" data-col="itemNo" checked>物料编码</label>
                             <label><input type="checkbox" data-col="childVer" checked>子件版本</label>
                             <label><input type="checkbox" data-col="itemName" checked>物料名称</label>
-                            <label><input type="checkbox" data-col="spec" checked>规格型号</label>
+                            <label><input type="checkbox" data-col="spec" checked>型号/规格</label>
                             <label><input type="checkbox" data-col="unit" checked>单位</label>
                             <label><input type="checkbox" data-col="category" checked>分类</label>
                             <label><input type="checkbox" data-col="type" checked>类型</label>
@@ -3007,7 +3010,7 @@ function renderRightPanel($db, $view, $filterParent, $version = '', $activeTab =
             <?php if ($hasBOM): ?>
             <div class="hier-table-wrap">
                 <table class="selection" id="hierTable">
-                    <thead><tr><th data-col="code">层次码</th><th data-col="level">层级</th><th data-col="qty">用量</th><th data-col="totalQty">总用量</th><th data-col="itemNo">物料编码</th><th data-col="childVer">子件版本</th><th data-col="itemName">物料名称</th><th data-col="spec">规格型号</th><th data-col="unit">单位</th><th data-col="category">分类</th><th data-col="type">类型</th><th data-col="use">用途</th><th data-col="lossRate">自损率</th><th data-col="position">位置</th><th data-col="process">制程</th><th data-col="remark">备注</th><th data-col="effDate">生效日期</th></tr></thead>
+                    <thead><tr><th data-col="code">层次码</th><th data-col="level">层级</th><th data-col="qty">用量</th><th data-col="totalQty">总用量</th><th data-col="itemNo">物料编码</th><th data-col="childVer">子件版本</th><th data-col="itemName">物料名称</th><th data-col="spec">型号/规格</th><th data-col="unit">单位</th><th data-col="category">分类</th><th data-col="type">类型</th><th data-col="use">用途</th><th data-col="lossRate">自损率</th><th data-col="position">位置</th><th data-col="process">制程</th><th data-col="remark">备注</th><th data-col="effDate">生效日期</th></tr></thead>
                     <tbody>
                         <tr class="bom-root" data-level="0" data-key="0" data-parent="">
                             <td class="hier-level col-code"><span class="tw2" title="展开/折叠">▾</span><?php echo itemIcon($vInfo ? $vInfo['item_type'] : '', 'sm', false, ($vhdr && $vhdr['status'] == '已审核' ? 1 : 0)); ?><span class="hier-code">0</span></td>
@@ -3017,7 +3020,7 @@ function renderRightPanel($db, $view, $filterParent, $version = '', $activeTab =
                             <td class="col-itemNo"><?php echo htmlspecialchars($view); ?></td>
                             <td class="col-childVer">—</td>
                             <td class="col-itemName" title="<?php echo htmlspecialchars($vInfo ? $vInfo['item_name'] : ''); ?>"><?php echo htmlspecialchars($vInfo ? $vInfo['item_name'] : ''); ?></td>
-                            <td class="col-spec"><?php echo htmlspecialchars($vInfo ? $vInfo['item_desc'] : ''); ?></td>
+                            <td class="col-spec"><?php echo htmlspecialchars(trim(($vInfo ? (string)$vInfo['model'] . ' ' . (string)$vInfo['spec'] : ''))); ?></td>
                             <td class="col-unit"><?php echo htmlspecialchars($vInfo ? $vInfo['units'] : ''); ?></td>
                             <td class="col-category"><?php echo htmlspecialchars($vInfo ? $vInfo['item_category1'] : ''); ?></td>
                             <td class="col-type"><?php echo htmlspecialchars(itemTypeName($vInfo ? $vInfo['item_type'] : '')); ?></td>
@@ -3032,7 +3035,7 @@ function renderRightPanel($db, $view, $filterParent, $version = '', $activeTab =
             <?php $leafRows = renderLeafUsage($db, $view, $filterParent); ?>
             <div class="hier-table-wrap">
                 <table class="selection" id="hierTable">
-                    <thead><tr><th data-col="parentItemNo">父件编码</th><th data-col="parentItemName">父件名称</th><th data-col="code">层次码</th><th data-col="level">层级</th><th data-col="qty">用量</th><th data-col="totalQty">总用量</th><th data-col="itemNo">物料编码</th><th data-col="itemName">物料名称</th><th data-col="spec">规格型号</th><th data-col="unit">单位</th><th data-col="category">分类</th><th data-col="type">类型</th><th data-col="use">用途</th><th data-col="lossRate">自损率</th><th data-col="position">位置</th><th data-col="process">制程</th><th data-col="remark">备注</th><th data-col="effDate">生效日期</th></tr></thead>
+                    <thead><tr><th data-col="parentItemNo">父件编码</th><th data-col="parentItemName">父件名称</th><th data-col="code">层次码</th><th data-col="level">层级</th><th data-col="qty">用量</th><th data-col="totalQty">总用量</th><th data-col="itemNo">物料编码</th><th data-col="itemName">物料名称</th><th data-col="spec">型号/规格</th><th data-col="unit">单位</th><th data-col="category">分类</th><th data-col="type">类型</th><th data-col="use">用途</th><th data-col="lossRate">自损率</th><th data-col="position">位置</th><th data-col="process">制程</th><th data-col="remark">备注</th><th data-col="effDate">生效日期</th></tr></thead>
                     <tbody>
                     <?php if ($leafRows): ?>
                         <?php foreach ($leafRows as $lr): ?>
@@ -3045,7 +3048,7 @@ function renderRightPanel($db, $view, $filterParent, $version = '', $activeTab =
                             <td class="number col-totalQty"><?php echo htmlspecialchars($lr['component_quantity']); ?></td>
                             <td class="col-itemNo"><?php echo htmlspecialchars($view); ?></td>
                             <td class="col-itemName" title="<?php echo htmlspecialchars($vInfo ? $vInfo['item_name'] : ''); ?>"><?php echo htmlspecialchars($vInfo ? $vInfo['item_name'] : ''); ?></td>
-                            <td class="col-spec"><?php echo htmlspecialchars($vInfo ? $vInfo['item_desc'] : ''); ?></td>
+                            <td class="col-spec"><?php echo htmlspecialchars(trim(($vInfo ? (string)$vInfo['model'] . ' ' . (string)$vInfo['spec'] : ''))); ?></td>
                             <td class="col-unit"><?php echo htmlspecialchars($vInfo ? $vInfo['units'] : ''); ?></td>
                             <td class="col-category"><?php echo htmlspecialchars($vInfo ? $vInfo['item_category1'] : ''); ?></td>
                             <td class="col-type"><?php echo htmlspecialchars(itemTypeName($vInfo ? $vInfo['item_type'] : '')); ?></td>

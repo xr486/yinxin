@@ -309,7 +309,7 @@ function PlmRenderRight($db, $CurFolder, $CurFolderName, $docs, $SearchName, $Se
 							<?php } elseif ($fext == 'pdf') { ?>
 								<a href="<?php echo $RootPath . '/' . $d['file_patch']; ?>" target="_blank">预览</a>
 							<?php } ?>
-							<a href="<?php echo $RootPath . '/' . $d['file_patch']; ?>" download="<?php echo htmlspecialchars($d['doc_name'] . ($fext != '' ? '.' . $fext : '')); ?>">下载</a>
+							<a href="<?php echo $RootPath . '/' . $d['file_patch']; ?>" download="<?php echo htmlspecialchars(PlmDownloadName($d['doc_name'], $fext)); ?>">下载</a>
 						<?php } ?>
 						<a href="javascript:void(0)" onclick="PlmTemplateNew(<?php echo intval($d['doc_id']); ?>)" style="color:#1976D2;">新建文档</a>
 						<a href="javascript:void(0)" onclick="PlmTplDelete(<?php echo intval($d['doc_id']); ?>)" style="color:#c62828;">删除</a>
@@ -329,7 +329,7 @@ function PlmRenderRight($db, $CurFolder, $CurFolderName, $docs, $SearchName, $Se
 						<?php } elseif ($fext == 'pdf') { ?>
 							<a href="<?php echo $RootPath . '/' . $d['file_patch']; ?>" target="_blank">预览</a>
 						<?php } ?>
-						<a href="<?php echo $RootPath . '/' . $d['file_patch']; ?>" download="<?php echo htmlspecialchars($d['doc_name'] . ($fext != '' ? '.' . $fext : '')); ?>">下载</a>
+						<a href="<?php echo $RootPath . '/' . $d['file_patch']; ?>" download="<?php echo htmlspecialchars(PlmDownloadName($d['doc_name'], $fext)); ?>">下载</a>
 					<?php } ?>
 					<?php } ?>
 				</td>
@@ -589,7 +589,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
 							<a href="javascript:void(0)" onclick="PlmVersions(<?php echo intval($d['doc_id']); ?>)">版本</a>
 							<a href="javascript:void(0)" onclick="PlmLogView(<?php echo intval($d['doc_id']); ?>)">日志</a>
 						<?php if ($d['file_patch'] && file_exists($d['file_patch'])) { ?>
-							<a href="<?php echo $RootPath . '/' . $d['file_patch']; ?>" download="<?php echo htmlspecialchars($d['doc_name'] . ($fext !== '' ? '.' . $fext : '')); ?>">下载</a>
+							<a href="<?php echo $RootPath . '/' . $d['file_patch']; ?>" download="<?php echo htmlspecialchars(PlmDownloadName($d['doc_name'], $fext)); ?>">下载</a>
 						<?php } ?>
 						</td>
 					</tr>
@@ -715,6 +715,14 @@ function PlmSize($patch) {
 	if ($s >= 1048576) return round($s / 1048576, 2) . ' MB';
 	if ($s >= 1024) return round($s / 1024, 1) . ' KB';
 	return $s . ' B';
+}
+/* 拼接下载文件名：若名称本身已带该后缀则不重复追加（兼容历史脏数据） */
+function PlmDownloadName($name, $ext) {
+	$name = trim($name);
+	if ($name === '') return $name;
+	$ext = rtrim(strtolower((string)$ext), '.');
+	if ($ext !== '' && strtolower(substr($name, -strlen($ext) - 1)) === '.' . $ext) return $name;
+	return $ext !== '' ? $name . '.' . $ext : $name;
 }
 function PlmStatusTag($status) {
 	switch ($status) {
@@ -856,16 +864,20 @@ if (isset($_POST['doc_import'])) {
 	}
 	$cnt = 0;
 	foreach ($_POST as $key => $value) {
-		if ($value != '' && substr($key, 0, 9) == 'file_name') {
-			$idx = (int) substr($key, 9) - 1;
-			if (isset($uploaded[$idx]['dest']) && $uploaded[$idx]['dest'] != '') {
-				$docName = $value;
-				$docCode = isset($_POST['doc_code_' . ($idx + 1)]) && trim($_POST['doc_code_' . ($idx + 1)]) != '' ? $_POST['doc_code_' . ($idx + 1)] : PlmGenCode();
-				$docItem = isset($_POST['item_no_' . ($idx + 1)]) ? trim($_POST['item_no_' . ($idx + 1)]) : '';
-				$isTpl = (isset($_POST['as_template']) && $_POST['as_template'] == '1') ? 'Y' : 'N';
-				$patch = $uploaded[$idx]['dest'];
-				$ext = strtolower(pathinfo($patch, PATHINFO_EXTENSION));
-				$fsize = @filesize($patch);
+			if ($value != '' && substr($key, 0, 9) == 'file_name') {
+				$idx = (int) substr($key, 9) - 1;
+				if (isset($uploaded[$idx]['dest']) && $uploaded[$idx]['dest'] != '') {
+					$docName = $value;
+					$docCode = isset($_POST['doc_code_' . ($idx + 1)]) && trim($_POST['doc_code_' . ($idx + 1)]) != '' ? $_POST['doc_code_' . ($idx + 1)] : PlmGenCode();
+					$docItem = isset($_POST['item_no_' . ($idx + 1)]) ? trim($_POST['item_no_' . ($idx + 1)]) : '';
+					$isTpl = (isset($_POST['as_template']) && $_POST['as_template'] == '1') ? 'Y' : 'N';
+					$patch = $uploaded[$idx]['dest'];
+					$ext = strtolower(pathinfo($patch, PATHINFO_EXTENSION));
+					// 自动从文档名称去除后缀（防止原文件名带后缀导致下载时后缀重复）
+					if ($ext !== '' && strtolower(substr($docName, -strlen($ext)-1)) === '.' . $ext) {
+						$docName = substr($docName, 0, -strlen($ext)-1);
+					}
+					$fsize = @filesize($patch);
 				DB_query("INSERT INTO doc_master (doc_code, doc_name, doc_type, folder_id, item_no, status, check_status, current_version, is_template, remark, created_by, creation_date, last_update_by, last_update_date) VALUES ('" . $docCode . "','" . $docName . "','','" . $folderId . "','" . $docItem . "','正常','在库','v1','" . $isTpl . "','','" . $_SESSION['UserID'] . "','" . $time . "','" . $_SESSION['UserID'] . "','" . $time . "')", $db);
 				$docId = isset($_SESSION['LastInsertId']) ? intval($_SESSION['LastInsertId']) : 0;
 				DB_query("INSERT INTO doc_file (doc_id, version_no, file_name, file_patch, file_ext, file_size, is_current, uploader, upload_date) VALUES ('" . $docId . "','v1','" . $docName . "','" . $patch . "','" . $ext . "','" . $fsize . "','Y','" . $_SESSION['UserID'] . "','" . $time . "')", $db);
