@@ -54,12 +54,12 @@ $num = 10;
 $off = $num*($page-1);
  
     $count = db_sql("SELECT a.item_no, a.item_name, a.item_desc
-    FROM sf_item_no AS a where item_type<>'M'  and disable_flag<>'N'  and a.item_status = '已签核'
+    FROM sf_item_no AS a where item_type IN ('F','B')  and disable_flag<>'N'  and a.item_status = '已签核'
 	".$where.'',3);
 
 $pages = ceil($count/$num);
 $sql = "SELECT a.item_no, a.item_name, a.item_desc,a.gongyi,a.creation_date
-FROM sf_item_no a where item_type<>'M' and disable_flag<>'N'  and a.item_status = '已签核'
+FROM sf_item_no a where item_type IN ('F','B') and disable_flag<>'N'  and a.item_status = '已签核'
  
 ".$where.' ORDER BY item_no  desc limit '.$off.','.$num.'';
    
@@ -117,10 +117,16 @@ function show_page($url,$page,$pages,$total,$t0=''){
 <body>
 
 <script type="text/javascript">
-        $(document).ready(function(){           
-            var api = frameElement.api, W = api.opener;
+        $(document).ready(function(){
+            // 兼容两种打开方式：lhgdialog 弹窗（frameElement.api）或 window.open 新窗口（window.opener）
+            var W;
+            if (window.frameElement && window.frameElement.api) {
+                W = window.frameElement.api.opener;
+            } else if (window.opener) {
+                W = window.opener;
+            }
 
-  
+
 			$("#ck_company tr").slice(1).click(function () {
                 var chks = $("input[type='radio']",this);
                 var tag = $(this).attr("tag");
@@ -135,15 +141,17 @@ function show_page($url,$page,$pages,$total,$t0=''){
 				c = rel.split(":");
 				$("#form_item_no").text(c[0]);
 				$("#form_item_name").text(c[1]);
-				$("#form_item_desc").text(c[2]); 
-				   W.document.getElementById('text_slect_item_no'+$('#fwValue').val()).value = $("label#form_item_no").text(); 
+				$("#form_item_desc").text(c[2]);
+				   W.document.getElementById('text_slect_item_no'+$('#fwValue').val()).value = $("label#form_item_no").text();
 					    W.document.getElementById('text_slect_item_name'+$('#fwValue').val()).value = $("label#form_item_name").text();
-						W.document.getElementById('text_slect_item_desc'+$('#fwValue').val()).value = $("label#form_item_desc").text(); 
-						$("#xianshi").css("display","block"); 
-						api.close();
+						W.document.getElementById('text_slect_item_desc'+$('#fwValue').val()).value = $("label#form_item_desc").text();
+						$("#xianshi").css("display","block");
+						// 兼容两种关闭方式
+						if (window.frameElement && window.frameElement.api) { window.frameElement.api.close(); }
+						else if (window.opener) { window.close(); }
                 }
             });
-			 
+
         });
     </script>
 
