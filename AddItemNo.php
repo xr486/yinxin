@@ -9,31 +9,27 @@ include ('includes/session.inc');
  * ============================================================ */
 if (isset($_GET['act']) && $_GET['act'] == 'gen_no') {
 	include ('includes/SQL_CommonFunctions.inc');
-	$encPrefix = ''; $encDigit = 6; $encSep = ''; $encAuto = 'Y';
-	$resConf = DB_query("SELECT confname, confvalue FROM config WHERE confname IN ('encod_prefix','encod_digit','encod_separator','encod_auto')", $db);
-	while ($cf = DB_fetch_array($resConf)) {
-		if ($cf['confname'] == 'encod_prefix')         $encPrefix = $cf['confvalue'];
-		elseif ($cf['confname'] == 'encod_digit')      $encDigit  = max(1, min(12, intval($cf['confvalue'])));
-		elseif ($cf['confname'] == 'encod_separator')  $encSep    = $cf['confvalue'];
-		elseif ($cf['confname'] == 'encod_auto')       $encAuto   = $cf['confvalue'];
+	include ('includes/encoding_rule.inc');
+	$rule = er_load_rule($db);
+	$genNo = null; $msg = '';
+	if ($rule['status'] == 'Y' && !empty($rule['segments'])) {
+		$genNo = er_generate($db, $rule['segments']);
+		if ($genNo === '') $msg = '编码规则为空，无法生成';
+	} else {
+		/* 退回默认 6 位纯数字 */
+		$sql_num = "select lpad((max( cast(substr(item_no, -6, 6) as unsigned) ) + 1), 6, 0) po_num
+					from sf_item_no where item_no <> '999999'
+					and char_length(item_no) = 6
+					and substr(item_no, -6, 6) REGEXP '^[0-9]+$'";
+		$result_num = DB_query($sql_num, $db);
+		$genNo = '000001';
+		while ($v = DB_fetch_array($result_num)) {
+			if ($v['po_num'] !== null) $genNo = $v['po_num'];
+		}
 	}
-	if ($encAuto != 'Y') { $encPrefix = ''; $encDigit = 6; $encSep = ''; } // 关闭自定义规则 → 默认 6 位纯数字
-	$head = $encPrefix . $encSep;
-	$headLen = strlen($head);
-	$sql_num = "select lpad((max( cast(substr(item_no, " . ($headLen + 1) . ", " . $encDigit . ") as unsigned) ) + 1), " . $encDigit . ", 0) po_num
-				from sf_item_no where item_no <> '999999'
-				and char_length(item_no) = " . ($headLen + $encDigit) . "
-				and substr(item_no, 1, " . $headLen . ") = '" . DB_escape_string($head) . "'
-				and substr(item_no, " . ($headLen + 1) . ", " . $encDigit . ") REGEXP '^[0-9]+$'";
-	$result_num = DB_query($sql_num, $db);
-	$genNo = null;
-	while ($v = DB_fetch_array($result_num)) {
-		if ($v['po_num'] !== null) $genNo = $head . $v['po_num'];
-	}
-	if ($genNo === null) $genNo = $head . str_pad('1', $encDigit, '0', STR_PAD_LEFT);
 	if (ob_get_level() > 0) { @ob_clean(); }
 	header('Content-Type: application/json; charset=utf-8');
-	echo json_encode(array('ok' => true, 'no' => $genNo, 'rule' => ($encAuto == 'Y' ? 'custom' : 'default')));
+	echo json_encode(array('ok' => ($genNo !== null && $genNo !== ''), 'no' => $genNo, 'msg' => $msg));
 	exit;
 }
 
@@ -86,30 +82,11 @@ if (isset($_POST['Save'])) {
 	$ItemNo = trim(isset($_POST['ItemNo']) ? $_POST['ItemNo'] : '');
 	$project_name = trim(isset($_POST['project_name']) ? $_POST['project_name'] : '');
 	if ($ItemNo == '') {
-		/* 读取编码规则（config 表：encod_prefix/encod_digit/encod_separator/encod_auto） */
-		$encPrefix = ''; $encDigit = 6; $encSep = ''; $encAuto = 'Y';
-		$resConf = DB_query("SELECT confname, confvalue FROM config WHERE confname IN ('encod_prefix','encod_digit','encod_separator','encod_auto')", $db);
-		while ($cf = DB_fetch_array($resConf)) {
-			if ($cf['confname'] == 'encod_prefix')         $encPrefix = $cf['confvalue'];
-			elseif ($cf['confname'] == 'encod_digit')      $encDigit  = max(1, min(12, intval($cf['confvalue'])));
-			elseif ($cf['confname'] == 'encod_separator')  $encSep    = $cf['confvalue'];
-			elseif ($cf['confname'] == 'encod_auto')       $encAuto   = $cf['confvalue'];
-		}
-		if ($encAuto == 'Y') {
-			/* 自定义规则：前缀+分隔符+流水位数（查全部匹配规则形态的料号，不限 item_use） */
-			$head = $encPrefix . $encSep;
-			$headLen = strlen($head);
-			$sql_num = "select lpad((max( cast(substr(item_no, " . ($headLen + 1) . ", " . $encDigit . ") as unsigned) ) + 1), " . $encDigit . ", 0) po_num
-						from sf_item_no where item_no <> '999999'
-						and char_length(item_no) = " . ($headLen + $encDigit) . "
-						and substr(item_no, 1, " . $headLen . ") = '" . DB_escape_string($head) . "'
-						and substr(item_no, " . ($headLen + 1) . ", " . $encDigit . ") REGEXP '^[0-9]+$'";
-			$result_num = DB_query($sql_num, $db);
-			$ItemNo = null;
-			while ($v = DB_fetch_array($result_num)) {
-				if ($v['po_num'] !== null) $ItemNo = $head . $v['po_num'];
-			}
-			if ($ItemNo === null) $ItemNo = $head . str_pad('1', $encDigit, '0', STR_PAD_LEFT);
+		/* 按规则自动生成：encoding_rule 表（段结构）+ encoding_rule.inc（含默认 6 位纯数字兜底） */
+		include ('includes/encoding_rule.inc');
+		$rule = er_load_rule($db);
+		if ($rule['status'] == 'Y' && !empty($rule['segments'])) {
+			$ItemNo = er_generate($db, $rule['segments']);
 		} else {
 			/* 默认 6 位纯数字（查全部 6 位数字料号，长度+数字校验防 8 位料号干扰） */
 			$sql_num = "select lpad((max( cast(substr(item_no, -6, 6) as unsigned) ) + 1), 6, 0) po_num
@@ -123,7 +100,6 @@ if (isset($_POST['Save'])) {
 			}
 		}
 	}
-echo $ItemNo;
 	$sql = "SELECT count(*) FROM sf_item_no
 				WHERE item_no = '" . $ItemNo . "'
 				";
@@ -179,7 +155,6 @@ echo $ItemNo;
 	so_flag, 		
 	item_no,
 	item_name,
-    item_desc,
 	units,
     item_category1,  
 	item_type,
@@ -200,7 +175,6 @@ VALUES
 		'" . $_POST['Flag1'] . "',
 		'" . $ItemNo . "',
 		'" . $_POST['item_name'] . "',
-        '" . $_POST['item_desc'] . "',
 		'" . $_POST['Units'] . "',	
         '" . $_POST['item_category1'] . "', 
 		'" . $_POST['item_type'] . "', 
@@ -225,7 +199,6 @@ VALUES
 	so_flag, 		
 	item_no,
 	item_name,
-    item_desc,
 	units,
     item_category1,  
 	item_type,
@@ -247,7 +220,6 @@ VALUES
 		'" . $_POST['Flag1'] . "',
 		'" . $ItemNo . "',
 		'" . $_POST['item_name'] . "',
-        '" . $_POST['item_desc'] . "',
 		'" . $_POST['Units'] . "',	
         '" . $_POST['item_category1'] . "', 
 		'" . $_POST['item_type'] . "', 
@@ -528,11 +500,6 @@ VALUES
 								
 							</tr>
 							<tr>
-
-								<td bgcolor="#87CEFA">规格型号：</td>
-								<td colspan="1"><input type="text" required="required" name="item_desc" 
-										value="<?= $_POST['item_desc'] ?>"><span
-										style="color:red">*</span></td>
 
 								<td bgcolor="#87CEFA">是否启用保存条件：</td>
 							
