@@ -1,0 +1,250 @@
+/* ============================================================
+ * tech.css — 工艺管理模块共享样式
+ * 风格对齐：BOM管理（BOMSetup）/ 文档工作区（DocPLM）
+ * 主色 #2196F3，圆角卡片、彩色状态标签、蓝色表头
+ * ============================================================ */
+
+/* ---------- 容器与卡片 ---------- */
+.tech-wrap{margin:0 auto;padding:10px 14px 24px;}
+.tech-card{
+  background:#fff;border:1px solid #e2e6ea;border-radius:8px;
+  box-shadow:0 1px 3px rgba(0,0,0,.06);margin-bottom:14px;overflow:hidden;
+}
+.tech-card-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 14px;border-bottom:1px solid #eef1f4;background:#fafcff;
+}
+.tech-card-head h3{margin:0;font-size:15px;color:#1f2d3d;font-weight:600;}
+.tech-card-head .head-actions{display:flex;gap:8px;align-items:center;}
+.tech-card-body{padding:14px;}
+
+/* ---------- 页面标题栏 ---------- */
+.tech-pagehead{
+  display:flex;align-items:center;gap:10px;margin:2px 0 14px;
+}
+.tech-pagehead img{width:26px;height:26px;}
+.tech-pagehead h2{margin:0;font-size:19px;color:#1f2d3d;font-weight:600;}
+
+/* ---------- 查询栏（与按钮同行，紧凑） ---------- */
+.tech-search{
+  display:flex;align-items:flex-end;flex-wrap:wrap;gap:10px 14px;
+  padding:12px 14px;background:#f7f9fc;border-bottom:1px solid #eef1f4;
+}
+.tech-field{display:flex;flex-direction:column;gap:3px;}
+.tech-field label{font-size:12px;color:#6b7785;padding-left:1px;}
+.tech-field input,.tech-field select{
+  height:32px;border:1px solid #cfd6dd;border-radius:5px;padding:0 9px;
+  font-size:13px;color:#333;background:#fff;min-width:140px;box-sizing:border-box;
+}
+.tech-field input:focus,.tech-field select:focus{outline:none;border-color:#2196F3;box-shadow:0 0 0 2px rgba(33,150,243,.15);}
+.tech-search .search-actions{display:flex;gap:8px;margin-left:auto;align-self:flex-end;}
+
+/* ---------- 按钮 ---------- */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:4px;
+  height:32px;padding:0 16px;border-radius:5px;border:1px solid transparent;
+  font-size:13px;font-weight:500;cursor:pointer;transition:all .12s;white-space:nowrap;
+  font-family:inherit;
+}
+.btn:hover{filter:brightness(.96);text-decoration:none;}
+.btn:active{transform:translateY(1px);}
+.btn-primary{background:#2196F3;color:#fff;border-color:#1e88e5;}
+.btn-primary:hover{background:#1976d2;border-color:#1976d2;color:#fff;}
+.btn-success{background:#4caf50;color:#fff;border-color:#43a047;}
+.btn-success:hover{background:#43a047;border-color:#388e3c;color:#fff;}
+.btn-default{background:#fff;color:#455a64;border-color:#cfd6dd;}
+.btn-default:hover{background:#f0f4f8;border-color:#b6c0ca;color:#37474f;}
+.btn-danger{background:#e53935;color:#fff;border-color:#d32f2f;}
+.btn-danger:hover{background:#d32f2f;border-color:#c62828;color:#fff;}
+.btn-sm{height:28px;padding:0 11px;font-size:12px;}
+.btn-link{background:none;border:none;color:#1565c0;cursor:pointer;font-size:13px;padding:2px 6px;}
+.btn-link:hover{text-decoration:underline;color:#0d47a1;}
+.btn-link.danger{color:#e53935;}
+.btn-link.danger:hover{color:#b71c1c;}
+.btn[disabled]{opacity:.5;cursor:not-allowed;}
+
+/* ---------- 表格 ---------- */
+.tech-table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;}
+.tech-table thead th{
+  background:linear-gradient(180deg,#2196F3,#1976d2);color:#fff;font-weight:600;
+  padding:9px 10px;text-align:center;white-space:nowrap;border-bottom:2px solid #1565c0;
+  position:sticky;top:0;z-index:2;
+}
+.tech-table tbody td{padding:8px 10px;border-bottom:1px solid #eef1f4;text-align:center;color:#37474f;white-space:nowrap;}
+.tech-table tbody td.left{text-align:left;}
+.tech-table tbody tr:nth-child(even){background:#fafcff;}
+.tech-table tbody tr:hover{background:#eef6ff;}
+.tech-table .row-actions{display:flex;gap:6px;justify-content:center;}
+.tech-table .empty-row td{color:#9aa5b1;padding:34px 0;text-align:center;}
+
+/* ---------- 彩色状态标签 ---------- */
+.tag{display:inline-block;padding:2px 10px;border-radius:11px;font-size:12px;font-weight:600;line-height:1.6;}
+.tag-blue{background:#e3f2fd;color:#1565c0;}
+.tag-green{background:#e8f5e9;color:#2e7d32;}
+.tag-gray{background:#eceff1;color:#607d8b;}
+.tag-orange{background:#fff3e0;color:#e65100;}
+.tag-purple{background:#f3e5f5;color:#7b1fa2;}
+.tag-red{background:#fdecea;color:#c62828;}
+
+/* ---------- 表单 ---------- */
+.tech-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 22px;}
+.tech-form .form-row{display:flex;flex-direction:column;gap:4px;}
+.tech-form .form-row.full{grid-column:1 / -1;}
+.tech-form label{font-size:12px;color:#6b7785;}
+.tech-form label .req{color:#e53935;margin-left:2px;}
+.tech-form input[type=text],.tech-form input[type=number],.tech-form input[type=password],
+.tech-form select,.tech-form textarea{
+  height:34px;border:1px solid #cfd6dd;border-radius:5px;padding:0 10px;font-size:13px;color:#333;background:#fff;
+  box-sizing:border-box;width:100%;font-family:inherit;
+}
+.tech-form textarea{height:auto;padding:8px 10px;resize:vertical;min-height:60px;}
+.tech-form input:focus,.tech-form select:focus,.tech-form textarea:focus{outline:none;border-color:#2196F3;box-shadow:0 0 0 2px rgba(33,150,243,.15);}
+.tech-form input.input-error,.tech-form select.input-error{border-color:#e53935;background:#fff6f5;}
+.tech-form .hint{font-size:11px;color:#9aa5b1;}
+.form-actions{display:flex;gap:10px;margin-top:8px;}
+
+/* ---------- Tab 页签 ---------- */
+.tech-tabs{display:flex;border-bottom:2px solid #2196F3;margin-bottom:14px;gap:4px;}
+.tech-tab{
+  padding:8px 22px;cursor:pointer;font-size:14px;color:#555;background:#f5f5f5;
+  border:1px solid #d9d9d9;border-bottom:none;border-radius:5px 5px 0 0;position:relative;top:2px;font-weight:500;
+}
+.tech-tab:hover{background:#e3f2fd;color:#1976d2;}
+.tech-tab.active{background:#2196F3;color:#fff;border-color:#2196F3;}
+.tech-tab-panel{display:none;}
+.tech-tab-panel.active{display:block;}
+
+/* ---------- 弹窗（内联 modal） ---------- */
+.tech-mask{
+  display:none;position:fixed;inset:0;background:rgba(15,23,32,.45);z-index:9999;
+  align-items:center;justify-content:center;
+}
+.tech-mask.open{display:flex;}
+.tech-modal{
+  background:#fff;border-radius:8px;width:760px;max-width:94vw;max-height:88vh;display:flex;flex-direction:column;
+  box-shadow:0 12px 40px rgba(0,0,0,.25);overflow:hidden;
+}
+.tech-modal-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #eef1f4;}
+.tech-modal-head h3{margin:0;font-size:15px;color:#1f2d3d;}
+.tech-modal-head .close{cursor:pointer;font-size:20px;color:#9aa5b1;line-height:1;border:none;background:none;}
+.tech-modal-head .close:hover{color:#e53935;}
+.tech-modal-body{padding:14px 16px;overflow:auto;flex:1;}
+.tech-modal-foot{padding:10px 16px;border-top:1px solid #eef1f4;display:flex;justify-content:flex-end;gap:10px;background:#fafcff;}
+.tech-picker-search{display:flex;gap:8px;margin-bottom:10px;}
+
+/* ---------- 提示条 ---------- */
+.tech-note{padding:9px 12px;border-radius:5px;font-size:12px;margin-bottom:10px;}
+.tech-note.blue{background:#e3f2fd;color:#1565c0;border:1px solid #bbdefb;}
+.tech-note.gray{background:#eceff1;color:#546e7a;border:1px solid #cfd8dc;}
+
+/* ---------- 关联列表小卡 ---------- */
+.tech-chip{
+  display:inline-flex;align-items:center;gap:6px;background:#eef6ff;border:1px solid #cfe3ff;
+  color:#1565c0;border-radius:14px;padding:3px 10px;font-size:12px;margin:3px;
+}
+.tech-chip .x{cursor:pointer;color:#90a4ae;font-weight:bold;}
+.tech-chip .x:hover{color:#e53935;}
+
+/* 关联明细表（下级工序等）内输入框 */
+.tech-subtable input[type=text],.tech-subtable input[type=number],.tech-subtable select{
+  height:28px;padding:0 6px;font-size:12px;border:1px solid #cfd6dd;border-radius:4px;width:100%;box-sizing:border-box;
+}
+.tech-subtable .col-idx{width:42px;color:#90a4ae;}
+
+/* ============================================================
+ * 以下为对齐 BOM管理 页面风格新增的通用布局/树/工具栏类
+ * ============================================================ */
+
+/* ---------- BOM 风格左右分栏 ---------- */
+.tech-layout{
+  display:flex;gap:10px;align-items:flex-start;
+  height:calc(100vh - 110px);min-height:420px;
+}
+.tech-left{
+  width:300px;flex:0 0 300px;background:#f7f9fc;border:1px solid #c5c5c5;
+  border-radius:4px;padding:12px;height:100%;display:flex;flex-direction:column;
+  overflow:hidden;
+}
+.tech-left-head{
+  display:flex;justify-content:space-between;align-items:center;
+  padding-bottom:10px;margin-bottom:10px;border-bottom:1px solid #d9d9d9;
+  font-size:14px;font-weight:bold;color:#333;
+}
+.tech-left-head span{font-size:14px;font-weight:bold;color:#333;}
+.tech-left-body{flex:1;overflow:auto;padding-bottom:8px;}
+.tech-right{
+  flex:1;border:1px solid #c5c5c5;border-radius:4px;padding:12px;background:#fff;
+  min-width:0;height:100%;display:flex;flex-direction:column;overflow:hidden;
+}
+
+/* ---------- 工具栏 ---------- */
+.tech-toolbar{
+  display:flex;align-items:center;gap:10px;margin-bottom:10px;
+  padding:8px;background:#f5f5f5;border:1px solid #e0e0e0;border-radius:3px;flex-wrap:wrap;
+}
+.tech-toolbar .toolbar-title{font-size:14px;font-weight:bold;color:#333;margin-right:auto;}
+.tech-toolbar .toolbar-actions{display:flex;gap:8px;align-items:center;}
+
+/* ---------- 左侧分类树（两层：分类 → 物料） ---------- */
+.tech-tree,.tech-tree ul{list-style:none;margin:0;padding:0;}
+.tech-tree{font-size:12px;line-height:22px;color:#333;user-select:none;}
+.tech-tree .cat-row,.tech-tree .item-row{
+  display:flex;align-items:center;height:24px;padding:1px 4px;
+  white-space:nowrap;cursor:pointer;border-radius:3px;
+}
+.tech-tree .cat-row{font-weight:600;color:#37474f;background:#f0f4f8;margin:2px 0;}
+.tech-tree .cat-row:hover{background:#e3f2fd;}
+.tech-tree .item-row{padding-left:18px;color:#455a64;}
+.tech-tree .item-row:hover{background:#f0f4f8;}
+.tech-tree .item-row.active{background:#cfe3ff;color:#0d47a1;font-weight:600;}
+.tech-tree .arrow{
+  width:16px;text-align:center;color:#666;font-size:11px;
+  display:inline-flex;align-items:center;justify-content:center;
+}
+.tech-tree .item-icon{
+  width:16px;height:16px;margin:0 4px 0 0;display:inline-flex;
+  align-items:center;justify-content:center;flex:0 0 auto;
+}
+.tech-tree .item-icon svg{display:block;width:16px;height:16px;}
+.tech-tree .lbl{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.tech-tree .children{display:none;padding-left:14px;}
+.tech-tree .children.open{display:block;}
+
+/* ---------- 右侧面板表格（带边框，更像 BOM 层级表） ---------- */
+.tech-panel-wrap{flex:1;overflow:auto;border:1px solid #e0e0e0;border-radius:3px;}
+.tech-panel-table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;}
+.tech-panel-table th{
+  position:sticky;top:0;z-index:2;background:#2196F3;color:#fff;font-weight:600;
+  padding:8px 10px;text-align:center;white-space:nowrap;
+  border-bottom:2px solid #1e88e5;border-right:1px solid #1e88e5;
+}
+.tech-panel-table td{
+  padding:6px 10px;text-align:center;font-size:13px;white-space:nowrap;
+  vertical-align:middle;border-right:1px solid #e0e0e0;border-bottom:1px solid #e0e0e0;
+}
+.tech-panel-table td:last-child,.tech-panel-table th:last-child{border-right:none;}
+.tech-panel-table tr:hover{background:#f1f8ff;}
+.tech-panel-table td.left{text-align:left;}
+.tech-panel-table .empty-row td{color:#9aa5b1;padding:34px 0;text-align:center;border-right:none;}
+
+/* ---------- 小尺寸编辑表（工序行内编辑） ---------- */
+.tech-edit-table td{padding:4px 6px;}
+.tech-edit-table input[type=number]{width:64px;text-align:center;}
+.tech-edit-table input[type=text]{width:100%;min-width:60px;}
+.tech-edit-table select{width:100%;max-width:100%;min-width:240px;}
+.tech-edit-table .seq-input{width:48px !important;text-align:center;}
+
+/* ---------- 页面空状态提示 ---------- */
+.tech-empty-tip{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  color:#999;font-size:13px;line-height:1.8;text-align:center;
+}
+.tech-empty-tip:before{content:"📋";font-size:32px;display:block;margin-bottom:8px;opacity:.35;}
+
+/* ---------- 右侧头部信息条 ---------- */
+.tech-right-head{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #eef1f4;
+}
+.tech-right-head h3{margin:0;font-size:15px;color:#1f2d3d;font-weight:600;}
+.tech-right-head .meta{display:flex;gap:12px;align-items:center;font-size:13px;color:#666;}
